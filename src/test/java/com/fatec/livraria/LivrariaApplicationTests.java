@@ -7,7 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 class LivrariaApplicationTests {
 
 	@Test
-	void contextLoads() {
+	void contextLoads() {  //verifica se a aplicação sobe
 	}
 
 }
