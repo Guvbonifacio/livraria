@@ -1,6 +1,15 @@
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 
 <h1 th:text="${titulo}">texto que aparece só na prévia</h1>
 <ul>
     <li th:each="categoria : ${categorias}" th:text="${categoria}">exemplo</li>
 </ul>
+<table>
+    <tr th:each="livro : ${livros}">
+        <td th:text="${livro.titulo}">Exemplo</td>
+        <td th:text="${livro.autor}">Exemplo</td>
+        <td th:text="${livro.categoria}">Exemplo</td>
+        <td th:text="${livro.preco}">Exemplo</td>
+    </tr>
+</table>
