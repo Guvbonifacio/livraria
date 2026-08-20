@@ -26,4 +26,9 @@ public class HomeController {
         model.addAttribute("livros", livros);
         return "home";        
     }
+
+    @GetMapping("/carrinho")
+    public String carrinho() {
+        return "carrinho";
+    }
 }
