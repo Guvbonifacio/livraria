@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 
-<!-- Fragmento 1: CABECA -->
 <head th:fragment="cabeca">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,9 +9,10 @@
     <link th:href="@{/css/estilo.css}" rel="stylesheet">
 </head>
 
-<body>
+<!-- O d-flex flex-column min-vh-100 faz o body ocupar 100% da altura da tela -->
+<body class="bg-light d-flex flex-column min-vh-100">
 
-<!-- Fragmento 2: MENU -->
+<!-- Menu Superior -->
 <nav th:fragment="menu" class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
     <div class="container">
         <a class="navbar-brand" th:href="@{/}">
@@ -30,8 +30,8 @@
     </div>
 </nav>
 
-<!-- Fragmento 3: RODAPE -->
-<footer th:fragment="rodape" class="bg-primary text-white text-center py-3 mt-5">
+<!-- O mt-auto empurra o rodapé para o final da página -->
+<footer th:fragment="rodape" class="bg-primary text-white text-center py-3 mt-auto">
     <div class="container">
         Livraria Estante do Saber — Projeto LES · FATEC Mogi das Cruzes · 2026 · Desenvolvido por Gustavo Vinícius
     </div>

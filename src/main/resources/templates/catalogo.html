@@ -3,7 +3,7 @@
 
 <head th:replace="~{fragmentos/layout :: cabeca}"></head>
 
-<body>
+<body class="bg-light d-flex flex-column min-vh-100">
 
 <nav th:replace="~{fragmentos/layout :: menu}"></nav>
 
@@ -19,12 +19,12 @@
         <div class="col-md-2">
             <select class="form-select">
                 <option>Todas as categorias</option>
-                <option>Autoajuda</option>
+                <!--<option>Autoajuda</option> 
                 <option>Fantasia</option>
                 <option>Ficção</option>
                 <option>Literatura Clássica</option>
-                <option>Teste última linha</option>
-                <!--<option th:each="categoria : ${categorias}" th:text="${categoria}">Categoria</option>-->
+                <option>Teste última linha</option> -->
+                <option th:each="categoria : ${categorias}" th:text="${categoria}">Categoria</option>
                 
             </select>
         </div>
