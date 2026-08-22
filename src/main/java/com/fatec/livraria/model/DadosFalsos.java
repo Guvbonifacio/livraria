@@ -77,8 +77,8 @@ public class DadosFalsos {
 
     cliente.getEnderecos().add(new Endereco("Casa", "Casa", "Rua das Flores", "100", "Centro", "08700-000", "Mogi das Cruzes", "SP"));
     cliente.getEnderecos().add(new Endereco("Trabalho", "Apartamento", "Av. Paulista", "1500", "Bela Vista", "01310-100", "São Paulo", "SP"));
-    cliente.getCartoes().add(new CartaoCredito("**** **** **** 1234", "ANA MARIA SILVA", "Mastercard", "123", true));
-    cliente.getCartoes().add(new CartaoCredito("**** **** **** 5678", "ANA MARIA SILVA", "Visa", "456", false));
+    cliente.getCartoes().add(new CartaoCredito(1L,"**** **** **** 1234", "ANA MARIA SILVA", "Mastercard", "123", true));
+    cliente.getCartoes().add(new CartaoCredito(2L,"**** **** **** 5678", "ANA MARIA SILVA", "Visa", "456", false));
 
     return cliente;
 }

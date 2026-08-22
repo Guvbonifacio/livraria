@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragmentos/layout :: cabeca}"></head>
+
+<body class="bg-light d-flex flex-column min-vh-100">
+
+<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+
+<main class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            
+            <div class="alert alert-success p-4 mb-4 shadow-sm rounded-3">
+                <h1 class="display-5 fw-bold text-success"> Pedido Realizado com Sucesso!</h1>
+                <p class="fs-5 mb-0">Obrigado pela compra, <strong th:text="${pedido.cliente.nome}">Cliente</strong>!</p>
+            </div>
+
+            <div class="card shadow-sm mb-4 text-start">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                    <h5 class="m-0 fw-bold">Pedido <span class="text-primary" th:text="'#' + ${pedido.id}">#1001</span></h5>
+                    <span class="badge bg-warning text-dark fs-6" th:text="${pedido.status}">EM PROCESSAMENTO</span>
+                </div>
+                
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3">Itens Comprados:</h6>
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item d-flex justify-content-between align-items-center" th:each="item : ${pedido.itens}">
+                            <div>
+                                <strong th:text="${item.livro.titulo}">Título do Livro</strong><br>
+                                <small class="text-muted" th:text="${item.quantidade} + 'x R$ ' + ${#numbers.formatDecimal(item.livro.preco, 1, 'POINT', 2, 'COMMA')}">1x R$ 0,00</small>
+                            </div>
+                            <span class="fw-bold" th:text="'R$ ' + ${#numbers.formatDecimal(item.subtotal, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
+                        </li>
+                    </ul>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Subtotal:</span>
+                        <span th:text="'R$ ' + ${#numbers.formatDecimal(subtotal, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Frete:</span>
+                        <span th:text="'R$ ' + ${#numbers.formatDecimal(pedido.valorFrete, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
+                    </div>
+                    <div class="d-flex justify-content-between fw-bold fs-5 text-success mt-2">
+                        <span>Total Pago:</span>
+                        <span th:text="'R$ ' + ${#numbers.formatDecimal(pedido.valorTotal, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3">
+                <a href="/pedidos" class="btn btn-primary btn-lg"> Ver Meus Pedidos</a>
+                <a href="/" class="btn btn-outline-secondary btn-lg"> Voltar à Loja</a>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragmentos/layout :: rodape}"></footer>
+
+</body>
+</html>

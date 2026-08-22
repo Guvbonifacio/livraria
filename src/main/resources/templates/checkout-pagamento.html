@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragmentos/layout :: cabeca}"></head>
+
+<body class="bg-light d-flex flex-column min-vh-100">
+
+<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+
+<main class="container my-4">
+    <!-- Indicador de Progresso do Checkout -->
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <span class="badge bg-success fs-6 p-2 me-2">✓ 1. Endereço</span> →
+            <span class="badge bg-primary fs-6 p-2 ms-2 me-2">2. Pagamento</span> →
+            <span class="badge bg-secondary fs-6 p-2 ms-2">3. Confirmação</span>
+        </div>
+    </div>
+
+    <h2 class="mb-4">Forma de Pagamento</h2>
+
+    <form th:action="@{/carrinho/checkout/pagamento}" method="POST">
+        <div class="row g-4">
+            
+            <div class="col-md-8">
+                <!-- 1. Cupons de Desconto / Troca (RF0037) -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="m-0 fw-bold"> Cupons de Desconto / Troca</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="cupomDesconto" placeholder="Digite o código do cupom">
+                            <button class="btn btn-outline-primary" type="button">Aplicar Cupom</button>
+                        </div>
+                        <small class="text-muted mt-1 d-block">Você pode utilizar cupons promocionais ou cupons de trocas anteriores.</small>
+                    </div>
+                </div>
+
+                <!-- 2. Pagamento com Cartão de Crédito (RF0027/RF0036) -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="m-0 fw-bold"> Cartões de Crédito</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small">Selecione o cartão principal para cobrança. É possível dividir o valor em 2 cartões (RF0036).</p>
+                        
+                        <!-- Cartão 1 -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cartão Principal:</label>
+                            <select class="form-select" name="cartaoId1">
+                                <option th:each="c : ${cartoes}" th:value="${c.id}" 
+                                        th:text="${c.bandeira} + ' terminado em ' + ${c.numero} + (${c.preferencial} ? ' (Preferencial)' : '')">
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Opção de 2º Cartão -->
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="usarDoisCartoes" data-bs-toggle="collapse" data-bs-target="#divSegundoCartao">
+                            <label class="form-check-label" for="usarDoisCartoes">Pagar utilizando 2 cartões de crédito</label>
+                        </div>
+
+                        <div class="collapse border p-3 rounded bg-light" id="divSegundoCartao">
+                            <label class="form-label fw-bold">Segundo Cartão:</label>
+                            <select class="form-select mb-2" name="cartaoId2">
+                                <option value="">Selecione o 2º cartão...</option>
+                                <option th:each="c : ${cartoes}" th:value="${c.id}" th:text="${c.bandeira} + ' terminado em ' + ${c.numero}"></option>
+                            </select>
+                            <label class="form-label small">Valor a ser cobrado no 2º cartão (R$):</label>
+                            <input type="number" class="form-control form-control-sm" name="valorCartao2" placeholder="Ex: 50.00" step="0.01">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumo e Confirmação -->
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="m-0 fw-bold">Resumo do Pedido</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal dos Livros:</span>
+                            <span th:text="'R$ ' + ${#numbers.formatDecimal(subtotal, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Frete:</span>
+                            <span th:text="'R$ ' + ${#numbers.formatDecimal(frete, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-3">
+                            <strong class="fs-5">Total a Pagar:</strong>
+                            <strong class="fs-5 text-success" th:text="'R$ ' + ${#numbers.formatDecimal(totalGeral, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100 btn-lg">
+                            Finalizar e Confirmar Pedido 
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</main>
+
+<footer th:replace="~{fragmentos/layout :: rodape}"></footer>
+
+</body>
+</html>

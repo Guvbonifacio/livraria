@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragmentos/layout :: cabeca}"></head>
+
+<body class="bg-light d-flex flex-column min-vh-100">
+
+<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+
+<main class="container my-4">
+    <!-- Indicador de Progresso do Checkout -->
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <span class="badge bg-primary fs-6 p-2 me-2">1. Endereço</span> →
+            <span class="badge bg-secondary fs-6 p-2 ms-2 me-2">2. Pagamento</span> →
+            <span class="badge bg-secondary fs-6 p-2 ms-2">3. Confirmação</span>
+        </div>
+    </div>
+
+    <h2 class="mb-4">Selecione o Endereço de Entrega</h2>
+
+    <form th:action="@{/carrinho/checkout/endereco}" method="POST">
+        <div class="row g-4">
+            
+            <!-- Lista de Endereços Salvos -->
+            <div class="col-md-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="m-0 fw-bold">Seus Endereços Cadastrados</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3 p-3 border rounded" th:each="end, stat : ${enderecos}">
+                                <input class="form-check-input" type="radio" name="enderecoId" 
+                                        th:id="'end-' + ${stat.index}" th:value="${stat.index}" th:checked="${stat.first}">
+                                <label class="form-check-label ms-2" th:for="'end-' + ${stat.index}">
+                                    <strong th:text="${end.logradouro} + ', ' + ${end.numero}">Rua Exemplo, 123</strong><br>
+                                    <span class="text-muted" th:text="${end.bairro} + ' - ' + ${end.cidade} + '/' + ${end.estado}">Bairro - Cidade/UF</span><br>
+                                    <small class="text-secondary" th:text="'CEP: ' + ${end.cep}">CEP 00000-000</small>
+                                </label>
+                        </div>
+
+                        <!-- Botão para Cadastrar Novo Endereço no Checkout (RF0035) -->
+                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" data-bs-toggle="collapse" data-bs-target="#novoEnderecoForm">
+                             Usar um Novo Endereço
+                        </button>
+
+                        <!-- Formulário Colapsável para Novo Endereço (RF0035) -->
+                        <div class="collapse mt-3 border p-3 rounded bg-white" id="novoEnderecoForm">
+                            <h6>Novo Endereço de Entrega</h6>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Apelido (ex: Casa da Praia)">
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control form-control-sm" placeholder="CEP">
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Logradouro / Rua">
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Número">
+                                </div>
+                                <div class="col-12 form-check ms-2 mt-2">
+                                    <!-- Opção RF0035: Salvar no perfil para compras futuras -->
+                                    <input type="checkbox" class="form-check-input" id="salvarPerfil" name="salvarPerfil" value="true">
+                                    <label class="form-check-label small" for="salvarPerfil">Salvar este novo endereço no meu perfil (RF0035)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumo do Frete e Botão Avançar -->
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="m-0 fw-bold">Resumo da Entrega</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Frete Calculado:</span>
+                            <strong class="text-primary" th:text="'R$ ' + ${#numbers.formatDecimal(frete, 1, 'POINT', 2, 'COMMA')}">R$ 15,00</strong>
+                        </div>
+                        <p class="text-muted small">Prazo estimado: 3 a 5 dias úteis após a aprovação.</p>
+                        <hr>
+                        <button type="submit" class="btn btn-success w-100 btn-lg">
+                            Ir para o Pagamento →
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</main>
+
+<footer th:replace="~{fragmentos/layout :: rodape}"></footer>
+
+</body>
+</html>

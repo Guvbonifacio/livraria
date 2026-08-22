@@ -1,18 +1,28 @@
 package com.fatec.livraria.model;
 
 public class CartaoCredito {
+    private Long id;
     private String numero;
     private String nomeImpresso;
     private String bandeira;
     private String codigoSeguranca;
     private boolean preferencial; // -- RF0027
 
-    public CartaoCredito(String numero, String nomeImpresso, String bandeira, String codigoSeguranca, boolean preferencial) {
+    public CartaoCredito(Long id,String numero, String nomeImpresso, String bandeira, String codigoSeguranca, boolean preferencial) {
+        this.id = id;
         this.numero = numero;
         this.nomeImpresso = nomeImpresso;
         this.bandeira = bandeira;
         this.codigoSeguranca = codigoSeguranca;
         this.preferencial = preferencial;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getNumero() {
