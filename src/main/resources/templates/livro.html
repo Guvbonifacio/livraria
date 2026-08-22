@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragmentos/layout :: cabeca}"></head>
+
+<body class="bg-light">
+
+<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+
+<main class="container my-5" th:if="${livro != null}">
+    <div class="row bg-white p-4 rounded shadow-sm justify-content-center">
+        
+        <div class="col-md-8">
+            <h1 class="fw-bold mb-2" th:text="${livro.titulo}">Título do Livro</h1>
+            <p class="text-muted fs-5">por <strong th:text="${livro.autor}">Autor</strong></p>
+            
+            <span class="badge bg-secondary mb-4" th:text="${livro.categoria}">Categoria</span>
+
+            <div class="card p-3 my-3 bg-light border-0">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small d-block">Preço:</span>
+                        <h2 class="text-success fw-bold m-0" th:text="'R$ ' + ${#numbers.formatDecimal(livro.preco, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</h2>
+                    </div>
+
+                    <form action="/carrinho/adicionar" method="POST">
+                        <input type="hidden" name="livroId" th:value="${livro.id}">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            Adicionar ao Carrinho
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <a th:href="@{/}" class="btn btn-outline-secondary">← Voltar ao Catálogo</a>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<!-- Caso o ID do livro não seja encontrado -->
+<main class="container text-center my-5" th:if="${livro == null}">
+    <div class="alert alert-danger">
+        <h4>Livro não encontrado!</h4>
+        <a th:href="@{/}" class="btn btn-primary mt-3">Voltar ao Catálogo</a>
+    </div>
+</main>
+
+<footer th:replace="~{fragmentos/layout :: rodape}"></footer>
+
+</body>
+</html>

@@ -13,13 +13,19 @@
 
     <!-- Busca e filtro. Ainda em protótipo não filtram nada. -->
     <form class="row g-2 mb-4">
-        <div class="col-md-6">
+        <div class="col-md-8">
             <input type="text" class="form-control" placeholder="Buscar por título, autor ou ISBN">
         </div>
-        <div class="col-md-4">
+        <div class="col-md-2">
             <select class="form-select">
                 <option>Todas as categorias</option>
-                <option th:each="categoria : ${categorias}" th:text="${categoria}">Categoria</option>
+                <option>Autoajuda</option>
+                <option>Fantasia</option>
+                <option>Ficção</option>
+                <option>Literatura Clássica</option>
+                <option>Teste última linha</option>
+                <!--<option th:each="categoria : ${categorias}" th:text="${categoria}">Categoria</option>-->
+                
             </select>
         </div>
         <div class="col-md-2">
@@ -35,8 +41,8 @@
     </div>
 
     <!-- Um cartão por livro -->
-    <div class="row">
-        <div class="col-md-4 mb-4" th:each="livro : ${livros}">
+    <div class="row row-cols-2">
+        <div class="col-md-3 mb-3" th:each="livro : ${livros}">
             <div class="card h-100">
                 <div class="bg-secondary text-white d-flex align-items-center justify-content-center"
                      style="height: 180px;">
@@ -48,12 +54,12 @@
                     <span class="badge bg-light text-dark mb-2 align-self-start"
                           th:text="${livro.categoria}">Categoria</span>
                     <p class="h5 text-success"
-                       th:text="'R$ ' + ${#numbers.formatDecimal(livro.preco, 1, 'POINT', 2, 'COMMA')}"> <!-- Converte a forma decimal
-                       para , formato brasileiro. RNF 0044 -->
+                       th:text="'R$ ' + ${#numbers.formatDecimal(livro.preco, 1, 'POINT', 2, 'COMMA')}"> <!-- altera o formato de 
+                       exibicao padrao. Colora cifrão e virgula no lugar do ponto. RNF 0044 -->
                         R$ 0,00
                     </p>
                     <a class="btn btn-outline-primary mt-auto"
-                       th:href="@{/livro/{id}(id=${livro.id})}">Ver detalhes</a>
+                       th:href="@{/livro/{id}(id=${livro.id})}">Ver detalhes</a> <!-- Cria URL a partir do id do livro -->
                 </div>
             </div>
         </div>

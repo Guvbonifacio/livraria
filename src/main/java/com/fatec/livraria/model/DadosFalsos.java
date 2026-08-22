@@ -17,9 +17,9 @@ public class DadosFalsos {
 
     public static Livro buscarLivroPorId(Long id) {
         return listaDeLivros().stream()//percorre a lista e devolver o primeiro que tiver o id procurado
-                .filter(livro -> livro.getId().equals(id))
-                .findFirst()
-                .orElse(null);
+                .filter(livro -> livro.getId().equals(id)) // filtra a lista e mantem apenas o com id correspondente
+                .findFirst() //retorno o primeiro elemento encontrado caso exista
+                .orElse(null); //retorno caso nada seja encontrado
     }
 
     public static List<String> categorias() {
