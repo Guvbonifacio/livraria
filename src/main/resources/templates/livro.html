@@ -3,17 +3,20 @@
 
 <head th:replace="~{fragmentos/layout :: cabeca}"></head>
 
-<body class="bg-light d-flex flex-column min-vh-100"> 
+<body class="bg-light d-flex flex-column min-vh-100">
 
 <nav th:replace="~{fragmentos/layout :: menu}"></nav>
 
 <main class="container my-5" th:if="${livro != null}">
     <div class="row bg-white p-4 rounded shadow-sm">
         
-        <!-- Coluna da Esquerda: Capa, Preço, Estoque e Botão -->
+        <!-- Coluna da Esquerda: Caixa Cinza Fixa -->
         <div class="col-md-4 text-center border-end pe-md-4">
-            <img th:src="${livro.imagemUrl}" class="img-fluid rounded mb-3 shadow-sm" alt="Capa do Livro" style="max-height: 380px;">
-            
+            <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded mb-3 shadow-sm mx-auto"
+                 style="height: 300px; max-width: 220px;">
+                <span class="fs-4">Capa</span>
+            </div>
+
             <h2 class="text-success fw-bold my-2" th:text="'R$ ' + ${#numbers.formatDecimal(livro.preco, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</h2>
             
             <p class="text-muted small mb-3">
@@ -38,7 +41,7 @@
             </div>
         </div>
 
-        <!-- Coluna da Direita: Informações Detalhadas (RN0011) -->
+        <!-- Coluna da Direita: Ficha Técnica Completa (RN0011) -->
         <div class="col-md-8 ps-md-4 mt-4 mt-md-0">
             <h1 class="fw-bold mb-1" th:text="${livro.titulo}">Título do Livro</h1>
             <p class="text-muted fs-5 mb-2">por <strong th:text="${livro.autor}">Autor</strong></p>
@@ -47,7 +50,7 @@
             <h5 class="fw-bold text-primary border-bottom pb-2">Sinopse</h5>
             <p class="text-secondary lh-base" th:text="${livro.sinopse}">Descrição detalhada do livro...</p>
 
-            <h5 class="fw-bold text-primary border-bottom pb-2 mt-4"></h5>
+            <h5 class="fw-bold text-primary border-bottom pb-2 mt-4">Ficha Técnica</h5>
             <div class="row g-2 text-sm">
                 <div class="col-6"><strong>Editora:</strong> <span th:text="${livro.editora}"></span></div>
                 <div class="col-6"><strong>Edição:</strong> <span th:text="${livro.edicao}"></span></div>
@@ -61,7 +64,6 @@
     </div>
 </main>
 
-<!-- Caso o ID do livro não seja encontrado -->
 <main class="container text-center my-5" th:if="${livro == null}">
     <div class="alert alert-danger shadow-sm">
         <h4>Livro não encontrado!</h4>

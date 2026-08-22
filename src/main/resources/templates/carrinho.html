@@ -1,17 +1,100 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 
-<head th:replace="~{fragmentos/layout :: cabeca}">
-    <title>Livraria Estante do Saber</title>
-</head>
+<head th:replace="~{fragmentos/layout :: cabeca}"></head>
 
-<body>
+<body class="bg-light d-flex flex-column min-vh-100">
 
-    <div th:replace="~{fragmentos/layout :: menu}"></div>
+<nav th:replace="~{fragmentos/layout :: menu}"></nav>
 
-    <h1>Carrinho</h1>
+<main class="container my-4">
+    <h2 class="mb-4">Carrinho de Compras</h2>
 
-    <div th:replace="~{fragmentos/layout :: rodape}"></div>
+    <!-- Alerta RNF0042: Apresentar itens retirados do carrinho por tempo expirado -->
+    <div class="alert alert-warning border-warning shadow-sm mb-4" th:if="${!#lists.isEmpty(itensExpirados)}">
+        <h5 class="alert-heading fw-bold"> Atenção: Itens removidos do carrinho</h5>
+        <p class="mb-2 small">
+            Os seguintes produtos atingiram o tempo limite de reserva no estoque e foram removidos do seu carrinho. 
+        </p>
+        <ul class="mb-0 ps-3">
+            <li th:each="expirado : ${itensExpirados}">
+                <strong th:text="${expirado.livro.titulo}">Título</strong> - 
+                <span class="text-muted" th:text="${expirado.quantidade} + ' un'">1 un</span>
+                <span class="badge bg-secondary ms-2">Tempo Esgotado</span>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Tabela do Carrinho Principal -->
+    <div class="card shadow-sm mb-4" th:if="${!#lists.isEmpty(itens)}">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Livro</th>
+                            <th class="text-center">Preço Unitário</th>
+                            <th class="text-center" style="width: 130px;">Quantidade (RF0032)</th>
+                            <th class="text-end">Subtotal</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="item : ${itens}">
+                            <td>
+                                <strong class="d-block" th:text="${item.livro.titulo}">Título do Livro</strong>
+                                <small class="text-muted" th:text="'por ' + ${item.livro.autor}">Autor</small>
+                            </td>
+                            <td class="text-center" th:text="'R$ ' + ${#numbers.formatDecimal(item.livro.preco, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                            <td class="text-center">
+                                <!-- Edição de Quantidade no Carrinho (RF0032) -->
+                                <form action="/carrinho/atualizar" method="POST" class="d-flex align-items-center justify-content-center">
+                                    <input type="hidden" name="livroId" th:value="${item.livro.id}">
+                                    <input type="number" name="quantidade" th:value="${item.quantidade}" min="1" th:max="${item.livro.estoque}" class="form-control form-control-sm text-center" style="width: 70px;">
+                                </form>
+                            </td>
+                            <td class="text-end fw-bold text-success" th:text="'R$ ' + ${#numbers.formatDecimal(item.subtotal, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                            <td class="text-center">
+                                <form action="/carrinho/remover" method="POST">
+                                    <input type="hidden" name="livroId" th:value="${item.livro.id}">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Remover item">
+                                         Remover
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Rodapé do Card com o Total Geral e Botão de Finalizar -->
+        <div class="card-footer bg-white p-3 d-flex justify-content-between align-items-center">
+            <div>
+                <a th:href="@{/}" class="btn btn-outline-secondary">← Continuar Comprando</a>
+            </div>
+            <div class="text-end">
+                <span class="text-muted small d-block">Valor Total dos Produtos:</span>
+                <h3 class="text-success fw-bold m-0 mb-2" th:text="'R$ ' + ${#numbers.formatDecimal(totalGeral, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</h3>
+                
+                <a th:href="@{/checkout}" class="btn btn-primary btn-lg">
+                     Finalizar Compra
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mensagem de Carrinho Vazio -->
+    <div class="card text-center p-5 shadow-sm" th:if="${#lists.isEmpty(itens)}">
+        <h4>Seu carrinho está vazio!</h4>
+        <p class="text-muted">Explore nosso catálogo e adicione alguns livros para iniciar sua compra.</p>
+        <div>
+            <a th:href="@{/}" class="btn btn-primary mt-2">Ir para o Catálogo</a>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragmentos/layout :: rodape}"></footer>
 
 </body>
 </html>

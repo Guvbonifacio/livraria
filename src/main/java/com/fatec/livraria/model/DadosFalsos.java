@@ -6,8 +6,7 @@ public class DadosFalsos {
 
     public static List<Livro> listaDeLivros() {
         return List.of(
-            new Livro(1L, "O Hobbit", "J.R.R. Tolkien", "Fantasia", 1937, 
-                      "HarperCollins", "1ª Edição", "978-8533613379", 336, 
+            new Livro(1L, "O Hobbit", "J.R.R. Tolkien", "Fantasia", 1937,"HarperCollins", "1ª Edição", "978-8533613379", 336, 
                       "Bilbo Bolseiro é um hobbit de vida confortável. Sua pacatez é interrompida quando Gandalf e 13 anões surgem em sua porta para uma jornada perigosa.", 
                       "20.8 x 13.6 x 2.2 cm", 49.90, 15, "https://via.placeholder.com/300x400"),
 
@@ -72,4 +71,36 @@ public class DadosFalsos {
     public static String nomeClienteAtual() {
         return "Maria Silva";
     }
+
+    public static Cliente clienteExemplo(Long id) {
+    Cliente cliente = new Cliente(1L, "Ana Maria", "Feminino", "1995-05-20", "123.456.789-00", "(11) 98765-4321", "anamaria@email.com", "Senha@123");
+
+    cliente.getEnderecos().add(new Endereco("Casa", "Casa", "Rua das Flores", "100", "Centro", "08700-000", "Mogi das Cruzes", "SP"));
+    cliente.getEnderecos().add(new Endereco("Trabalho", "Apartamento", "Av. Paulista", "1500", "Bela Vista", "01310-100", "São Paulo", "SP"));
+    cliente.getCartoes().add(new CartaoCredito("**** **** **** 1234", "ANA MARIA SILVA", "Mastercard", "123", true));
+    cliente.getCartoes().add(new CartaoCredito("**** **** **** 5678", "ANA MARIA SILVA", "Visa", "456", false));
+
+    return cliente;
+}
+
+// Método que simula os itens atualmente no carrinho de compras
+public static List<ItemCarrinho> carrinhoExemplo() {
+    List<Livro> livros = listaDeLivros();
+    
+    // Adiciona O Hobbit (2 unidades) e Duna (1 unidade)
+    return List.of(
+        new ItemCarrinho(livros.get(0), 2),
+        new ItemCarrinho(livros.get(1), 1)
+    );
+}
+
+// Método que simula itens removidos por expiração de tempo no estoque (RNF0042)
+public static List<ItemCarrinho> itensExpiradosExemplo() {
+    List<Livro> livros = listaDeLivros();
+    
+    // Simula que 1984 expirou e foi removido do carrinho
+    return List.of(
+        new ItemCarrinho(livros.get(4), 1)
+    );
+}
 }
