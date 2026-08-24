@@ -10,7 +10,7 @@
 <main class="container my-5" th:if="${livro != null}">
     <div class="row bg-white p-4 rounded shadow-sm">
         
-        <!-- Coluna da Esquerda: Caixa Cinza Fixa -->
+        <!-- Coluna da esquerda: Caixa Cinza Fixa -->
         <div class="col-md-4 text-center border-end pe-md-4">
             <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded mb-3 shadow-sm mx-auto"
                  style="height: 300px; max-width: 220px;">
@@ -28,16 +28,17 @@
                 
                 <div class="mb-3 d-flex align-items-center justify-content-center">
                     <label for="quantidade" class="me-2 fw-semibold">Qtd:</label>
-                    <input type="number" id="quantidade" name="quantidade" value="1" min="1" th:max="${livro.estoque}" class="form-control text-center" style="width: 80px;">
+                    <input type="number" id="quantidade" name="quantidade" value="1" min="1" th:max="${livro.estoque}" 
+                    class="form-control text-center" style="width: 80px;"> <!-- Limita a qtd ao maximo em estoque -->
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-lg w-100">
-                    🛒 Adicionar ao Carrinho
+                     Adicionar ao Carrinho
                 </button>
             </form>
 
             <div class="mt-4">
-                <a th:href="@{/}" class="btn btn-outline-secondary w-100">← Voltar ao Catálogo</a>
+                <a th:href="@{/}" class="btn btn-outline-secondary w-100">Voltar ao Catálogo</a>
             </div>
         </div>
 
@@ -45,6 +46,7 @@
         <div class="col-md-8 ps-md-4 mt-4 mt-md-0">
             <h1 class="fw-bold mb-1" th:text="${livro.titulo}">Título do Livro</h1>
             <p class="text-muted fs-5 mb-2">por <strong th:text="${livro.autor}">Autor</strong></p>
+            <span class= th:text="${livro.categoria}">Categoria:</span>
             <span class="badge bg-secondary mb-4" th:text="${livro.categoria}">Categoria</span>
 
             <h5 class="fw-bold text-primary border-bottom pb-2">Sinopse</h5>

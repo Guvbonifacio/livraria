@@ -43,14 +43,14 @@
                         <h5 class="m-0 fw-bold"> Cartões de Crédito</h5>
                     </div>
                     <div class="card-body">
-                        <p class="text-muted small">Selecione o cartão principal para cobrança. É possível dividir o valor em 2 cartões (RF0036).</p>
+                        <p class="text-muted small">Selecione o cartão principal para cobrança. É possível dividir o valor em 2 cartões</p>
                         
                         <!-- Cartão 1 -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Cartão Principal:</label>
                             <select class="form-select" name="cartaoId1">
                                 <option th:each="c : ${cartoes}" th:value="${c.id}" 
-                                        th:text="${c.bandeira} + ' terminado em ' + ${c.numero} + (${c.preferencial} ? ' (Preferencial)' : '')">
+                                        th:text="${c.bandeira} + ' terminado em ' + ${c.numero} + (${c.preferencial} ? ' (Cartão principal)' : '')">
                                 </option>
                             </select>
                         </div>
