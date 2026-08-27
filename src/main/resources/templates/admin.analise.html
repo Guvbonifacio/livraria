@@ -1,0 +1,150 @@
+<div class="card shadow-sm">
+
+    <div class="card-header">
+        <strong>Vendas por categoria</strong>
+    </div>
+
+    <div class="card-body">
+
+        <div style="height: 430px;">
+            <canvas id="graficoVendas"></canvas>
+        </div>
+
+    </div>
+
+</div>
+
+<div th:replace="~{fragmentos/layout :: scripts}"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+    const canvas = document.getElementById("graficoVendas");
+
+    const dadosCategorias = {
+
+        "Fantasia": [320, 460, 390, 620, 750],
+
+        "Ficção": [280, 350, 510, 480, 690],
+
+        "Literatura Clássica": [180, 260, 240, 340, 420],
+
+        "Autoajuda": [220, 310, 290, 450, 520]
+
+    };
+
+    const etiquetas = [
+        "01/08",
+        "08/08",
+        "15/08",
+        "22/08",
+        "29/08"
+    ];
+
+    let grafico = new Chart(canvas, {
+
+        type: "line",
+
+        data: {
+
+            labels: etiquetas,
+
+            datasets: [
+                {
+                    label: "Fantasia",
+                    data: dadosCategorias["Fantasia"],
+                    borderWidth: 3,
+                    tension: 0.3
+                },
+                {
+                    label: "Ficção",
+                    data: dadosCategorias["Ficção"],
+                    borderWidth: 3,
+                    tension: 0.3
+                },
+                {
+                    label: "Literatura Clássica",
+                    data: dadosCategorias["Literatura Clássica"],
+                    borderWidth: 3,
+                    tension: 0.3
+                },
+                {
+                    label: "Autoajuda",
+                    data: dadosCategorias["Autoajuda"],
+                    borderWidth: 3,
+                    tension: 0.3
+                }
+            ]
+
+        },
+
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            plugins: {
+
+                legend: {
+                    position: "bottom"
+                },
+
+                tooltip: {
+
+                    callbacks: {
+
+                        label: function(context) {
+
+                            const valor = context.parsed.y;
+
+                            return context.dataset.label
+                                + ": "
+                                + valor.toLocaleString(
+                                    "pt-BR",
+                                    {
+                                        style: "currency",
+                                        currency: "BRL"
+                                    }
+                                );
+
+                        }
+
+                    }
+
+                }
+
+            },
+
+            scales: {
+
+                y: {
+
+                    beginAtZero: true,
+
+                    ticks: {
+
+                        callback: function(valor) {
+
+                            return valor.toLocaleString(
+                                "pt-BR",
+                                {
+                                    style: "currency",
+                                    currency: "BRL"
+                                }
+                            );
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    });
+
+</script>

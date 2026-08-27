@@ -1,4 +1,103 @@
-<a class="nav-link d-inline text-warning me-3"
-   th:href="@{/admin}">
-    Administração
-</a>
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragmentos/layout :: cabeca}"></head>
+
+<body class="bg-light d-flex flex-column min-vh-100">
+
+    <nav th:replace="~{fragmentos/layout :: menu}"></nav>
+
+    <main class="container my-5">
+
+        <!-- Cabeçalho -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1>Painel Administrativo</h1>
+                <p class="text-muted mb-0">
+                    Gerencie as principais áreas da Livraria Estante do Saber.
+                </p>
+            </div>
+            <span class="badge bg-warning text-dark">Administração</span>
+        </div>
+
+        <!-- Cards -->
+        <div class="row g-4">
+
+            <!-- CLIENTES -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h2 class="h4">Clientes</h2>
+                        <p class="text-muted">
+                            Consulte clientes cadastrados e visualize seus dados, endereços e cartões.
+                        </p>
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                        <a th:href="@{/admin/clientes}" class="btn btn-primary w-100">
+                            Gerenciar clientes
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PEDIDOS -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h2 class="h4">Pedidos</h2>
+                        <p class="text-muted">
+                            Consulte pedidos, filtre por período e acompanhe o andamento das vendas.
+                        </p>
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                        <a th:href="@{/admin/pedidos}" class="btn btn-primary w-100">
+                            Gerenciar pedidos
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TROCAS -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h2 class="h4">Trocas</h2>
+                        <p class="text-muted">
+                            Analise solicitações de troca, confirme devoluções e processe cupons de troca.
+                        </p>
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                        <a th:href="@{/admin/trocas}" class="btn btn-primary w-100">
+                            Gerenciar trocas
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ANÁLISE -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h2 class="h4">Análise</h2>
+                        <p class="text-muted">
+                            Visualize gráficos de vendas por período e categoria e exporte os resultados.
+                        </p>
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                        <a th:href="@{/admin/analise}" class="btn btn-primary w-100">
+                            Ver análise
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <div th:replace="~{fragmentos/layout :: chatbot}"></div>
+    <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
+    <div th:replace="~{fragmentos/layout :: scripts}"></div>
+
+</body>
+</html>

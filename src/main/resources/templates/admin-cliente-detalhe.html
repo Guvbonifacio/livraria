@@ -1,246 +1,116 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 
-<head th:replace="~{fragmentos/layout :: cabeca}">
-</head>
+<head th:replace="~{fragmentos/layout :: cabeca}"></head>
 
 <body class="bg-light d-flex flex-column min-vh-100">
 
-    <div th:replace="~{fragmentos/layout :: menu}"></div>
+    <nav th:replace="~{fragmentos/layout :: menu}"></nav>
 
-    <main class="container mb-5">
+    <main class="container my-5">
 
+        <!-- Cabeçalho -->
         <div class="d-flex justify-content-between align-items-center mb-4">
-
-            <h1>
-                Detalhe do Cliente #
-                <span th:text="${cliente.id}">1</span>
-            </h1>
-
-            <a th:href="@{/admin/clientes}"
-               class="btn btn-outline-secondary">
-                Voltar para Clientes
-            </a>
-
+            <h1>Detalhe do Cliente #<span th:text="${cliente.id}">1</span></h1>
+            <a th:href="@{/admin/clientes}" class="btn btn-outline-secondary">Voltar para Clientes</a>
         </div>
-
 
         <!-- Dados pessoais -->
         <div class="card shadow-sm mb-4">
-
-            <div class="card-header">
-                <strong>Dados pessoais</strong>
+            <div class="card-header bg-white py-3">
+                <strong class="fs-5">Dados Pessoais</strong>
             </div>
-
             <div class="card-body">
-
                 <div class="row g-3">
-
                     <div class="col-md-6">
-                        <strong>Nome</strong>
-                        <p th:text="${cliente.nome}">
-                            Ana Maria
-                        </p>
+                        <strong class="text-muted d-block">Nome</strong>
+                        <span class="fs-5" th:text="${cliente.nome}">Ana Maria</span>
                     </div>
-
                     <div class="col-md-3">
-                        <strong>Gênero</strong>
-                        <p th:text="${cliente.genero}">
-                            Feminino
-                        </p>
+                        <strong class="text-muted d-block">Gênero</strong>
+                        <span class="fs-5" th:text="${cliente.genero}">Feminino</span>
                     </div>
-
                     <div class="col-md-3">
-                        <strong>Data de nascimento</strong>
-                        <p th:text="${cliente.dataNascimento}">
-                            1995-05-20
-                        </p>
+                        <strong class="text-muted d-block">Data de Nascimento</strong>
+                        <span class="fs-5" th:text="${cliente.dataNascimento}">1995-05-20</span>
                     </div>
-
                     <div class="col-md-4">
-                        <strong>CPF</strong>
-                        <p th:text="${cliente.cpf}">
-                            123.456.789-00
-                        </p>
+                        <strong class="text-muted d-block">CPF</strong>
+                        <span class="fs-5" th:text="${cliente.cpf}">123.456.789-00</span>
                     </div>
-
                     <div class="col-md-4">
-                        <strong>Telefone</strong>
-                        <p th:text="${cliente.telefone}">
-                            (11) 98765-4321
-                        </p>
+                        <strong class="text-muted d-block">Telefone</strong>
+                        <span class="fs-5" th:text="${cliente.telefone}">(11) 98765-4321</span>
                     </div>
-
                     <div class="col-md-4">
-                        <strong>E-mail</strong>
-                        <p th:text="${cliente.email}">
-                            anamaria@email.com
-                        </p>
+                        <strong class="text-muted d-block">E-mail</strong>
+                        <span class="fs-5" th:text="${cliente.email}">anamaria@email.com</span>
                     </div>
-
                 </div>
-
             </div>
-
         </div>
-
 
         <!-- Endereços -->
-        <h2 class="mb-3">Endereços</h2>
-
+        <h2 class="h4 mb-3">Endereços Cadastrados</h2>
         <div class="row">
-
-            <div class="col-md-6 mb-4"
-                 th:each="endereco : ${cliente.enderecos}">
-
+            <div class="col-md-6 mb-4" th:each="endereco : ${cliente.enderecos}">
                 <div class="card shadow-sm h-100">
-
                     <div class="card-body">
-
-                        <h5 th:text="${endereco.nomeCurto}">
-                            Casa
-                        </h5>
-
+                        <h5 class="fw-bold" th:text="${endereco.logradouro} + ', ' + ${endereco.numero}">Rua das Flores, 100</h5>
                         <p class="mb-1">
-                            <strong>Tipo:</strong>
-                            <span th:text="${endereco.tipoResidencia}">
-                                Casa
-                            </span>
+                            <strong>Tipo:</strong> <span th:text="${endereco.tipoResidencia}">Casa</span>
                         </p>
-
-                        <p class="mb-1">
-
-                            <span th:text="${endereco.logradouro}">
-                                Rua das Flores
-                            </span>,
-
-                            <span th:text="${endereco.numero}">
-                                100
-                            </span>
-
-                        </p>
-
-                        <p class="mb-1"
-                           th:text="${endereco.bairro}">
-                            Centro
-                        </p>
-
-                        <p class="mb-1">
-
-                            <span th:text="${endereco.cidade}">
-                                Mogi das Cruzes
-                            </span>
-
-                            /
-
-                            <span th:text="${endereco.estado}">
-                                SP
-                            </span>
-
-                        </p>
-
+                        <p class="mb-1 text-muted" th:text="${endereco.bairro}">Centro</p>
+                        <p class="mb-1 text-muted" th:text="${endereco.cidade} + '/' + ${endereco.estado}">Mogi das Cruzes/SP</p>
                         <p class="mb-0">
-
-                            <strong>CEP:</strong>
-
-                            <span th:text="${endereco.cep}">
-                                08700-000
-                            </span>
-
+                            <strong>CEP:</strong> <span th:text="${endereco.cep}">08700-000</span>
                         </p>
-
                     </div>
-
                 </div>
-
             </div>
-
         </div>
-
 
         <!-- Cartões -->
-        <h2 class="mb-3">Cartões cadastrados</h2>
-
+        <h2 class="h4 mb-3">Cartões Cadastrados</h2>
         <div class="row">
-
-            <div class="col-md-6 mb-4"
-                 th:each="cartao : ${cliente.cartoes}">
-
+            <div class="col-md-6 mb-4" th:each="cartao : ${cliente.cartoes}">
                 <div class="card shadow-sm h-100">
-
                     <div class="card-body">
-
-                        <div class="d-flex justify-content-between">
-
-                            <h5 th:text="${cartao.bandeira}">
-                                Mastercard
-                            </h5>
-
-                            <span th:if="${cartao.preferencial}"
-                                  class="badge bg-success">
-                                Preferencial
-                            </span>
-
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="m-0 fw-bold" th:text="${cartao.bandeira}">Mastercard</h5>
+                            <span th:if="${cartao.preferencial}" class="badge bg-success">Preferencial</span>
                         </div>
-
                         <p class="mb-1">
-
-                            <strong>Número:</strong>
-
-                            <span th:text="${cartao.numero}">
-                                **** **** **** 1234
-                            </span>
-
+                            <strong>Número:</strong> <span th:text="${cartao.numero}">**** **** **** 1234</span>
                         </p>
-
                         <p class="mb-0">
-
-                            <strong>Nome impresso:</strong>
-
-                            <span th:text="${cartao.nomeImpresso}">
-                                ANA MARIA SILVA
-                            </span>
-
+                            <strong>Nome impresso:</strong> <span th:text="${cartao.nomeImpresso}">ANA MARIA SILVA</span>
                         </p>
-
                     </div>
-
                 </div>
-
             </div>
-
         </div>
 
-
         <!-- Ações administrativas -->
-        <h2 class="mb-3">Ações</h2>
-
+        <h2 class="h4 mb-3">Ações Administrativas</h2>
         <div class="card shadow-sm mb-4">
-
-            <div class="card-body">
-
-                <a href="#"
-                   class="btn btn-warning me-2">
-                    Editar cliente
+            <div class="card-body d-flex gap-2">
+                <a th:href="@{/admin/clientes/{id}/editar(id=${cliente.id})}" class="btn btn-warning">
+                     Editar cliente
                 </a>
-
-                <a href="#"
-                   class="btn btn-danger">
-                    Inativar cliente
-                </a>
-
+                <form th:action="@{/admin/clientes/{id}/inativar(id=${cliente.id})}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja inativar este cliente?')">
+                         Inativar cliente
+                    </button>
+                </form>
             </div>
-
         </div>
 
     </main>
 
     <div th:replace="~{fragmentos/layout :: chatbot}"></div>
-
     <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
-
     <div th:replace="~{fragmentos/layout :: scripts}"></div>
 
 </body>
-
 </html>
