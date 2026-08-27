@@ -37,28 +37,14 @@
                         <div class="col-md-6">
                             <label class="form-label">Categorias</label>
                             <div class="border rounded p-3 bg-white">
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" id="fantasia" name="categorias" value="Fantasia"
-                                           th:checked="${param.categorias == null or #arrays.contains(param.categorias, 'Fantasia')}">
-                                    <label class="form-check-label" for="fantasia">Fantasia</label>
-                                </div>
-
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" id="ficcao" name="categorias" value="Ficção"
-                                           th:checked="${param.categorias == null or #arrays.contains(param.categorias, 'Ficção')}">
-                                    <label class="form-check-label" for="ficcao">Ficção</label>
-                                </div>
-
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" id="classicos" name="categorias" value="Literatura Clássica"
-                                           th:checked="${param.categorias == null or #arrays.contains(param.categorias, 'Literatura Clássica')}">
-                                    <label class="form-check-label" for="classicos">Literatura Clássica</label>
-                                </div>
-
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" id="autoajuda" name="categorias" value="Autoajuda"
-                                           th:checked="${param.categorias == null or #arrays.contains(param.categorias, 'Autoajuda')}">
-                                    <label class="form-check-label" for="autoajuda">Autoajuda</label>
+                                <div class="form-check form-check-inline" th:each="c : ${categoriasDisponiveis}">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="categorias"
+                                           th:id="${c}"
+                                           th:value="${c}"
+                                           th:checked="${param.categorias == null or #arrays.contains(param.categorias, c)}">
+                                    <label class="form-check-label" th:for="${c}" th:text="${c}">Categoria</label>
                                 </div>
                             </div>
                             <small class="text-muted d-block mt-1">É possível selecionar mais de uma categoria.</small>
@@ -122,7 +108,43 @@
                 borderWidth: 3,
                 tension: 0.3
             }));
-        } 
+        } else {
+            datasetsConfig = [
+                {
+                    label: "Fantasia",
+                    data: [320, 460, 390, 620, 750],
+                    borderColor: paletaCores["Fantasia"],
+                    backgroundColor: paletaCores["Fantasia"],
+                    borderWidth: 3,
+                    tension: 0.3
+                },
+                {
+                    label: "Ficção",
+                    data: [280, 350, 510, 480, 690],
+                    borderColor: paletaCores["Ficção"],
+                    backgroundColor: paletaCores["Ficção"],
+                    borderWidth: 3,
+                    tension: 0.3
+                },
+                {
+                    label: "Literatura Clássica",
+                    data: [180, 260, 240, 340, 420],
+                    borderColor: paletaCores["Literatura Clássica"],
+                    backgroundColor: paletaCores["Literatura Clássica"],
+                    borderWidth: 3,
+                    tension: 0.3
+                },
+                {
+                    label: "Autoajuda",
+                    data: [220, 310, 290, 450, 520],
+                    borderColor: paletaCores["Autoajuda"],
+                    backgroundColor: paletaCores["Autoajuda"],
+                    borderWidth: 3,
+                    tension: 0.3
+                }
+            ];
+        }
+
         let grafico = new Chart(canvas, {
             type: "line",
             data: {
