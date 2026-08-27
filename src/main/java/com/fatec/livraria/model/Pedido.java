@@ -2,6 +2,7 @@ package com.fatec.livraria.model;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
 
 public class Pedido {
     private Long id;
@@ -11,6 +12,7 @@ public class Pedido {
     private List<ItemCarrinho> itens;
     private double valorFrete;
     private double valorTotal;
+    private List<HistoricoStatus> historico;
 
     public Pedido(Long id, Cliente cliente, List<ItemCarrinho> itens, double valorFrete, double valorTotal) {
         this.id = id;
@@ -20,6 +22,7 @@ public class Pedido {
         this.itens = itens;
         this.valorFrete = valorFrete;
         this.valorTotal = valorTotal;
+        this.historico = new ArrayList<>();
     }
 
     public Long getId() { return id; }
@@ -42,4 +45,8 @@ public class Pedido {
 
     public double getValorTotal() { return valorTotal; }
     public void setValorTotal(double valorTotal) { this.valorTotal = valorTotal; }
+
+    public List<HistoricoStatus> getHistorico() { return historico; }
+    public void setHistorico(List<HistoricoStatus> historico) { this.historico = historico; }
+
 }

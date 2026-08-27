@@ -33,4 +33,5 @@ public class ClienteController {
         model.addAttribute("cliente", cliente); //o model passa a ter essa variável cliente
         return "cliente-perfil"; //retorno com o nome da página que o html terá que carregar
     }
+
 }

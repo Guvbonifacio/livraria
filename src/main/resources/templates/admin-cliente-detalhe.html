@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragmentos/layout :: cabeca}">
+</head>
+
+<body class="bg-light d-flex flex-column min-vh-100">
+
+    <div th:replace="~{fragmentos/layout :: menu}"></div>
+
+    <main class="container mb-5">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+
+            <h1>
+                Detalhe do Cliente #
+                <span th:text="${cliente.id}">1</span>
+            </h1>
+
+            <a th:href="@{/admin/clientes}"
+               class="btn btn-outline-secondary">
+                Voltar para Clientes
+            </a>
+
+        </div>
+
+
+        <!-- Dados pessoais -->
+        <div class="card shadow-sm mb-4">
+
+            <div class="card-header">
+                <strong>Dados pessoais</strong>
+            </div>
+
+            <div class="card-body">
+
+                <div class="row g-3">
+
+                    <div class="col-md-6">
+                        <strong>Nome</strong>
+                        <p th:text="${cliente.nome}">
+                            Ana Maria
+                        </p>
+                    </div>
+
+                    <div class="col-md-3">
+                        <strong>Gênero</strong>
+                        <p th:text="${cliente.genero}">
+                            Feminino
+                        </p>
+                    </div>
+
+                    <div class="col-md-3">
+                        <strong>Data de nascimento</strong>
+                        <p th:text="${cliente.dataNascimento}">
+                            1995-05-20
+                        </p>
+                    </div>
+
+                    <div class="col-md-4">
+                        <strong>CPF</strong>
+                        <p th:text="${cliente.cpf}">
+                            123.456.789-00
+                        </p>
+                    </div>
+
+                    <div class="col-md-4">
+                        <strong>Telefone</strong>
+                        <p th:text="${cliente.telefone}">
+                            (11) 98765-4321
+                        </p>
+                    </div>
+
+                    <div class="col-md-4">
+                        <strong>E-mail</strong>
+                        <p th:text="${cliente.email}">
+                            anamaria@email.com
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Endereços -->
+        <h2 class="mb-3">Endereços</h2>
+
+        <div class="row">
+
+            <div class="col-md-6 mb-4"
+                 th:each="endereco : ${cliente.enderecos}">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body">
+
+                        <h5 th:text="${endereco.nomeCurto}">
+                            Casa
+                        </h5>
+
+                        <p class="mb-1">
+                            <strong>Tipo:</strong>
+                            <span th:text="${endereco.tipoResidencia}">
+                                Casa
+                            </span>
+                        </p>
+
+                        <p class="mb-1">
+
+                            <span th:text="${endereco.logradouro}">
+                                Rua das Flores
+                            </span>,
+
+                            <span th:text="${endereco.numero}">
+                                100
+                            </span>
+
+                        </p>
+
+                        <p class="mb-1"
+                           th:text="${endereco.bairro}">
+                            Centro
+                        </p>
+
+                        <p class="mb-1">
+
+                            <span th:text="${endereco.cidade}">
+                                Mogi das Cruzes
+                            </span>
+
+                            /
+
+                            <span th:text="${endereco.estado}">
+                                SP
+                            </span>
+
+                        </p>
+
+                        <p class="mb-0">
+
+                            <strong>CEP:</strong>
+
+                            <span th:text="${endereco.cep}">
+                                08700-000
+                            </span>
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Cartões -->
+        <h2 class="mb-3">Cartões cadastrados</h2>
+
+        <div class="row">
+
+            <div class="col-md-6 mb-4"
+                 th:each="cartao : ${cliente.cartoes}">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between">
+
+                            <h5 th:text="${cartao.bandeira}">
+                                Mastercard
+                            </h5>
+
+                            <span th:if="${cartao.preferencial}"
+                                  class="badge bg-success">
+                                Preferencial
+                            </span>
+
+                        </div>
+
+                        <p class="mb-1">
+
+                            <strong>Número:</strong>
+
+                            <span th:text="${cartao.numero}">
+                                **** **** **** 1234
+                            </span>
+
+                        </p>
+
+                        <p class="mb-0">
+
+                            <strong>Nome impresso:</strong>
+
+                            <span th:text="${cartao.nomeImpresso}">
+                                ANA MARIA SILVA
+                            </span>
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Ações administrativas -->
+        <h2 class="mb-3">Ações</h2>
+
+        <div class="card shadow-sm mb-4">
+
+            <div class="card-body">
+
+                <a href="#"
+                   class="btn btn-warning me-2">
+                    Editar cliente
+                </a>
+
+                <a href="#"
+                   class="btn btn-danger">
+                    Inativar cliente
+                </a>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <div th:replace="~{fragmentos/layout :: chatbot}"></div>
+
+    <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
+
+    <div th:replace="~{fragmentos/layout :: scripts}"></div>
+
+</body>
+
+</html>
