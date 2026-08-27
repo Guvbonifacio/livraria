@@ -65,7 +65,7 @@ public class DadosFalsos {
     }
 
     public static Cliente clienteExemplo(Long id) {
-        Cliente cliente = new Cliente(id, "Ana Maria", "Feminino", "1995-05-20", "123.456.789-00", "(11) 98765-4321", "anamaria@email.com", "Senha@123");
+        Cliente cliente = new Cliente(id, "Ana Maria", "Feminino", "20/05/1995", "123.456.789-00", "(11) 98765-4321", "anamaria@email.com", "Senha@123");
 
         cliente.getEnderecos().add(new Endereco("Casa", "Casa", "Rua das Flores", "100", "Centro", "08700-000", "Mogi das Cruzes", "SP"));
         cliente.getEnderecos().add(new Endereco("Trabalho", "Apartamento", "Av. Paulista", "1500", "Bela Vista", "01310-100", "São Paulo", "SP"));
@@ -75,22 +75,16 @@ public class DadosFalsos {
         return cliente;
     }
 
-    // Método que simula os itens atualmente no carrinho de compras
     public static List<ItemCarrinho> carrinhoExemplo() {
         List<Livro> livros = listaDeLivros();
-
-        // Adiciona O Hobbit (2 unidades) e Duna (1 unidade)
         return List.of(
             new ItemCarrinho(livros.get(0), 2),
             new ItemCarrinho(livros.get(1), 1)
         );
     }
 
-    // Método que simula itens removidos por expiração de tempo no estoque (RNF0042)
     public static List<ItemCarrinho> itensExpiradosExemplo() {
         List<Livro> livros = listaDeLivros();
-
-        // Simula que 1984 expirou e foi removido do carrinho
         return List.of(
             new ItemCarrinho(livros.get(4), 1)
         );
@@ -105,43 +99,46 @@ public class DadosFalsos {
         );
     }
 
-    public static List<String> mesesVendas() { //Meses para o eixo x do gráfico de análise
-    return List.of(
-        "Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez");
+    // Corrigido: formato mês/ano para conformidade com RNF0043 e RN0072
+    public static List<String> mesesVendas() {
+        return List.of(
+            "jan/2025", "fev/2025", "mar/2025", "abr/2025", "mai/2025", "jun/2025",
+            "jul/2025", "ago/2025", "set/2025", "out/2025", "nov/2025", "dez/2025"
+        );
     }
 
     public static List<SerieVendas> seriesVendas() {
-
-    return List.of(
-
-        new SerieVendas(
-            "Fantasia",
-            List.of(
-                320.0, 460.0, 390.0, 620.0,
-                750.0, 680.0, 810.0, 900.0,
-                840.0, 950.0, 1020.0, 1100.0
+        return List.of(
+            new SerieVendas(
+                "Fantasia",
+                List.of(
+                    320.0, 460.0, 390.0, 620.0,
+                    750.0, 680.0, 810.0, 900.0,
+                    840.0, 950.0, 1020.0, 1100.0
+                )
+            ),
+            new SerieVendas(
+                "Ficção",
+                List.of(
+                    280.0, 350.0, 510.0, 480.0,
+                    690.0, 720.0, 650.0, 790.0,
+                    850.0, 820.0, 910.0, 980.0
+                )
+            ),
+            new SerieVendas(
+                "Literatura Clássica",
+                List.of(
+                    180.0, 260.0, 240.0, 340.0, 420.0, 390.0,
+                    470.0, 510.0, 490.0, 560.0, 610.0, 650.0
+                )
+            ),
+            new SerieVendas(
+                "Autoajuda",
+                List.of(
+                    220.0, 310.0, 290.0, 450.0, 520.0, 480.0,
+                    570.0, 630.0, 610.0, 690.0, 740.0, 800.0
+                )
             )
-        ),
-
-        new SerieVendas(
-            "Ficção",
-            List.of(
-                280.0, 350.0, 510.0, 480.0,
-                690.0, 720.0, 650.0, 790.0,
-                850.0, 820.0, 910.0, 980.0
-            )
-        ),
-
-        new SerieVendas(
-            "Literatura Clássica",
-            List.of(180.0, 260.0, 240.0, 340.0,420.0, 390.0, 470.0, 510.0,490.0, 560.0, 610.0, 650.0)
-        ),
-
-        new SerieVendas(
-            "Autoajuda",
-            List.of(220.0, 310.0, 290.0, 450.0,520.0, 480.0, 570.0, 630.0,610.0, 690.0, 740.0, 800.0)
-        )
-
-    );
-}
+        );
+    }
 }

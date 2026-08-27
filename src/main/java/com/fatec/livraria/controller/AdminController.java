@@ -135,7 +135,7 @@ public class AdminController {
         @RequestParam(required = false) String dataInicio,
         @RequestParam(required = false) String dataFim,
         @RequestParam(required = false) List<String> categorias){
-        model.addAttribute("rotulos", DadosFalsos.mesesVendas());
+        model.addAttribute("etiquetas", DadosFalsos.mesesVendas());
         model.addAttribute("series", DadosFalsos.seriesVendas());
         model.addAttribute("categoriasDisponiveis", DadosFalsos.categorias());
 

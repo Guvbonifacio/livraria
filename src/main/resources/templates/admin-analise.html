@@ -92,7 +92,6 @@
 
     </main>
 
-    <div th:replace="~{fragmentos/layout :: chatbot}"></div>
     <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
     <div th:replace="~{fragmentos/layout :: scripts}"></div>
 
@@ -125,43 +124,7 @@
                 borderWidth: 3,
                 tension: 0.3
             }));
-        } else {
-            datasetsConfig = [
-                {
-                    label: "Fantasia",
-                    data: [320, 460, 390, 620, 750],
-                    borderColor: paletaCores["Fantasia"],
-                    backgroundColor: paletaCores["Fantasia"],
-                    borderWidth: 3,
-                    tension: 0.3
-                },
-                {
-                    label: "Ficção",
-                    data: [280, 350, 510, 480, 690],
-                    borderColor: paletaCores["Ficção"],
-                    backgroundColor: paletaCores["Ficção"],
-                    borderWidth: 3,
-                    tension: 0.3
-                },
-                {
-                    label: "Literatura Clássica",
-                    data: [180, 260, 240, 340, 420],
-                    borderColor: paletaCores["Literatura Clássica"],
-                    backgroundColor: paletaCores["Literatura Clássica"],
-                    borderWidth: 3,
-                    tension: 0.3
-                },
-                {
-                    label: "Autoajuda",
-                    data: [220, 310, 290, 450, 520],
-                    borderColor: paletaCores["Autoajuda"],
-                    backgroundColor: paletaCores["Autoajuda"],
-                    borderWidth: 3,
-                    tension: 0.3
-                }
-            ];
-        }
-
+        } 
         let grafico = new Chart(canvas, {
             type: "line",
             data: {

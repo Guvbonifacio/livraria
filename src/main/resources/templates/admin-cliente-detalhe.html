@@ -32,7 +32,7 @@
                     </div>
                     <div class="col-md-3">
                         <strong class="text-muted d-block">Data de Nascimento</strong>
-                        <span class="fs-5" th:text="${cliente.dataNascimento}">1995-05-20</span>
+                        <span class="fs-5" th:text="${cliente.dataNascimento}">20/05/1995</span>
                     </div>
                     <div class="col-md-4">
                         <strong class="text-muted d-block">CPF</strong>
@@ -108,7 +108,6 @@
 
     </main>
 
-    <div th:replace="~{fragmentos/layout :: chatbot}"></div>
     <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
     <div th:replace="~{fragmentos/layout :: scripts}"></div>
 
