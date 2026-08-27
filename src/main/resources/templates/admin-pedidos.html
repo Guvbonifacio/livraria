@@ -7,7 +7,7 @@
 
     <nav th:replace="~{fragmentos/layout :: menu}"></nav>
 
-    <main class="container my-5">
+    <main class="container my-5 flex-grow-1">
 
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1>Pedidos</h1>
@@ -24,10 +24,11 @@
                             <label for="status" class="form-label">Status</label>
                             <select id="status" name="status" class="form-select">
                                 <option value="">Todos</option>
+                                <option value="EM ABERTO" th:selected="${param.status == 'EM ABERTO'}">EM ABERTO</option>
                                 <option value="EM PROCESSAMENTO" th:selected="${param.status == 'EM PROCESSAMENTO'}">EM PROCESSAMENTO</option>
-                                <option value="ENVIADO" th:selected="${param.status == 'ENVIADO'}">ENVIADO</option>
+                                <option value="PAGAMENTO REALIZADO" th:selected="${param.status == 'PAGAMENTO REALIZADO'}">PAGAMENTO REALIZADO</option>
+                                <option value="EM TRÂNSITO" th:selected="${param.status == 'EM TRÂNSITO'}">EM TRÂNSITO</option>
                                 <option value="ENTREGUE" th:selected="${param.status == 'ENTREGUE'}">ENTREGUE</option>
-                                <option value="CANCELADO" th:selected="${param.status == 'CANCELADO'}">CANCELADO</option>
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -47,7 +48,7 @@
             </div>
         </div>
 
-        <!-- Tabela -->
+        <!-- Tabela de Pedidos -->
         <div class="card shadow-sm">
             <div class="card-body">
                 <div class="table-responsive">
@@ -69,10 +70,11 @@
                                 <td th:text="${#temporals.format(pedido.dataPedido, 'dd/MM/yyyy')}">20/08/2026</td>
                                 <td th:text="'R$ ' + ${#numbers.formatDecimal(pedido.valorTotal, 1, 'POINT', 2, 'COMMA')}">R$ 171,80</td>
                                 <td th:switch="${pedido.status}">
+                                    <span th:case="'EM ABERTO'" class="badge bg-secondary">Em aberto</span>
                                     <span th:case="'EM PROCESSAMENTO'" class="badge bg-warning text-dark">Em processamento</span>
-                                    <span th:case="'ENVIADO'" class="badge bg-primary">Enviado</span>
+                                    <span th:case="'PAGAMENTO REALIZADO'" class="badge bg-info text-dark">Pagamento realizado</span>
+                                    <span th:case="'EM TRÂNSITO'" class="badge bg-primary">Em trânsito</span>
                                     <span th:case="'ENTREGUE'" class="badge bg-success">Entregue</span>
-                                    <span th:case="'CANCELADO'" class="badge bg-danger">Cancelado</span>
                                     <span th:case="*" class="badge bg-secondary" th:text="${pedido.status}">Status</span>
                                 </td>
                                 <td>

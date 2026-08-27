@@ -1,100 +1,52 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 
-<head th:replace="~{fragmentos/layout :: cabeca}">
-</head>
+<head th:replace="~{fragmentos/layout :: cabeca}"></head>
 
 <body class="bg-light d-flex flex-column min-vh-100">
 
-    <div th:replace="~{fragmentos/layout :: menu}"></div>
+    <nav th:replace="~{fragmentos/layout :: menu}"></nav>
 
-    <main class="container mb-5">
+    <main class="container my-5">
 
+        <!-- Cabeçalho -->
         <div class="d-flex justify-content-between align-items-center mb-4">
-
-            <h1>
-                Informar despacho — Pedido #
-                <span th:text="${pedidoId}">1001</span>
-            </h1>
-
-            <a th:href="@{/pedidos/{id}(id=${pedidoId})}"
-               class="btn btn-outline-secondary">
-                Voltar
-            </a>
-
+            <h1>Informar Despacho — Pedido #<span th:text="${pedidoId}">1001</span></h1>
+            <a th:href="@{/pedidos/{id}(id=${pedidoId})}" class="btn btn-outline-secondary">Voltar</a>
         </div>
 
-
         <div class="card shadow-sm">
-
             <div class="card-body">
-
                 <div class="alert alert-info">
-
                     Após enviar o item para devolução, informe os dados do despacho abaixo.
-
                 </div>
 
+                <form th:action="@{/pedidos/{id}/despacho(id=${pedidoId})}" method="POST">
+                    <div class="mb-3">
+                        <label for="transportadora" class="form-label">Transportadora</label>
+                        <input type="text" id="transportadora" name="transportadora" class="form-control" placeholder="Ex.: Correios" required>
+                    </div>
 
-                <div class="mb-3">
+                    <div class="mb-3">
+                        <label for="codigoRastreio" class="form-label">Código de rastreio</label>
+                        <input type="text" id="codigoRastreio" name="codigoRastreio" class="form-control" placeholder="Ex.: BR123456789BR" required>
+                    </div>
 
-                    <label for="transportadora" class="form-label">
-                        Transportadora
-                    </label>
+                    <div class="mb-3">
+                        <label for="dataEnvio" class="form-label">Data do envio</label>
+                        <input type="date" id="dataEnvio" name="dataEnvio" class="form-control" required>
+                    </div>
 
-                    <input type="text"
-                           id="transportadora"
-                           class="form-control"
-                           placeholder="Ex.: Correios">
+                    <div class="mb-4">
+                        <strong class="me-2">Status após confirmação:</strong>
+                        <span class="badge bg-primary">ITEM ENVIADO</span>
+                    </div>
 
-                </div>
-
-
-                <div class="mb-3">
-
-                    <label for="codigoRastreio" class="form-label">
-                        Código de rastreio
-                    </label>
-
-                    <input type="text"
-                           id="codigoRastreio"
-                           class="form-control"
-                           placeholder="Ex.: BR123456789BR">
-
-                </div>
-
-
-                <div class="mb-3">
-
-                    <label for="dataEnvio" class="form-label">
-                        Data do envio
-                    </label>
-
-                    <input type="date"
-                           id="dataEnvio"
-                           class="form-control">
-
-                </div>
-
-
-                <div class="mb-4">
-
-                    <strong>Status após confirmação:</strong>
-
-                    <span class="badge bg-primary">
-                        ITEM ENVIADO
-                    </span>
-
-                </div>
-
-
-                <a th:href="@{/pedidos/{id}(id=${pedidoId})}"
-                   class="btn btn-success">
-                    Confirmar despacho
-                </a>
-
+                    <button type="submit" class="btn btn-success">
+                        Confirmar despacho
+                    </button>
+                </form>
             </div>
-
         </div>
 
     </main>
@@ -102,5 +54,4 @@
     <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
 
 </body>
-
 </html>

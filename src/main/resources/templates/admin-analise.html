@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragmentos/layout :: cabeca}"></head>
+
+<body class="bg-light d-flex flex-column min-vh-100">
+
+    <nav th:replace="~{fragmentos/layout :: menu}"></nav>
+
+    <main class="container my-5 flex-grow-1">
+
+        <!-- Cabeçalho -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Análise de Vendas</h1>
+            <span class="badge bg-warning text-dark">Administração</span>
+        </div>
+
+        <!-- Card de Filtros -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <strong class="fs-5">Filtros da Análise</strong>
+            </div>
+
+            <div class="card-body">
+                <form th:action="@{/admin/analise}" method="GET">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="dataInicio" class="form-label">Data inicial</label>
+                            <input type="date" id="dataInicio" name="dataInicio" th:value="${param.dataInicio}" class="form-control">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="dataFim" class="form-label">Data final</label>
+                            <input type="date" id="dataFim" name="dataFim" th:value="${param.dataFim}" class="form-control">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Categorias</label>
+                            <div class="border rounded p-3 bg-white">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="fantasia" name="categorias" value="Fantasia"
+                                           th:checked="${param.categorias == null or #arrays.contains(param.categorias, 'Fantasia')}">
+                                    <label class="form-check-label" for="fantasia">Fantasia</label>
+                                </div>
+
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="ficcao" name="categorias" value="Ficção"
+                                           th:checked="${param.categorias == null or #arrays.contains(param.categorias, 'Ficção')}">
+                                    <label class="form-check-label" for="ficcao">Ficção</label>
+                                </div>
+
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="classicos" name="categorias" value="Literatura Clássica"
+                                           th:checked="${param.categorias == null or #arrays.contains(param.categorias, 'Literatura Clássica')}">
+                                    <label class="form-check-label" for="classicos">Literatura Clássica</label>
+                                </div>
+
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="autoajuda" name="categorias" value="Autoajuda"
+                                           th:checked="${param.categorias == null or #arrays.contains(param.categorias, 'Autoajuda')}">
+                                    <label class="form-check-label" for="autoajuda">Autoajuda</label>
+                                </div>
+                            </div>
+                            <small class="text-muted d-block mt-1">É possível selecionar mais de uma categoria.</small>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <small class="text-muted">Selecione no mínimo 1 e no máximo 24 meses (RN0072).</small>
+                    </div>
+
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Filtrar</button>
+                        <a th:href="@{/admin/analise/exportar}" class="btn btn-success">Exportar planilha</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Card do Gráfico -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <strong class="fs-5">Vendas por Categoria</strong>
+            </div>
+
+            <div class="card-body">
+                <div style="height: 430px; position: relative;">
+                    <canvas id="graficoVendas"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div th:replace="~{fragmentos/layout :: chatbot}"></div>
+    <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
+    <div th:replace="~{fragmentos/layout :: scripts}"></div>
+
+    <!-- CDN do Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Script com suporte a variáveis injetadas via Controller -->
+    <script th:inline="javascript">
+        const canvas = document.getElementById("graficoVendas");
+
+        // Recebe os dados do Controller ou utiliza valores padrão caso esteja em mock estático
+        const etiquetas = /*[[${etiquetas}]]*/ ["set/2025", "out/2025", "nov/2025", "dez/2025", "jan/2026"];
+        const seriesInjetadas = /*[[${series}]]*/ null;
+
+        const paletaCores = {
+            "Fantasia": "#0d6efd",
+            "Ficção": "#198754",
+            "Literatura Clássica": "#ffc107",
+            "Autoajuda": "#dc3545"
+        };
+
+        let datasetsConfig = [];
+
+        if (seriesInjetadas && seriesInjetadas.length > 0) {
+            datasetsConfig = seriesInjetadas.map(s => ({
+                label: s.categoria,
+                data: s.valores,
+                borderColor: paletaCores[s.categoria] || "#6c757d",
+                backgroundColor: paletaCores[s.categoria] || "#6c757d",
+                borderWidth: 3,
+                tension: 0.3
+            }));
+        } else {
+            datasetsConfig = [
+                {
+                    label: "Fantasia",
+                    data: [320, 460, 390, 620, 750],
+                    borderColor: paletaCores["Fantasia"],
+                    backgroundColor: paletaCores["Fantasia"],
+                    borderWidth: 3,
+                    tension: 0.3
+                },
+                {
+                    label: "Ficção",
+                    data: [280, 350, 510, 480, 690],
+                    borderColor: paletaCores["Ficção"],
+                    backgroundColor: paletaCores["Ficção"],
+                    borderWidth: 3,
+                    tension: 0.3
+                },
+                {
+                    label: "Literatura Clássica",
+                    data: [180, 260, 240, 340, 420],
+                    borderColor: paletaCores["Literatura Clássica"],
+                    backgroundColor: paletaCores["Literatura Clássica"],
+                    borderWidth: 3,
+                    tension: 0.3
+                },
+                {
+                    label: "Autoajuda",
+                    data: [220, 310, 290, 450, 520],
+                    borderColor: paletaCores["Autoajuda"],
+                    backgroundColor: paletaCores["Autoajuda"],
+                    borderWidth: 3,
+                    tension: 0.3
+                }
+            ];
+        }
+
+        let grafico = new Chart(canvas, {
+            type: "line",
+            data: {
+                labels: etiquetas,
+                datasets: datasetsConfig
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: "bottom"
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const valor = context.parsed.y;
+                                return context.dataset.label + ": " + valor.toLocaleString("pt-BR", {
+                                    style: "currency",
+                                    currency: "BRL"
+                                });
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(valor) {
+                                return valor.toLocaleString("pt-BR", {
+                                    style: "currency",
+                                    currency: "BRL"
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>

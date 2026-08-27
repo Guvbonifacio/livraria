@@ -104,4 +104,44 @@ public class DadosFalsos {
             new Cupom("LIVROS15", "Promocional", 15.00, LocalDate.of(2026, 11, 20), "UTILIZADO")
         );
     }
+
+    public static List<String> mesesVendas() { //Meses para o eixo x do gráfico de análise
+    return List.of(
+        "Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez");
+    }
+
+    public static List<SerieVendas> seriesVendas() {
+
+    return List.of(
+
+        new SerieVendas(
+            "Fantasia",
+            List.of(
+                320.0, 460.0, 390.0, 620.0,
+                750.0, 680.0, 810.0, 900.0,
+                840.0, 950.0, 1020.0, 1100.0
+            )
+        ),
+
+        new SerieVendas(
+            "Ficção",
+            List.of(
+                280.0, 350.0, 510.0, 480.0,
+                690.0, 720.0, 650.0, 790.0,
+                850.0, 820.0, 910.0, 980.0
+            )
+        ),
+
+        new SerieVendas(
+            "Literatura Clássica",
+            List.of(180.0, 260.0, 240.0, 340.0,420.0, 390.0, 470.0, 510.0,490.0, 560.0, 610.0, 650.0)
+        ),
+
+        new SerieVendas(
+            "Autoajuda",
+            List.of(220.0, 310.0, 290.0, 450.0,520.0, 480.0, 570.0, 630.0,610.0, 690.0, 740.0, 800.0)
+        )
+
+    );
+}
 }
