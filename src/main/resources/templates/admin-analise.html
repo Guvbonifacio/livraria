@@ -94,8 +94,7 @@
 
     <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
 
-    <!-- CDN do Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script th:src="@{/js/chart.js}"></script>
 
     <!-- Script com suporte a variáveis injetadas via Controller -->
     <script th:inline="javascript">
