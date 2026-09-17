@@ -12,6 +12,7 @@ public class Cliente {
     private String telefone;
     private String email;
     private String senha;
+    private boolean ativo = true;
     private List<Endereco> enderecos = new ArrayList<>();
     private List<CartaoCredito> cartoes = new ArrayList<>();
 
@@ -89,6 +90,14 @@ public class Cliente {
 
     public void setSenha(String senha) {
         this.senha = senha;
+    }
+
+    public boolean isAtivo() {
+        return ativo;
+    }
+
+    public void setAtivo(boolean ativo) {
+        this.ativo = ativo;
     }
 
     public List<Endereco> getEnderecos() {
