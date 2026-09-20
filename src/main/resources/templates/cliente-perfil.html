@@ -17,9 +17,16 @@
                 <span th:unless="${cliente.ativo}" class="badge bg-secondary">Inativo</span>
             </div>
 
-            <button th:if="${cliente.ativo}" type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalInativar">
-                Inativar Conta
-            </button>
+            <!-- Ações do Perfil -->
+            <div class="d-flex gap-2">
+                <a th:href="@{/clientes/{id}/editar(id=${cliente.id})}" class="btn btn-primary">
+                    Alterar dados
+                </a>
+
+                <button th:if="${cliente.ativo}" type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalInativar">
+                    Inativar Conta
+                </button>
+            </div>
         </div>
 
         <form th:action="@{/clientes/salvar}" th:object="${cliente}" method="POST">

@@ -28,6 +28,7 @@ Livraria Estante do Saber · Gustavo Vinícius Bonifácio · 21/09/2026
 | Requisito do DRS | Arquivo de teste | O que o teste prova |
 |---|---|---|
 | **RF0021** Cadastrar cliente | `rf0021-cadastrar-cliente.cy.js` | Após salvar, redireciona para `/clientes/{id}` com id gerado e sem mensagem de erro |
+| **RF0022** Alterar cliente | `rf0022-alterar-cliente.cy.js` | Nome alterado aparece no perfil após salvar; `senha_hash` permanece idêntico (DB Browser) |
 | **RF0023** Inativar cadastro | `rf0023-inativar-cliente.cy.js` | Perfil exibe *Inativo* **e** o cliente continua aparecendo na consulta — inativado, não excluído |
 | **RF0024** Consulta com filtro | `rf0024-consultar-cliente.cy.js` | Filtro por nome exibe o cliente certo e oculta os demais |
 | **RF0026** Vários endereços com nome curto | dentro do RF0021 | Endereço "Casa" do tipo ENTREGA gravado na tabela `endereco` |
@@ -44,7 +45,6 @@ Dizer isto **antes** de ser perguntado:
 
 | Requisito | Situação | Previsão |
 |---|---|---|
-| **RF0022** Alterar cliente | Não implementado | Próxima semana |
 | **RF0025** Consulta de transações | Seção existe no perfil; pedidos ainda não estão no banco | Entra com o módulo de vendas |
 | **RF0028** Alterar apenas a senha | Não implementado | Próxima semana |
 | **RNF0034** Alterar apenas endereços | Não implementado | Próxima semana |
@@ -65,6 +65,9 @@ Três motivos: a mensagem do banco é ilegível para o usuário; o Service valid
 
 **"Para que serve o `@Transactional`?"**
 Para que os três `INSERT`s — cliente, endereço, cartão — aconteçam juntos ou nenhum aconteça. Se o cartão falhar, o cliente e o endereço são desfeitos. Não tem relação com a lista de erros: a lista é para o usuário ver todos os problemas de uma vez; a transação é para o banco não ficar pela metade.
+
+**"Alterar o cadastro pode corromper a senha?"**
+Não. O formulário de alteração não tem campo de senha e o `UPDATE` não menciona `senha_hash`. A troca de senha é o RF0028, separado, conforme o DRS. E a verificação de CPF único na alteração ignora o próprio id (`AND id <> ?`) — senão o cliente colidiria consigo mesmo ao salvar sem mudar o CPF.
 
 **"Como a senha é protegida?"**
 BCrypt, via `spring-security-crypto`. Só o módulo de criptografia — o Spring Security completo se autoconfigura com tela de login, que o cliente dispensou. A senha é validada em texto (não dá para validar um hash) e criptografada logo antes de gravar.

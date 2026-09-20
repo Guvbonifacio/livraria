@@ -22,13 +22,15 @@ public class ClienteController {
         this.service = service;
     }
 
-    @GetMapping("/novo")  // Exibe o formulário de cadastro de novo cliente
+    // Exibe o formulário de cadastro de novo cliente
+    @GetMapping("/novo")
     public String novoCliente(Model model) {
         model.addAttribute("cliente", new Cliente());
         return "cliente-form";
     }
 
-    @PostMapping("/salvar")   // Processa o envio do formulário de cadastro
+    // Processa o envio do formulário de cadastro
+    @PostMapping("/salvar")
     public String salvarCliente(@ModelAttribute Cliente cliente, @RequestParam String confirmacaoSenha, Model model) {
         try {
             Long id = service.cadastrar(cliente, confirmacaoSenha);
@@ -41,10 +43,32 @@ public class ClienteController {
         }
     }
 
-    @GetMapping("/{id}")   // Exibe os detalhes/perfil do cliente cadastrado
+    // Exibe os detalhes/perfil do cliente cadastrado
+    @GetMapping("/{id}")
     public String detalharCliente(@PathVariable Long id, Model model) {
         Cliente cliente = service.buscarPorId(id);
         model.addAttribute("cliente", cliente);
         return "cliente-perfil";
+    }
+
+    // Exibe a tela de edição do cliente
+    @GetMapping("/{id}/editar")
+    public String editarCliente(@PathVariable Long id, Model model) {
+        Cliente cliente = service.buscarPorId(id);
+        model.addAttribute("cliente", cliente);
+        return "cliente-editar";
+    }
+
+    // Processa a atualização dos dados do cliente
+    @PostMapping("/{id}/atualizar")
+    public String atualizarCliente(@PathVariable Long id, @ModelAttribute Cliente cliente, Model model) {
+        cliente.setId(id);
+        try {
+            service.alterar(cliente);
+            return "redirect:/clientes/" + id;
+        } catch (ValidacaoException e) {
+            model.addAttribute("erros", e.getErros());
+            return "cliente-editar";
+        }
     }
 }

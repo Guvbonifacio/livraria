@@ -20,6 +20,7 @@ public class ClienteService {
         this.repository = repository;
     }
 
+    // Cadastro de novo cliente com validações e criptografia
     @Transactional
     public Long cadastrar(Cliente cliente, String confirmacaoSenha) {
         // Sanitização dos dados antes das validações
@@ -108,9 +109,53 @@ public class ClienteService {
         return repository.buscarPorId(id);
     }
 
+    // Alteração dos dados cadastrais do cliente
+    @Transactional
+    public void alterar(Cliente cliente) {
+        // Normalização
+        if (cliente.getCpf() != null) {
+            cliente.setCpf(cliente.getCpf().replaceAll("\\D", ""));
+        }
+        if (cliente.getEmail() != null) {
+            cliente.setEmail(cliente.getEmail().trim().toLowerCase());
+        }
+
+        List<String> erros = new ArrayList<>();
+
+        // Campos obrigatórios
+        if (vazio(cliente.getNome())) erros.add("Nome é obrigatório");
+        if (vazio(cliente.getCpf())) erros.add("CPF é obrigatório");
+        if (vazio(cliente.getEmail())) erros.add("E-mail é obrigatório");
+        if (vazio(cliente.getTelefone())) erros.add("Telefone é obrigatório");
+        if (cliente.getDataNascimento() == null) erros.add("Data de nascimento é obrigatória");
+        if (vazio(cliente.getGenero())) erros.add("Gênero é obrigatório");
+
+        // Validação de CPF ignorando o próprio ID
+        if (!vazio(cliente.getCpf())) {
+            if (!cpfValido(cliente.getCpf())) {
+                erros.add("CPF inválido");
+            } else if (repository.existePorCpf(cliente.getCpf(), cliente.getId())) {
+                erros.add("CPF já cadastrado");
+            }
+        }
+
+        // Validação de E-mail ignorando o próprio ID
+        if (!vazio(cliente.getEmail()) && repository.existePorEmail(cliente.getEmail(), cliente.getId())) {
+            erros.add("E-mail já cadastrado");
+        }
+
+        if (!erros.isEmpty()) {
+            throw new ValidacaoException(erros);
+        }
+
+        repository.atualizar(cliente);
+    }
+
+    // Inativação lógica do cadastro do cliente
     public void inativar(Long id) {
         repository.inativar(id);
     }
+
     // Verifica se uma String é nula ou vazia
     private boolean vazio(String valor) {
         return valor == null || valor.trim().isEmpty();
