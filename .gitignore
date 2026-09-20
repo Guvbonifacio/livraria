@@ -32,3 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 *.db
+
+### Node ###
+node_modules/

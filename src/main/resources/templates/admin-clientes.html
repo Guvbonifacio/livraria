@@ -14,10 +14,11 @@
             <span class="badge bg-warning text-dark">Administração</span>
         </div>
 
-        <!-- Filtros -->
+        <!-- FILTROS DE PESQUISA -->
         <div class="card shadow-sm mb-4">
             <div class="card-body">
                 <h2 class="h4 mb-3">Filtros</h2>
+
                 <form th:action="@{/admin/clientes}" method="GET">
                     <div class="row g-3">
                         <div class="col-md-4">
@@ -64,7 +65,7 @@
             </div>
         </div>
 
-        <!-- Tabela -->
+        <!-- TABELA DE RESULTADOS -->
         <div class="card shadow-sm">
             <div class="card-body">
                 <div class="table-responsive">
@@ -77,9 +78,11 @@
                                 <th>E-mail</th>
                                 <th>Telefone</th>
                                 <th>Gênero</th>
+                                <th>Situação</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
+
                         <tbody>
                             <tr th:each="cliente : ${clientes}">
                                 <td th:text="${cliente.id}">1</td>
@@ -89,9 +92,19 @@
                                 <td th:text="${cliente.telefone}">(11) 98765-4321</td>
                                 <td th:text="${cliente.genero}">Feminino</td>
                                 <td>
+                                    <span th:if="${cliente.ativo}" class="badge bg-success">Ativo</span>
+                                    <span th:unless="${cliente.ativo}" class="badge bg-secondary">Inativo</span>
+                                </td>
+                                <td>
                                     <a th:href="@{/admin/clientes/{id}(id=${cliente.id})}" class="btn btn-outline-primary btn-sm">
                                         Ver detalhes
                                     </a>
+                                </td>
+                            </tr>
+
+                            <tr th:if="${#lists.isEmpty(clientes)}">
+                                <td colspan="8" class="text-center text-muted py-4">
+                                    Nenhum cliente encontrado.
                                 </td>
                             </tr>
                         </tbody>

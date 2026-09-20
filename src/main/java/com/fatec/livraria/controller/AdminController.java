@@ -1,8 +1,13 @@
 package com.fatec.livraria.controller;
 
+import com.fatec.livraria.model.Cliente;
+import com.fatec.livraria.model.DadosFalsos;
+import com.fatec.livraria.model.ItemCarrinho;
+import com.fatec.livraria.model.Pedido;
+import com.fatec.livraria.model.Troca;
+import com.fatec.livraria.service.ClienteService;
 import java.time.LocalDateTime;
 import java.util.List;
-
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,44 +16,54 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.fatec.livraria.model.Cliente;
-import com.fatec.livraria.model.DadosFalsos;
-import com.fatec.livraria.model.ItemCarrinho;
-import com.fatec.livraria.model.Pedido;
-import com.fatec.livraria.model.Troca;
-
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
 
-    // Painel Geral
+    private final ClienteService clienteService;
+
+    public AdminController(ClienteService clienteService) {
+        this.clienteService = clienteService;
+    }
+
+    // Painel principal do administrador
     @GetMapping
     public String admin() {
         return "admin";
     }
 
-    // --- CLIENTES ---
+    // --- GERENCIAMENTO DE CLIENTES ---
 
+    // Listagem e consulta de clientes por filtros opcionais
     @GetMapping("/clientes")
-    public String listarClientes(Model model) {
-        List<Cliente> clientes = List.of(DadosFalsos.clienteExemplo(1L));
+    public String listarClientes(
+            @RequestParam(required = false) String nome,
+            @RequestParam(required = false) String cpf,
+            @RequestParam(required = false) String email,
+            Model model) {
+        List<Cliente> clientes = clienteService.consultar(nome, cpf, email);
         model.addAttribute("clientes", clientes);
         return "admin-clientes";
     }
 
+    // Exibe os detalhes do cliente selecionado
     @GetMapping("/clientes/{id}")
     public String detalheCliente(@PathVariable Long id, Model model) {
-        Cliente cliente = DadosFalsos.clienteExemplo(id);
+        Cliente cliente = clienteService.buscarPorId(id);
         model.addAttribute("cliente", cliente);
         return "admin-cliente-detalhe";
     }
 
+    // Inativa o cadastro do cliente
     @PostMapping("/clientes/{id}/inativar")
     public String inativarCliente(@PathVariable Long id) {
-        // Simulação de inativação de cliente
-        return "redirect:/admin/clientes";
+        clienteService.inativar(id);
+        return "redirect:/admin/clientes/" + id;
     }
 
+    // --- GERENCIAMENTO DE PEDIDOS ---
+
+    // Listagem geral de pedidos
     @GetMapping("/pedidos")
     public String listarPedidos(Model model) {
         Cliente cliente = DadosFalsos.clienteExemplo(1L);
@@ -62,6 +77,7 @@ public class AdminController {
         return "admin-pedidos";
     }
 
+    // Detalhamento do pedido
     @GetMapping("/pedidos/{id}")
     public String detalhePedidoAdmin(@PathVariable Long id, Model model) {
         Cliente cliente = DadosFalsos.clienteExemplo(1L);
@@ -75,12 +91,15 @@ public class AdminController {
         return "admin-pedido-detalhe";
     }
 
+    // Atualização do status do pedido
     @PostMapping("/pedidos/{id}/status")
     public String alterarStatusPedido(@PathVariable Long id, @RequestParam String novoStatus) {
-        // Simulação de alteração do status do pedido
         return "redirect:/admin/pedidos/" + id;
     }
 
+    // --- GERENCIAMENTO DE TROCAS ---
+
+    // Listagem geral de solicitações de troca
     @GetMapping("/trocas")
     public String listarTrocas(Model model) {
         Cliente cliente = DadosFalsos.clienteExemplo(1L);
@@ -95,6 +114,7 @@ public class AdminController {
         return "admin-trocas";
     }
 
+    // Detalhes da solicitação de troca
     @GetMapping("/trocas/{id}")
     public String detalheTroca(@PathVariable Long id, Model model) {
         Cliente cliente = DadosFalsos.clienteExemplo(1L);
@@ -109,32 +129,30 @@ public class AdminController {
         return "admin-troca-detalhe";
     }
 
+    // Aceita ou nega a solicitação de troca
     @PostMapping("/trocas/{id}/analisar")
     public String analisarTroca(@PathVariable Long id, @RequestParam String decisao) {
-        // Simulação de aceite ou negação da troca
         return "redirect:/admin/trocas/" + id;
     }
 
+    // Confirmação de recebimento do item e opção de retorno ao estoque
     @PostMapping("/trocas/{id}/receber")
     public String receberItemTroca(@PathVariable Long id, @RequestParam Boolean retornaEstoque) {
-        // Simulação da confirmação de recebimento e retorno ao estoque
         return "redirect:/admin/trocas/" + id;
     }
 
+    // Conclusão da troca e geração do cupom de troca
     @PostMapping("/trocas/{id}/finalizar")
     public String finalizarTroca(@PathVariable Long id) {
-        // Simulação de geração de cupom de troca e encerramento
         return "redirect:/admin/trocas/" + id;
     }
-
-    // --- ANÁLISE ---
-
-    @GetMapping("/analise")
+    
+    @GetMapping("/analise") // Exibe os gráficos e estatísticas de vendas
     public String analise(
-        Model model,
-        @RequestParam(required = false) String dataInicio,
-        @RequestParam(required = false) String dataFim,
-        @RequestParam(required = false) List<String> categorias){
+            Model model,
+            @RequestParam(required = false) String dataInicio,
+            @RequestParam(required = false) String dataFim,
+            @RequestParam(required = false) List<String> categorias) {
         model.addAttribute("etiquetas", DadosFalsos.mesesVendas());
         model.addAttribute("series", DadosFalsos.seriesVendas());
         model.addAttribute("categoriasDisponiveis", DadosFalsos.categorias());
