@@ -1,10 +1,7 @@
 package com.fatec.livraria.controller;
 
 import com.fatec.livraria.model.Cliente;
-import com.fatec.livraria.model.DadosFalsos;
-
 import com.fatec.livraria.repository.ClienteRepository;
-
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,21 +28,23 @@ public class ClienteController {
 
     @PostMapping("/salvar")
     public String salvarCliente(@ModelAttribute Cliente cliente) {
-
-        // TEMPORÁRIO — passa pelo Service no Passo D
         Long id = repository.salvar(cliente);
 
-        System.out.println("Cliente salvo com ID: " + id);
+        for (var endereco : cliente.getEnderecos()) {
+            repository.salvarEndereco(id, endereco);
+        }
 
-        return "redirect:/clientes/" + id;  ///retorna para o cliente recem criado
+        for (var cartao : cliente.getCartoes()) {
+            repository.salvarCartao(id, cartao);
+        }
+
+        return "redirect:/clientes/" + id;
     }
 
     @GetMapping("/{id}")
-    public String detalharCliente (@PathVariable Long id, Model model){
-        Cliente cliente = DadosFalsos.clienteExemplo(id); //* Chamo o método clienteExemplo dos DadosFalsos e armazeno na variavel
-        // cliente  */
-        model.addAttribute("cliente", cliente); //o model passa a ter essa variável cliente
-        return "cliente-perfil"; //retorno com o nome da página que o html terá que carregar
+    public String detalharCliente(@PathVariable Long id, Model model) {
+        Cliente cliente = repository.buscarPorId(id);
+        model.addAttribute("cliente", cliente);
+        return "cliente-perfil";
     }
-
 }

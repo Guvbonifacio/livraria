@@ -1,6 +1,7 @@
 package com.fatec.livraria.model;
 
 public class CartaoCredito {
+
     private Long id;
     private String numero;
     private String nomeImpresso;
@@ -8,7 +9,13 @@ public class CartaoCredito {
     private String codigoSeguranca;
     private boolean preferencial; // -- RF0027
 
-    public CartaoCredito(Long id,String numero, String nomeImpresso, String bandeira, String codigoSeguranca, boolean preferencial) {
+    // Necessário para o Spring preencher o objeto pelo formulário
+    public CartaoCredito() {
+    }
+
+    // Pode continuar sendo usado para criar cartões manualmente
+    public CartaoCredito(Long id,String numero,String nomeImpresso,String bandeira,String codigoSeguranca,boolean preferencial) {
+
         this.id = id;
         this.numero = numero;
         this.nomeImpresso = nomeImpresso;
@@ -27,26 +34,41 @@ public class CartaoCredito {
 
     public String getNumero() {
         return numero;
+    }
 
+    public void setNumero(String numero) {
+        this.numero = numero;
     }
 
     public String getNomeImpresso() {
         return nomeImpresso;
+    }
 
+    public void setNomeImpresso(String nomeImpresso) {
+        this.nomeImpresso = nomeImpresso;
     }
 
     public String getBandeira() {
         return bandeira;
+    }
 
+    public void setBandeira(String bandeira) {
+        this.bandeira = bandeira;
     }
 
     public String getCodigoSeguranca() {
         return codigoSeguranca;
+    }
 
+    public void setCodigoSeguranca(String codigoSeguranca) {
+        this.codigoSeguranca = codigoSeguranca;
     }
 
     public boolean isPreferencial() {
         return preferencial;
+    }
 
+    public void setPreferencial(boolean preferencial) {
+        this.preferencial = preferencial;
     }
 }
