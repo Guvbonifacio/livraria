@@ -18,7 +18,7 @@ public class Troca {
         this.pedido = pedido;
         this.itens = itens;
         this.motivo = motivo;
-        this.status = "TROCA SOLICITADA";
+        this.status = "EM TROCA";
         this.dataSolicitacao = LocalDateTime.now();
     }
 

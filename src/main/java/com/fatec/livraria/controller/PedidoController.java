@@ -39,13 +39,13 @@ public class PedidoController {
 
         // Povoando o histórico dentro do método
         pedido.getHistorico().add(
-            new HistoricoStatus(LocalDateTime.of(2026,8,20,14,30),"PEDIDO REALIZADO")
+            new HistoricoStatus(LocalDateTime.of(2026,8,20,14,30),"EM PROCESSAMENTO")
         );
         pedido.getHistorico().add(
-            new HistoricoStatus(LocalDateTime.of(2026,8,20,14,35),"PAGAMENTO APROVADO")
+            new HistoricoStatus(LocalDateTime.of(2026,8,20,14,35),"APROVADA")
         );
         pedido.getHistorico().add(
-            new HistoricoStatus(LocalDateTime.of(2026,8,21,9,0),"EM PROCESSAMENTO")
+            new HistoricoStatus(LocalDateTime.of(2026,8,21,9,0),"EM TRANSPORTE")
         );
 
         model.addAttribute("pedido", pedido);
