@@ -5,6 +5,7 @@ import com.fatec.livraria.model.DadosFalsos;
 import com.fatec.livraria.model.ItemCarrinho;
 import com.fatec.livraria.model.Pedido;
 import com.fatec.livraria.model.Troca;
+import com.fatec.livraria.repository.LogRepository;
 import com.fatec.livraria.service.ClienteService;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,9 +22,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class AdminController {
 
     private final ClienteService clienteService;
+    private final LogRepository logRepository;
 
-    public AdminController(ClienteService clienteService) {
+    public AdminController(ClienteService clienteService, LogRepository logRepository) {
         this.clienteService = clienteService;
+        this.logRepository = logRepository;
     }
 
     // Painel principal do administrador
@@ -50,9 +53,13 @@ public class AdminController {
     @GetMapping("/clientes/{id}")
     public String detalheCliente(@PathVariable Long id, Model model) {
         Cliente cliente = clienteService.buscarPorId(id);
+
         model.addAttribute("cliente", cliente);
-        return "admin-cliente-detalhe";
-    }
+        model.addAttribute("logs",logRepository.buscarPorRegistro("cliente", id)
+    );
+
+    return "admin-cliente-detalhe";
+}
 
     // Inativa o cadastro do cliente
     @PostMapping("/clientes/{id}/inativar")
@@ -146,8 +153,9 @@ public class AdminController {
     public String finalizarTroca(@PathVariable Long id) {
         return "redirect:/admin/trocas/" + id;
     }
-    
-    @GetMapping("/analise") // Exibe os gráficos e estatísticas de vendas
+
+    // Exibe os gráficos e estatísticas de vendas
+    @GetMapping("/analise")
     public String analise(
             Model model,
             @RequestParam(required = false) String dataInicio,

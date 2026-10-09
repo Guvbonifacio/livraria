@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- FRAGMENTO: FORMULÁRIO DE ENDEREÇO -->
+<div class="modal-content" th:fragment="formularioEndereco(clienteId, endereco, novo)">
+    <form method="POST" th:action="${novo} ? @{/clientes/{id}/enderecos(id=${clienteId})} : @{/clientes/{id}/enderecos/{idEnd}/alterar(id=${clienteId},idEnd=${endereco.id})}">
+        <div class="modal-header">
+            <h5 class="modal-title" th:text="${novo} ? 'Novo Endereço' : 'Editar Endereço'"></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+
+        <div class="modal-body row g-3">
+            <div class="col-md-6">
+                <label class="form-label d-block">
+                    Nome curto (apelido)
+                    <input class="form-control" type="text" name="nomeCurto" th:value="${endereco.nomeCurto}" required>
+                </label>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label d-block">
+                    Tipo de residência
+                    <input class="form-control" type="text" name="tipoResidencia" th:value="${endereco.tipoResidencia}" required>
+                </label>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label d-block">
+                    Logradouro
+                    <input class="form-control" type="text" name="logradouro" th:value="${endereco.logradouro}" required>
+                </label>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label d-block">
+                    Número
+                    <input class="form-control" type="text" name="numero" th:value="${endereco.numero}" required>
+                </label>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label d-block">
+                    Bairro
+                    <input class="form-control" type="text" name="bairro" th:value="${endereco.bairro}" required>
+                </label>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label d-block">
+                    CEP
+                    <input class="form-control" type="text" name="cep" th:value="${endereco.cep}" required>
+                </label>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label d-block">
+                    Cidade
+                    <input class="form-control" type="text" name="cidade" th:value="${endereco.cidade}" required>
+                </label>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label d-block">
+                    Estado
+                    <input class="form-control" type="text" name="estado" th:value="${endereco.estado}" required>
+                </label>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label d-block">
+                    Tipo do endereço
+                    <select class="form-select" name="tipo" required>
+                        <option value="ENTREGA" th:selected="${endereco.tipo == 'ENTREGA'}">Entrega</option>
+                        <option value="COBRANCA" th:selected="${endereco.tipo == 'COBRANCA'}">Cobrança</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar Endereço</button>
+        </div>
+    </form>
+</div>
+
+<!-- FRAGMENTO: FORMULÁRIO DE CARTÃO -->
+<div class="modal-content" th:fragment="formularioCartao(clienteId, cartao, novo)">
+    <form method="POST" th:action="${novo} ? @{/clientes/{id}/cartoes(id=${clienteId})} : @{/clientes/{id}/cartoes/{idCartao}/alterar(id=${clienteId},idCartao=${cartao.id})}">
+        <div class="modal-header">
+            <h5 class="modal-title" th:text="${novo} ? 'Novo Cartão' : 'Editar Cartão'"></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+
+        <div class="modal-body row g-3">
+            <div class="col-12">
+                <label class="form-label d-block">
+                    Número completo do cartão
+                    <input class="form-control" type="text" name="numero" inputmode="numeric" autocomplete="off" required>
+                </label>
+                <div class="form-text">Informe novamente o número ao editar. Apenas a versão mascarada é armazenada.</div>
+            </div>
+            <div class="col-12">
+                <label class="form-label d-block">
+                    Nome impresso
+                    <input class="form-control" type="text" name="nomeImpresso" th:value="${cartao.nomeImpresso}" required>
+                </label>
+            </div>
+            <div class="col-12">
+                <label class="form-label d-block">
+                    Bandeira
+                    <select class="form-select" name="bandeira" required>
+                        <option value="Visa" th:selected="${cartao.bandeira == 'Visa'}">Visa</option>
+                        <option value="Mastercard" th:selected="${cartao.bandeira == 'Mastercard'}">Mastercard</option>
+                        <option value="Elo" th:selected="${cartao.bandeira == 'Elo'}">Elo</option>
+                    </select>
+                </label>
+            </div>
+            <div class="col-12">
+                <label class="form-label d-block">
+                    Código de segurança
+                    <input class="form-control" type="password" name="codigoSeguranca" inputmode="numeric" autocomplete="off" required>
+                </label>
+            </div>
+            <div class="col-12">
+                <label class="form-check-label">
+                    <input class="form-check-input" type="checkbox" name="preferencial" value="true" th:checked="${cartao.preferencial}">
+                    Tornar preferencial
+                </label>
+                <div class="form-text">Para trocar o preferencial atual, escolha outro cartão.</div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar Cartão</button>
+        </div>
+    </form>
+</div>
+
+</body>
+</html>

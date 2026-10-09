@@ -9,13 +9,12 @@
 
     <main class="container my-5">
 
-        <!-- CABEÇALHO -->
+        <!-- CABEÇALHO DA PÁGINA -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div class="d-flex align-items-center gap-3">
                 <h1 class="mb-0">
                     Detalhe do Cliente #<span th:text="${cliente.id}">1</span>
                 </h1>
-
                 <span th:if="${cliente.ativo}" class="badge bg-success fs-6">Ativo</span>
                 <span th:unless="${cliente.ativo}" class="badge bg-secondary fs-6">Inativo</span>
             </div>
@@ -66,7 +65,7 @@
             </div>
         </div>
 
-        <!-- ENDEREÇOS -->
+        <!-- ENDEREÇOS CADASTRADOS -->
         <h2 class="h4 mb-3">Endereços Cadastrados</h2>
         <div class="row">
             <div class="col-md-6 mb-4" th:each="endereco : ${cliente.enderecos}">
@@ -92,7 +91,7 @@
             </div>
         </div>
 
-        <!-- CARTÕES -->
+        <!-- CARTÕES CADASTRADOS -->
         <h2 class="h4 mb-3">Cartões Cadastrados</h2>
         <div class="row">
             <div class="col-md-6 mb-4" th:each="cartao : ${cliente.cartoes}">
@@ -114,6 +113,57 @@
                 </div>
             </div>
         </div>
+
+        <!-- HISTÓRICO DE ALTERAÇÕES -->
+        <section class="card shadow-sm mb-4" data-cy="historico-alteracoes">
+            <div class="card-header bg-white py-3">
+                <h2 class="h5 mb-0">Histórico de alterações</h2>
+            </div>
+
+            <div class="card-body">
+                <p th:if="${#lists.isEmpty(logs)}" class="text-muted mb-0" data-cy="historico-vazio">
+                    Nenhuma alteração registrada para este cliente.
+                </p>
+
+                <div th:unless="${#lists.isEmpty(logs)}" class="table-responsive">
+                    <table class="table table-striped align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Data/hora</th>
+                                <th scope="col">Usuário</th>
+                                <th scope="col">Operação</th>
+                                <th scope="col">Tabela</th>
+                                <th scope="col">Registro</th>
+                                <th scope="col">Dados</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr th:each="log : ${logs}" data-cy="log-transacao">
+                                <td data-cy="log-data-hora" class="text-nowrap"
+                                    th:text="${#temporals.format(log.dataHora, 'dd/MM/yyyy HH:mm:ss')}">
+                                </td>
+
+                                <td data-cy="log-usuario" th:text="${log.usuario}"></td>
+
+                                <td>
+                                    <span class="badge bg-secondary" data-cy="log-operacao" th:text="${log.operacao}"></span>
+                                </td>
+
+                                <td data-cy="log-tabela" th:text="${log.tabela}"></td>
+
+                                <td data-cy="log-registro-id" th:text="${log.registroId}"></td>
+
+                                <td>
+                                    <pre class="mb-0 small" style="white-space: pre-wrap; overflow-wrap: anywhere;"
+                                         data-cy="log-dados" th:text="${log.dados}"></pre>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
         <!-- AÇÕES ADMINISTRATIVAS -->
         <h2 class="h4 mb-3">Ações Administrativas</h2>

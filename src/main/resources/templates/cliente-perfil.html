@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-
 <head th:replace="~{fragmentos/layout :: cabeca}"></head>
 
 <body class="bg-light d-flex flex-column min-vh-100">
@@ -9,6 +8,14 @@
     <nav th:replace="~{fragmentos/layout :: menu}"></nav>
 
     <main class="container my-4">
+        <div th:if="${sucessoSenha != null}" class="alert alert-success" data-cy="sucesso-senha" role="status" th:text="${sucessoSenha}"></div>
+        <div th:if="${sucessoRelacionamentos != null}" class="alert alert-success" data-cy="sucesso-relacionamentos" role="status" th:text="${sucessoRelacionamentos}"></div>
+
+        <div th:if="${errosRelacionamentos != null}" class="alert alert-danger" data-cy="erros-relacionamentos" role="alert">
+            <ul class="mb-0">
+                <li th:each="erro : ${errosRelacionamentos}" th:text="${erro}"></li>
+            </ul>
+        </div>
 
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div class="d-flex align-items-center gap-3">
@@ -16,61 +23,47 @@
                 <span th:if="${cliente.ativo}" class="badge bg-success">Ativo</span>
                 <span th:unless="${cliente.ativo}" class="badge bg-secondary">Inativo</span>
             </div>
-
-            <!-- Ações do Perfil -->
             <div class="d-flex gap-2">
-                <a th:href="@{/clientes/{id}/editar(id=${cliente.id})}" class="btn btn-primary">
-                    Alterar dados
-                </a>
-
-                <button th:if="${cliente.ativo}" type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalInativar">
-                    Inativar Conta
-                </button>
+                <a th:href="@{/clientes/{id}/editar(id=${cliente.id})}" class="btn btn-primary">Alterar dados</a>
+                <button th:if="${cliente.ativo}" type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalInativar">Inativar Conta</button>
             </div>
         </div>
 
-        <form th:action="@{/clientes/salvar}" th:object="${cliente}" method="POST">
-
+        <div th:object="${cliente}">
             <!-- DADOS PESSOAIS -->
             <div class="card mb-4 shadow-sm">
                 <div class="card-header bg-white">
                     <h5 class="m-0 fw-bold">Dados Pessoais</h5>
                 </div>
-
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Nome Completo</label>
-                            <input type="text" class="form-control" th:field="*{nome}" required>
+                            <input type="text" class="form-control" th:field="*{nome}" readonly>
                         </div>
-
                         <div class="col-md-3">
                             <label class="form-label">Gênero</label>
-                            <select class="form-select" th:field="*{genero}">
+                            <select class="form-select" th:field="*{genero}" disabled>
                                 <option value="Feminino">Feminino</option>
                                 <option value="Masculino">Masculino</option>
                                 <option value="Outro">Outro</option>
                             </select>
                         </div>
-
                         <div class="col-md-3">
                             <label class="form-label">Data de Nascimento</label>
-                            <input type="date" class="form-control" th:field="*{dataNascimento}" required>
+                            <input type="date" class="form-control" th:field="*{dataNascimento}" readonly>
                         </div>
-
                         <div class="col-md-4">
                             <label class="form-label">CPF (Apenas Leitura)</label>
                             <input type="text" class="form-control bg-light" th:field="*{cpf}" readonly>
                         </div>
-
                         <div class="col-md-4">
                             <label class="form-label">Telefone</label>
-                            <input type="text" class="form-control" th:field="*{telefone}" required>
+                            <input type="text" class="form-control" th:field="*{telefone}" readonly>
                         </div>
-
                         <div class="col-md-4">
                             <label class="form-label">E-mail</label>
-                            <input type="email" class="form-control" th:field="*{email}" required>
+                            <input type="email" class="form-control" th:field="*{email}" readonly>
                         </div>
                     </div>
                 </div>
@@ -86,7 +79,7 @@
                 </div>
             </div>
 
-            <!-- MEUS ENDEREÇOS -->
+            <!-- ENDEREÇOS -->
             <div class="card mb-4 shadow-sm">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <h5 class="m-0 fw-bold">Meus Endereços</h5>
@@ -94,24 +87,31 @@
                         Alterar / Adicionar Endereços
                     </button>
                 </div>
-
                 <div class="card-body">
                     <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex justify-content-between align-items-center" th:each="end : ${cliente.enderecos}">
-                            <div>
-                                <strong th:text="${end.nomeCurto}">Casa</strong>
-                                (<span th:text="${end.tipoResidencia}">Residencial</span>) —
-                                <span th:text="${end.logradouro} + ', ' + ${end.numero} + ' - ' + ${end.bairro} + ' (' + ${end.cidade} + '/' + ${end.estado} + ')'">
-                                    Endereço
-                                </span>
+                        <li class="list-group-item" th:each="end : ${cliente.enderecos}" data-cy="endereco-item" th:attr="data-id=${end.id}">
+                            <div class="d-flex justify-content-between align-items-start gap-3">
+                                <div>
+                                    <strong data-cy="endereco-nome" th:text="${end.nomeCurto}"></strong>
+                                    <span th:text="${end.tipo}"></span>
+                                    <div th:text="${end.logradouro} + ', ' + ${end.numero} + ' - ' + ${end.bairro}"></div>
+                                    <div th:text="${end.cidade} + '/' + ${end.estado} + ' - CEP ' + ${end.cep}"></div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" th:attr="data-bs-target='#modalEnderecoEditar-' + ${end.id}">
+                                        Editar
+                                    </button>
+                                    <form method="POST" th:action="@{/clientes/{id}/enderecos/{idEnd}/remover(id=${cliente.id},idEnd=${end.id})}">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" data-cy="remover-endereco">Remover</button>
+                                    </form>
+                                </div>
                             </div>
-                            <span class="badge bg-secondary">Cadastrado</span>
                         </li>
                     </ul>
                 </div>
             </div>
 
-            <!-- MEUS CARTÕES DE CRÉDITO -->
+            <!-- CARTÕES -->
             <div class="card mb-4 shadow-sm">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <h5 class="m-0 fw-bold">Meus Cartões de Crédito</h5>
@@ -119,62 +119,72 @@
                         Adicionar Novo Cartão
                     </button>
                 </div>
-
                 <div class="card-body">
                     <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex justify-content-between align-items-center" th:each="cartao : ${cliente.cartoes}">
-                            <div>
-                                <strong th:text="${cartao.bandeira}">Bandeira</strong> —
-                                <span th:text="${cartao.numero}">Número</span>
-                                (<span th:text="${cartao.nomeImpresso}">Nome</span>)
+                        <li class="list-group-item" th:each="cartao : ${cliente.cartoes}" data-cy="cartao-item" th:attr="data-id=${cartao.id}">
+                            <div class="d-flex justify-content-between align-items-start gap-3">
+                                <div>
+                                    <strong th:text="${cartao.bandeira}"></strong>
+                                    <span data-cy="cartao-numero" th:text="${cartao.numero}"></span>
+                                    <div th:text="${cartao.nomeImpresso}"></div>
+                                    <span th:if="${cartao.preferencial}" class="badge bg-primary" data-cy="cartao-preferencial">Preferencial</span>
+                                    <span th:unless="${cartao.preferencial}" class="badge bg-secondary" data-cy="cartao-secundario">Secundário</span>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" th:attr="data-bs-target='#modalCartaoEditar-' + ${cartao.id}">
+                                        Editar
+                                    </button>
+                                    <form th:unless="${cartao.preferencial}" method="POST" th:action="@{/clientes/{id}/cartoes/{idCartao}/preferencial(id=${cliente.id},idCartao=${cartao.id})}">
+                                        <button type="submit" class="btn btn-outline-success btn-sm" data-cy="tornar-preferencial">Tornar preferencial</button>
+                                    </form>
+                                    <form method="POST" th:action="@{/clientes/{id}/cartoes/{idCartao}/remover(id=${cliente.id},idCartao=${cartao.id})}">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" data-cy="remover-cartao">Remover</button>
+                                    </form>
+                                </div>
                             </div>
-                            <span class="badge bg-primary" th:if="${cartao.preferencial}">Preferencial</span>
-                            <span class="badge bg-light text-dark" th:unless="${cartao.preferencial}">Secundário</span>
                         </li>
                     </ul>
                 </div>
             </div>
 
-            <!-- BOTÕES DE AÇÃO -->
             <div class="d-flex justify-content-end gap-2 mb-5">
                 <a th:href="@{/}" class="btn btn-secondary">Cancelar</a>
-                <button type="submit" class="btn btn-success btn-lg">Salvar Alterações</button>
+                <a th:href="@{/clientes/{id}/editar(id=${cliente.id})}" class="btn btn-success btn-lg">Editar dados pessoais</a>
             </div>
-
-        </form>
-
+        </div>
     </main>
 
-    <!-- MODAL 1: ALTERAR SENHA -->
+    <!-- ALTERAR SENHA -->
     <div class="modal fade" id="modalSenha" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <form th:action="@{/clientes/alterar-senha}" method="POST">
+                <form th:action="@{/clientes/{id}/senha(id=${cliente.id})}" method="POST">
                     <div class="modal-header">
                         <h5 class="modal-title">Alterar Senha</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                     </div>
-
                     <div class="modal-body row g-3">
+                        <div th:if="${errosSenha != null}" class="col-12">
+                            <div class="alert alert-danger" data-cy="erros-senha" role="alert">
+                                <ul class="mb-0">
+                                    <li th:each="erro : ${errosSenha}" th:text="${erro}"></li>
+                                </ul>
+                            </div>
+                        </div>
                         <div class="col-12">
                             <label class="form-label">Senha Atual</label>
                             <input type="password" class="form-control" name="senhaAtual" required>
                         </div>
-
                         <div class="col-12">
                             <label class="form-label">Nova Senha</label>
                             <input type="password" class="form-control" name="novaSenha" required>
-                            <div class="form-text">
-                                Mínimo 8 caracteres, maiúsculas, minúsculas e caractere especial.
-                            </div>
+                            <div class="form-text">Mínimo 8 caracteres, maiúsculas, minúsculas e caractere especial.</div>
                         </div>
-
                         <div class="col-12">
                             <label class="form-label">Confirmar Nova Senha</label>
-                            <input type="password" class="form-control" name="confirmarNovaSenha" required>
+                            <input type="password" class="form-control" name="confirmacao" required>
                         </div>
                     </div>
-
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                         <button type="submit" class="btn btn-warning">Atualizar Senha</button>
@@ -184,23 +194,19 @@
         </div>
     </div>
 
-    <!-- MODAL 2: INATIVAR CADASTRO -->
+    <!-- INATIVAR CADASTRO -->
     <div class="modal fade" id="modalInativar" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <form method="POST" th:action="@{/admin/clientes/{id}/inativar(id=${cliente.id})}">
                     <div class="modal-header bg-danger text-white">
                         <h5 class="modal-title">Inativar Conta</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
                     </div>
-
                     <div class="modal-body">
                         <p class="fw-bold">Tem certeza que deseja inativar o seu cadastro?</p>
-                        <p class="text-muted small m-0">
-                            O seu histórico de transações será mantido, mas a sua conta não poderá ser utilizada para novas compras até ser reativada.
-                        </p>
+                        <p class="text-muted small m-0">O seu histórico de transações será mantido, mas a sua conta não poderá ser utilizada para novas compras até ser reativada.</p>
                     </div>
-
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Não, manter conta</button>
                         <button type="submit" class="btn btn-danger">Sim, inativar cadastro</button>
@@ -210,113 +216,40 @@
         </div>
     </div>
 
-    <!-- MODAL 3: ADICIONAR ENDEREÇO -->
-    <div class="modal fade" id="modalEndereco" tabindex="-1">
+    <!-- NOVO ENDEREÇO -->
+    <div class="modal fade" id="modalEndereco" tabindex="-1" aria-label="Novo Endereço">
         <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Novo Endereço</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Nome Curto (Apelido)</label>
-                        <input type="text" class="form-control" placeholder="Ex: Casa, Trabalho">
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Tipo de Residência</label>
-                        <select class="form-select">
-                            <option>Casa</option>
-                            <option>Apartamento</option>
-                            <option>Outro</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-8">
-                        <label class="form-label">Logradouro</label>
-                        <input type="text" class="form-control">
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">Número</label>
-                        <input type="text" class="form-control">
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">Bairro</label>
-                        <input type="text" class="form-control">
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">CEP</label>
-                        <input type="text" class="form-control">
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">Cidade / Estado</label>
-                        <input type="text" class="form-control">
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Salvar Endereço</button>
-                </div>
-            </div>
+            <div class="modal-content" th:replace="~{fragmentos/relacionamentos :: formularioEndereco(${cliente.id}, ${novoEndereco}, true)}"></div>
         </div>
     </div>
 
-    <!-- MODAL 4: ADICIONAR CARTÃO -->
-    <div class="modal fade" id="modalCartao" tabindex="-1">
+    <!-- EDIÇÃO DE ENDEREÇOS -->
+    <div th:each="end : ${cliente.enderecos}" class="modal fade" tabindex="-1" th:id="'modalEnderecoEditar-' + ${end.id}" aria-label="Editar Endereço">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content" th:replace="~{fragmentos/relacionamentos :: formularioEndereco(${cliente.id}, ${end}, false)}"></div>
+        </div>
+    </div>
+
+    <!-- NOVO CARTÃO -->
+    <div class="modal fade" id="modalCartao" tabindex="-1" aria-label="Novo Cartão">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Novo Cartão de Crédito</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+            <div class="modal-content" th:replace="~{fragmentos/relacionamentos :: formularioCartao(${cliente.id}, ${novoCartao}, true)}"></div>
+        </div>
+    </div>
 
-                <div class="modal-body row g-3">
-                    <div class="col-12">
-                        <label class="form-label">Número do Cartão</label>
-                        <input type="text" class="form-control">
-                    </div>
-
-                    <div class="col-12">
-                        <label class="form-label">Nome Impresso no Cartão</label>
-                        <input type="text" class="form-control">
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Bandeira</label>
-                        <select class="form-select">
-                            <option>Mastercard</option>
-                            <option>Visa</option>
-                            <option>Elo</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Código de Segurança (CVV)</label>
-                        <input type="text" class="form-control">
-                    </div>
-
-                    <div class="col-12 form-check ms-3 mt-3">
-                        <input type="checkbox" class="form-check-input" id="pref">
-                        <label class="form-check-label" for="pref">Definir como cartão preferencial</label>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Salvar Cartão</button>
-                </div>
-            </div>
+    <!-- EDIÇÃO DE CARTÕES -->
+    <div th:each="cartao : ${cliente.cartoes}" class="modal fade" tabindex="-1" th:id="'modalCartaoEditar-' + ${cartao.id}" aria-label="Editar Cartão">
+        <div class="modal-dialog">
+            <div class="modal-content" th:replace="~{fragmentos/relacionamentos :: formularioCartao(${cliente.id}, ${cartao}, false)}"></div>
         </div>
     </div>
 
     <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
 
+    <script th:if="${errosSenha != null}">
+        window.addEventListener('load', function () {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalSenha')).show();
+        });
+    </script>
 </body>
 </html>
