@@ -3,110 +3,75 @@ package com.fatec.livraria.model;
 public class Endereco {
 
     private Long id;
-    private String nomeCurto; // Ex: "Casa", "Trabalho" ----->> RF0026
-    private String tipo;      // ENTREGA ou COBRANCA
+    private String nomeCurto;
+    private String tipo;
     private String tipoResidencia;
+    private String tipoLogradouro;
     private String logradouro;
     private String numero;
     private String bairro;
     private String cep;
     private String cidade;
     private String estado;
+    private String pais;
+    private String observacoes;
 
-    // Necessário para o Spring preencher o objeto pelo formulário
     public Endereco() {
     }
 
-    // Pode continuar existindo para facilitar criação manual de objetos
-    public Endereco(String nomeCurto,String tipo,String tipoResidencia,String logradouro,String numero,String bairro,String cep,String cidade,String estado) {
+    public Endereco(String nomeCurto, String tipo, String tipoResidencia, String tipoLogradouro,
+                    String logradouro, String numero, String bairro, String cep,
+                    String cidade, String estado, String pais, String observacoes) {
         this.nomeCurto = nomeCurto;
         this.tipo = tipo;
         this.tipoResidencia = tipoResidencia;
+        this.tipoLogradouro = tipoLogradouro;
         this.logradouro = logradouro;
         this.numero = numero;
         this.bairro = bairro;
         this.cep = cep;
         this.cidade = cidade;
         this.estado = estado;
+        this.pais = pais;
+        this.observacoes = observacoes;
     }
 
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public String getNomeCurto() { return nomeCurto; }
+    public void setNomeCurto(String nomeCurto) { this.nomeCurto = nomeCurto; }
 
-    public String getNomeCurto() {
-        return nomeCurto;
-    }
+    public String getTipo() { return tipo; }
+    public void setTipo(String tipo) { this.tipo = tipo; }
 
-    public void setNomeCurto(String nomeCurto) {
-        this.nomeCurto = nomeCurto;
-    }
+    public String getTipoResidencia() { return tipoResidencia; }
+    public void setTipoResidencia(String tipoResidencia) { this.tipoResidencia = tipoResidencia; }
 
-    public String getTipo() {
-        return tipo;
-    }
+    public String getTipoLogradouro() { return tipoLogradouro; }
+    public void setTipoLogradouro(String tipoLogradouro) { this.tipoLogradouro = tipoLogradouro; }
 
-    public void setTipo(String tipo) {
-        this.tipo = tipo;
-    }
+    public String getLogradouro() { return logradouro; }
+    public void setLogradouro(String logradouro) { this.logradouro = logradouro; }
 
-    public String getTipoResidencia() {
-        return tipoResidencia;
-    }
+    public String getNumero() { return numero; }
+    public void setNumero(String numero) { this.numero = numero; }
 
-    public void setTipoResidencia(String tipoResidencia) {
-        this.tipoResidencia = tipoResidencia;
-    }
+    public String getBairro() { return bairro; }
+    public void setBairro(String bairro) { this.bairro = bairro; }
 
-    public String getLogradouro() {
-        return logradouro;
-    }
+    public String getCep() { return cep; }
+    public void setCep(String cep) { this.cep = cep; }
 
-    public void setLogradouro(String logradouro) {
-        this.logradouro = logradouro;
-    }
+    public String getCidade() { return cidade; }
+    public void setCidade(String cidade) { this.cidade = cidade; }
 
-    public String getNumero() {
-        return numero;
-    }
+    public String getEstado() { return estado; }
+    public void setEstado(String estado) { this.estado = estado; }
 
-    public void setNumero(String numero) {
-        this.numero = numero;
-    }
+    public String getPais() { return pais; }
+    public void setPais(String pais) { this.pais = pais; }
 
-    public String getBairro() {
-        return bairro;
-    }
-
-    public void setBairro(String bairro) {
-        this.bairro = bairro;
-    }
-
-    public String getCep() {
-        return cep;
-    }
-
-    public void setCep(String cep) {
-        this.cep = cep;
-    }
-
-    public String getCidade() {
-        return cidade;
-    }
-
-    public void setCidade(String cidade) {
-        this.cidade = cidade;
-    }
-
-    public String getEstado() {
-        return estado;
-    }
-
-    public void setEstado(String estado) {
-        this.estado = estado;
-    }
+    public String getObservacoes() { return observacoes; }
+    public void setObservacoes(String observacoes) { this.observacoes = observacoes; }
 }

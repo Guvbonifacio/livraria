@@ -1,193 +1,169 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-
 <head th:replace="~{fragmentos/layout :: cabeca}"></head>
 
 <body class="bg-light d-flex flex-column min-vh-100">
 
-    <nav th:replace="~{fragmentos/layout :: menu}"></nav>
+  <nav th:replace="~{fragmentos/layout :: menu}"></nav>
 
-    <main class="container my-5">
+  <main class="container my-5">
 
-        <!-- CABEÇALHO DA PÁGINA -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div class="d-flex align-items-center gap-3">
-                <h1 class="mb-0">
-                    Detalhe do Cliente #<span th:text="${cliente.id}">1</span>
-                </h1>
-                <span th:if="${cliente.ativo}" class="badge bg-success fs-6">Ativo</span>
-                <span th:unless="${cliente.ativo}" class="badge bg-secondary fs-6">Inativo</span>
-            </div>
+    <!-- Cabeçalho da Página -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex align-items-center gap-3">
+        <h1 class="mb-0">
+          Detalhe do Cliente #<span th:text="${cliente.id}">1</span>
+        </h1>
+        <span th:if="${cliente.ativo}" class="badge bg-success fs-6">Ativo</span>
+        <span th:unless="${cliente.ativo}" class="badge bg-secondary fs-6">Inativo</span>
+      </div>
 
-            <a th:href="@{/admin/clientes}" class="btn btn-outline-secondary">
-                Voltar para Clientes
-            </a>
+      <a th:href="@{/admin/clientes}" class="btn btn-outline-secondary">
+        Voltar para Clientes
+      </a>
+    </div>
+
+    <!-- Dados Pessoais -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-white py-3">
+        <strong class="fs-5">Dados Pessoais</strong>
+      </div>
+
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <strong class="text-muted d-block">Nome</strong>
+            <span class="fs-5" th:text="${cliente.nome}">Ana Maria</span>
+          </div>
+
+          <div class="col-md-3">
+            <strong class="text-muted d-block">Gênero</strong>
+            <span class="fs-5" th:text="${cliente.genero}">Feminino</span>
+          </div>
+
+          <div class="col-md-3">
+            <strong class="text-muted d-block">Data de Nascimento</strong>
+            <span class="fs-5" th:text="${cliente.dataNascimento}">20/05/1995</span>
+          </div>
+
+          <div class="col-md-4">
+            <strong class="text-muted d-block">CPF</strong>
+            <span class="fs-5" th:text="${cliente.cpf}">12345678900</span>
+          </div>
+
+          <div class="col-md-4">
+            <strong class="text-muted d-block">Telefone</strong>
+            <span class="fs-5" th:text="${cliente.telefone}">11987654321</span>
+          </div>
+
+          <div class="col-md-4">
+            <strong class="text-muted d-block">E-mail</strong>
+            <span class="fs-5" th:text="${cliente.email}">anamaria@email.com</span>
+          </div>
         </div>
+      </div>
+    </div>
 
-        <!-- DADOS PESSOAIS -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white py-3">
-                <strong class="fs-5">Dados Pessoais</strong>
-            </div>
-
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <strong class="text-muted d-block">Nome</strong>
-                        <span class="fs-5" th:text="${cliente.nome}">Ana Maria</span>
-                    </div>
-
-                    <div class="col-md-3">
-                        <strong class="text-muted d-block">Gênero</strong>
-                        <span class="fs-5" th:text="${cliente.genero}">Feminino</span>
-                    </div>
-
-                    <div class="col-md-3">
-                        <strong class="text-muted d-block">Data de Nascimento</strong>
-                        <span class="fs-5" th:text="${cliente.dataNascimento}">20/05/1995</span>
-                    </div>
-
-                    <div class="col-md-4">
-                        <strong class="text-muted d-block">CPF</strong>
-                        <span class="fs-5" th:text="${cliente.cpf}">12345678900</span>
-                    </div>
-
-                    <div class="col-md-4">
-                        <strong class="text-muted d-block">Telefone</strong>
-                        <span class="fs-5" th:text="${cliente.telefone}">11987654321</span>
-                    </div>
-
-                    <div class="col-md-4">
-                        <strong class="text-muted d-block">E-mail</strong>
-                        <span class="fs-5" th:text="${cliente.email}">anamaria@email.com</span>
-                    </div>
-                </div>
-            </div>
+    <!-- Endereços Cadastrados -->
+    <h2 class="h4 mb-3">Endereços Cadastrados</h2>
+    <div class="row">
+      <div class="col-md-6 mb-4" th:each="endereco : ${cliente.enderecos}">
+        <div class="card shadow-sm h-100">
+          <div class="card-body">
+            <h5 class="fw-bold" th:text="${endereco.tipoLogradouro} + ' ' + ${endereco.logradouro} + ', ' + ${endereco.numero}"></h5>
+            <p class="mb-1"><strong>Tipo de residência: </strong><span th:text="${endereco.tipoResidencia}"></span></p>
+            <p class="mb-1 text-muted" th:text="${endereco.bairro}"></p>
+            <p class="mb-1 text-muted" th:text="${endereco.cidade} + '/' + ${endereco.estado}"></p>
+            <p class="mb-1"><strong>CEP: </strong><span th:text="${endereco.cep}"></span></p>
+            <p class="mb-1"><strong>País: </strong><span th:text="${endereco.pais}"></span></p>
+            <p class="mb-0" th:if="${!#strings.isEmpty(endereco.observacoes)}">
+              <strong>Observações: </strong><span th:text="${endereco.observacoes}"></span>
+            </p>
+          </div>
         </div>
+      </div>
+    </div>
 
-        <!-- ENDEREÇOS CADASTRADOS -->
-        <h2 class="h4 mb-3">Endereços Cadastrados</h2>
-        <div class="row">
-            <div class="col-md-6 mb-4" th:each="endereco : ${cliente.enderecos}">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <h5 class="fw-bold" th:text="${endereco.logradouro} + ', ' + ${endereco.numero}">
-                            Rua das Flores, 100
-                        </h5>
-                        <p class="mb-1">
-                            <strong>Tipo: </strong>
-                            <span th:text="${endereco.tipoResidencia}">Casa</span>
-                        </p>
-                        <p class="mb-1 text-muted" th:text="${endereco.bairro}">Centro</p>
-                        <p class="mb-1 text-muted" th:text="${endereco.cidade} + '/' + ${endereco.estado}">
-                            Mogi das Cruzes/SP
-                        </p>
-                        <p class="mb-0">
-                            <strong>CEP: </strong>
-                            <span th:text="${endereco.cep}">08700-000</span>
-                        </p>
-                    </div>
-                </div>
+    <!-- Cartões Cadastrados -->
+    <h2 class="h4 mb-3">Cartões Cadastrados</h2>
+    <div class="row">
+      <div class="col-md-6 mb-4" th:each="cartao : ${cliente.cartoes}">
+        <div class="card shadow-sm h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="m-0 fw-bold" th:text="${cartao.bandeira}">Mastercard</h5>
+              <span th:if="${cartao.preferencial}" class="badge bg-success">Preferencial</span>
             </div>
+            <p class="mb-1"><strong>Número: </strong><span th:text="${cartao.numero}">**** **** **** 1234</span></p>
+            <p class="mb-0"><strong>Nome impresso: </strong><span th:text="${cartao.nomeImpresso}">ANA MARIA SILVA</span></p>
+          </div>
         </div>
+      </div>
+    </div>
 
-        <!-- CARTÕES CADASTRADOS -->
-        <h2 class="h4 mb-3">Cartões Cadastrados</h2>
-        <div class="row">
-            <div class="col-md-6 mb-4" th:each="cartao : ${cliente.cartoes}">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="m-0 fw-bold" th:text="${cartao.bandeira}">Mastercard</h5>
-                            <span th:if="${cartao.preferencial}" class="badge bg-success">Preferencial</span>
-                        </div>
-                        <p class="mb-1">
-                            <strong>Número: </strong>
-                            <span th:text="${cartao.numero}">**** **** **** 1234</span>
-                        </p>
-                        <p class="mb-0">
-                            <strong>Nome impresso: </strong>
-                            <span th:text="${cartao.nomeImpresso}">ANA MARIA SILVA</span>
-                        </p>
-                    </div>
-                </div>
-            </div>
+    <!-- Histórico de Alterações -->
+    <section class="card shadow-sm mb-4" data-cy="historico-alteracoes">
+      <div class="card-header bg-white py-3">
+        <h2 class="h5 mb-0">Histórico de alterações</h2>
+      </div>
+
+      <div class="card-body">
+        <p th:if="${#lists.isEmpty(logs)}" class="text-muted mb-0" data-cy="historico-vazio">
+          Nenhuma alteração registrada para este cliente.
+        </p>
+
+        <div th:unless="${#lists.isEmpty(logs)}" class="table-responsive">
+          <table class="table table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Data/hora</th>
+                <th scope="col">Usuário</th>
+                <th scope="col">Operação</th>
+                <th scope="col">Tabela</th>
+                <th scope="col">Registro</th>
+                <th scope="col">Dados</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="log : ${logs}" data-cy="log-transacao">
+                <td data-cy="log-data-hora" class="text-nowrap" th:text="${#temporals.format(log.dataHora, 'dd/MM/yyyy HH:mm:ss')}"></td>
+                <td data-cy="log-usuario" th:text="${log.usuario}"></td>
+                <td><span class="badge bg-secondary" data-cy="log-operacao" th:text="${log.operacao}"></span></td>
+                <td data-cy="log-tabela" th:text="${log.tabela}"></td>
+                <td data-cy="log-registro-id" th:text="${log.registroId}"></td>
+                <td>
+                  <pre class="mb-0 small" style="white-space: pre-wrap; overflow-wrap: anywhere;" data-cy="log-dados" th:text="${log.dados}"></pre>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+      </div>
+    </section>
 
-        <!-- HISTÓRICO DE ALTERAÇÕES -->
-        <section class="card shadow-sm mb-4" data-cy="historico-alteracoes">
-            <div class="card-header bg-white py-3">
-                <h2 class="h5 mb-0">Histórico de alterações</h2>
-            </div>
+    <!-- Ações Administrativas -->
+    <h2 class="h4 mb-3">Ações Administrativas</h2>
+    <div class="card shadow-sm mb-4">
+      <div class="card-body d-flex gap-2">
+        <a th:href="@{/admin/clientes/{id}/editar(id=${cliente.id})}" class="btn btn-warning">
+          Editar cliente
+        </a>
 
-            <div class="card-body">
-                <p th:if="${#lists.isEmpty(logs)}" class="text-muted mb-0" data-cy="historico-vazio">
-                    Nenhuma alteração registrada para este cliente.
-                </p>
+        <form th:if="${cliente.ativo}" th:action="@{/admin/clientes/{id}/inativar(id=${cliente.id})}" method="POST" class="d-inline">
+          <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja inativar este cliente?')">
+            Inativar cliente
+          </button>
+        </form>
 
-                <div th:unless="${#lists.isEmpty(logs)}" class="table-responsive">
-                    <table class="table table-striped align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th scope="col">Data/hora</th>
-                                <th scope="col">Usuário</th>
-                                <th scope="col">Operação</th>
-                                <th scope="col">Tabela</th>
-                                <th scope="col">Registro</th>
-                                <th scope="col">Dados</th>
-                            </tr>
-                        </thead>
+        <span th:unless="${cliente.ativo}" class="badge bg-secondary align-self-center fs-6">
+          Cliente inativo
+        </span>
+      </div>
+    </div>
 
-                        <tbody>
-                            <tr th:each="log : ${logs}" data-cy="log-transacao">
-                                <td data-cy="log-data-hora" class="text-nowrap"
-                                    th:text="${#temporals.format(log.dataHora, 'dd/MM/yyyy HH:mm:ss')}">
-                                </td>
+  </main>
 
-                                <td data-cy="log-usuario" th:text="${log.usuario}"></td>
-
-                                <td>
-                                    <span class="badge bg-secondary" data-cy="log-operacao" th:text="${log.operacao}"></span>
-                                </td>
-
-                                <td data-cy="log-tabela" th:text="${log.tabela}"></td>
-
-                                <td data-cy="log-registro-id" th:text="${log.registroId}"></td>
-
-                                <td>
-                                    <pre class="mb-0 small" style="white-space: pre-wrap; overflow-wrap: anywhere;"
-                                         data-cy="log-dados" th:text="${log.dados}"></pre>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- AÇÕES ADMINISTRATIVAS -->
-        <h2 class="h4 mb-3">Ações Administrativas</h2>
-        <div class="card shadow-sm mb-4">
-            <div class="card-body d-flex gap-2">
-                <a th:href="@{/admin/clientes/{id}/editar(id=${cliente.id})}" class="btn btn-warning">
-                    Editar cliente
-                </a>
-
-                <form th:if="${cliente.ativo}" th:action="@{/admin/clientes/{id}/inativar(id=${cliente.id})}" method="POST" class="d-inline">
-                    <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja inativar este cliente?')">
-                        Inativar cliente
-                    </button>
-                </form>
-
-                <span th:unless="${cliente.ativo}" class="badge bg-secondary align-self-center fs-6">
-                    Cliente inativo
-                </span>
-            </div>
-        </div>
-
-    </main>
-
-    <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
+  <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
 
 </body>
 </html>

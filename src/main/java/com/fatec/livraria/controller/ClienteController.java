@@ -16,9 +16,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.List;
+
 @Controller
 @RequestMapping("/clientes")
 public class ClienteController {
+    
+    @ModelAttribute("bandeiras")
+    public List<String> carregarBandeiras() {
+    return service.listarBandeiras();
+    }
 
     private final ClienteService service;
 
@@ -48,16 +55,22 @@ public class ClienteController {
 
     @GetMapping("/{id}")
     public String detalharCliente(@PathVariable Long id, Model model) {
-        model.addAttribute("cliente", service.buscarPorId(id));
-        prepararRelacionamentos(model);
-        return "cliente-perfil";
-    }
+    Cliente cliente = service.exigirCliente(id);
+
+    model.addAttribute("cliente", cliente);
+    prepararRelacionamentos(model);
+
+    return "cliente-perfil";
+}
 
     @GetMapping("/{id}/editar")
     public String editarCliente(@PathVariable Long id, Model model) {
-        model.addAttribute("cliente", service.buscarPorId(id));
-        return "cliente-editar";
-    }
+    Cliente cliente = service.exigirCliente(id);
+
+    model.addAttribute("cliente", cliente);
+
+    return "cliente-editar";
+}
 
     @PostMapping("/{id}/atualizar")
     public String atualizarCliente(@PathVariable Long id,
@@ -85,7 +98,7 @@ public class ClienteController {
             redirect.addFlashAttribute("sucessoSenha", "Senha alterada com sucesso.");
             return "redirect:/clientes/" + id;
         } catch (ValidacaoException e) {
-            model.addAttribute("cliente", service.buscarPorId(id));
+            model.addAttribute("cliente", service.exigirCliente(id));
             model.addAttribute("errosSenha", e.getErros());
             prepararRelacionamentos(model);
             return "cliente-perfil";

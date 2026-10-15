@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragmentos/layout :: cabeca}"></head>
+
+<body class="bg-light d-flex flex-column min-vh-100">
+
+    <nav th:replace="~{fragmentos/layout :: menu}"></nav>
+
+    <main class="container my-5">
+        <div class="alert alert-warning" role="alert">
+            <h1 class="h4">Cliente não encontrado</h1>
+            <p class="mb-0" th:text="${mensagem}"></p>
+        </div>
+
+        <a th:href="@{/clientes/novo}" class="btn btn-primary">
+            Cadastrar cliente
+        </a>
+
+        <a th:href="@{/}" class="btn btn-outline-secondary">
+            Voltar ao catálogo
+        </a>
+    </main>
+
+    <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
+
+</body>
+</html>

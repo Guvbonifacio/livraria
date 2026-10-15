@@ -4,6 +4,7 @@ import com.fatec.livraria.model.CartaoCredito;
 import com.fatec.livraria.model.Cliente;
 import com.fatec.livraria.model.Endereco;
 import com.fatec.livraria.model.LogTransacao;
+import com.fatec.livraria.repository.BandeiraRepository;
 import com.fatec.livraria.repository.ClienteRepository;
 import com.fatec.livraria.repository.LogRepository;
 
@@ -27,16 +28,19 @@ public class ClienteService {
     private final LogRepository logRepository;
     private final UsuarioAtual usuarioAtual;
     private final ObjectMapper objectMapper;
+    private final BandeiraRepository bandeiraRepository;
     private final PasswordEncoder encoder = new BCryptPasswordEncoder();
 
     public ClienteService(ClienteRepository repository,
                           LogRepository logRepository,
                           UsuarioAtual usuarioAtual,
-                          ObjectMapper objectMapper) {
+                          ObjectMapper objectMapper,
+                          BandeiraRepository bandeiraRepository) {
         this.repository = repository;
         this.logRepository = logRepository;
         this.usuarioAtual = usuarioAtual;
         this.objectMapper = objectMapper;
+        this.bandeiraRepository = bandeiraRepository;
     }
 
     @Transactional
@@ -79,12 +83,19 @@ public class ClienteService {
 
         if (cliente.getEnderecos() == null || cliente.getEnderecos().isEmpty()) {
             erros.add("Informe ao menos um endereço");
+        } else {
+            for (Endereco endereco : cliente.getEnderecos()) {
+                coletarErrosEndereco(endereco, erros);
+            }
         }
 
         if (cliente.getCartoes() == null || cliente.getCartoes().isEmpty()) {
             erros.add("Informe ao menos um cartão");
         } else {
             validarCartoesPreferenciais(cliente.getCartoes(), erros);
+            for (CartaoCredito cartao : cliente.getCartoes()) {
+                coletarErrosCartao(cartao, erros);
+            }
         }
 
         rejeitarErros(erros);
@@ -121,52 +132,87 @@ public class ClienteService {
         return repository.buscarPorId(id);
     }
 
-    @Transactional
-    public void alterar(Cliente cliente) {
-        if (cliente.getCpf() != null) {
-            cliente.setCpf(cliente.getCpf().replaceAll("\\D", ""));
-        }
-        if (cliente.getEmail() != null) {
-            cliente.setEmail(cliente.getEmail().trim().toLowerCase());
-        }
+    public Cliente exigirCliente(Long id) {
+    Cliente cliente = buscarPorId(id);
 
-        List<String> erros = new ArrayList<>();
-
-        if (vazio(cliente.getNome())) erros.add("Nome é obrigatório");
-        if (vazio(cliente.getCpf())) erros.add("CPF é obrigatório");
-        if (vazio(cliente.getEmail())) erros.add("E-mail é obrigatório");
-        if (vazio(cliente.getTelefone())) erros.add("Telefone é obrigatório");
-        if (cliente.getDataNascimento() == null) erros.add("Data de nascimento é obrigatória");
-        if (vazio(cliente.getGenero())) erros.add("Gênero é obrigatório");
-
-        if (!vazio(cliente.getCpf())) {
-            if (!cpfValido(cliente.getCpf())) {
-                erros.add("CPF inválido");
-            } else if (repository.existePorCpf(cliente.getCpf(), cliente.getId())) {
-                erros.add("CPF já cadastrado");
-            }
-        }
-
-        if (!vazio(cliente.getEmail()) && repository.existePorEmail(cliente.getEmail(), cliente.getId())) {
-            erros.add("E-mail já cadastrado");
-        }
-
-        rejeitarErros(erros);
-
-        Cliente anterior = repository.buscarPorId(cliente.getId());
-        repository.atualizar(cliente);
-
-        registrarLog(
-            "UPDATE",
-            "cliente",
-            cliente.getId(),
-            dados("antes", dadosCliente(anterior, false), "depois", dadosCliente(cliente, false))
-        );
+    if (cliente == null) {
+        throw new ClienteNaoEncontradoException();
     }
+
+        return cliente;
+    }
+
+ @Transactional
+public void alterar(Cliente cliente) {
+    Cliente anterior = exigirCliente(cliente.getId());
+
+    if (cliente.getCpf() != null) {
+        cliente.setCpf(cliente.getCpf().replaceAll("\\D", ""));
+    }
+
+    if (cliente.getEmail() != null) {
+        cliente.setEmail(cliente.getEmail().trim().toLowerCase());
+    }
+
+    List<String> erros = new ArrayList<>();
+
+    if (vazio(cliente.getNome())) {
+        erros.add("Nome é obrigatório");
+    }
+
+    if (vazio(cliente.getCpf())) {
+        erros.add("CPF é obrigatório");
+    }
+
+    if (vazio(cliente.getEmail())) {
+        erros.add("E-mail é obrigatório");
+    }
+
+    if (vazio(cliente.getTelefone())) {
+        erros.add("Telefone é obrigatório");
+    }
+
+    if (cliente.getDataNascimento() == null) {
+        erros.add("Data de nascimento é obrigatória");
+    }
+
+    if (vazio(cliente.getGenero())) {
+        erros.add("Gênero é obrigatório");
+    }
+
+    if (!vazio(cliente.getCpf())) {
+        if (!cpfValido(cliente.getCpf())) {
+            erros.add("CPF inválido");
+        } else if (repository.existePorCpf(
+                cliente.getCpf(), cliente.getId())) {
+            erros.add("CPF já cadastrado");
+        }
+    }
+
+    if (!vazio(cliente.getEmail())
+            && repository.existePorEmail(
+                cliente.getEmail(), cliente.getId())) {
+        erros.add("E-mail já cadastrado");
+    }
+
+    rejeitarErros(erros);
+
+    repository.atualizar(cliente);
+
+    registrarLog(
+        "UPDATE",
+        "cliente",
+        cliente.getId(),
+        dados(
+            "antes", dadosCliente(anterior, false),
+            "depois", dadosCliente(cliente, false)
+        )
+    );
+}
 
     @Transactional
     public void inativar(Long id) {
-        Cliente anterior = repository.buscarPorId(id);
+        Cliente anterior = exigirCliente(id);
         repository.inativar(id);
 
         registrarLog(
@@ -179,7 +225,7 @@ public class ClienteService {
 
     @Transactional
     public void alterarSenha(Long id, String senhaAtual, String novaSenha, String confirmacao) {
-        Cliente cliente = repository.buscarPorId(id);
+        Cliente cliente = exigirCliente(id);
         List<String> erros = new ArrayList<>();
 
         if (senhaAtual == null || !encoder.matches(senhaAtual, cliente.getSenha())) {
@@ -211,7 +257,7 @@ public class ClienteService {
 
     @Transactional
     public Long adicionarEndereco(Long clienteId, Endereco endereco) {
-        repository.buscarPorId(clienteId);
+        exigirCliente(clienteId);
         validarEndereco(endereco);
 
         Long id = repository.salvarEndereco(clienteId, endereco);
@@ -252,11 +298,11 @@ public class ClienteService {
 
     @Transactional
     public Long adicionarCartao(Long clienteId, CartaoCredito cartao) {
-        repository.buscarPorId(clienteId);
+        exigirCliente(clienteId);
         validarCartao(cartao);
 
         List<CartaoCredito> anteriores = repository.buscarCartoes(clienteId);
-        boolean escolher = cartao.isPreferencial() || anteriores.stream().noneMatch(c -> c.isPreferencial());
+        boolean escolher = cartao.isPreferencial() || anteriores.stream().noneMatch(c -> c != null && c.isPreferencial());
 
         cartao.setPreferencial(false);
         cartao.setNumero(mascarar(cartao.getNumero()));
@@ -300,6 +346,7 @@ public class ClienteService {
 
     @Transactional
     public void removerCartao(Long clienteId, Long cartaoId) {
+        exigirCliente(clienteId);
         List<CartaoCredito> cartoes = repository.buscarCartoes(clienteId);
         CartaoCredito anterior = encontrarCartao(cartoes, cartaoId);
 
@@ -318,6 +365,7 @@ public class ClienteService {
 
     @Transactional
     public void definirCartaoPreferencial(Long clienteId, Long cartaoId) {
+        exigirCliente(clienteId);
         List<CartaoCredito> cartoes = repository.buscarCartoes(clienteId);
         CartaoCredito escolhido = encontrarCartao(cartoes, cartaoId);
 
@@ -349,6 +397,7 @@ public class ClienteService {
     }
 
     private Endereco exigirEndereco(Long clienteId, Long enderecoId) {
+        exigirCliente(clienteId);
         Endereco endereco = repository.buscarEnderecoPorId(clienteId, enderecoId);
         if (endereco == null) {
             throw erro("Endereço não encontrado para este cliente.");
@@ -357,6 +406,7 @@ public class ClienteService {
     }
 
     private CartaoCredito exigirCartao(Long clienteId, Long cartaoId) {
+        exigirCliente(clienteId);
         return encontrarCartao(repository.buscarCartoes(clienteId), cartaoId);
     }
 
@@ -369,36 +419,60 @@ public class ClienteService {
 
     private void validarEndereco(Endereco e) {
         List<String> erros = new ArrayList<>();
+        coletarErrosEndereco(e, erros);
+        rejeitarErros(erros);
+    }
+
+    private void coletarErrosEndereco(Endereco e, List<String> erros) {
+        if (e == null) {
+            erros.add("Endereço inválido.");
+            return;
+        }
 
         if (vazio(e.getNomeCurto())) erros.add("Nome curto do endereço é obrigatório.");
         if (!"ENTREGA".equals(e.getTipo()) && !"COBRANCA".equals(e.getTipo())) {
             erros.add("Tipo do endereço deve ser ENTREGA ou COBRANCA.");
         }
         if (vazio(e.getTipoResidencia())) erros.add("Tipo de residência é obrigatório.");
+        if (vazio(e.getTipoLogradouro())) erros.add("Tipo de logradouro é obrigatório.");
         if (vazio(e.getLogradouro())) erros.add("Logradouro é obrigatório.");
         if (vazio(e.getNumero())) erros.add("Número do endereço é obrigatório.");
         if (vazio(e.getBairro())) erros.add("Bairro é obrigatório.");
         if (vazio(e.getCep())) erros.add("CEP é obrigatório.");
         if (vazio(e.getCidade())) erros.add("Cidade é obrigatória.");
         if (vazio(e.getEstado())) erros.add("Estado é obrigatório.");
-
-        rejeitarErros(erros);
+        if (vazio(e.getPais())) erros.add("País é obrigatório.");
     }
 
     private void validarCartao(CartaoCredito c) {
         List<String> erros = new ArrayList<>();
+        coletarErrosCartao(c, erros);
+        rejeitarErros(erros);
+    }
+
+    private void coletarErrosCartao(CartaoCredito c, List<String> erros) {
+        if (c == null) {
+            erros.add("Cartão inválido.");
+            return;
+        }
+
         String numero = c.getNumero() == null ? "" : c.getNumero().replaceAll("[ -]", "");
 
         if (!numero.matches("[0-9]{13,19}")) {
             erros.add("Informe o número completo do cartão, com 13 a 19 dígitos.");
         }
+
         if (vazio(c.getNomeImpresso())) erros.add("Nome impresso é obrigatório.");
-        if (vazio(c.getBandeira())) erros.add("Bandeira é obrigatória.");
+
+        if (vazio(c.getBandeira())) {
+            erros.add("Bandeira é obrigatória.");
+        } else if (!bandeiraRepository.existePorNome(c.getBandeira())) {
+            erros.add("Bandeira não registrada no sistema.");
+        }
+
         if (c.getCodigoSeguranca() == null || !c.getCodigoSeguranca().matches("[0-9]{3,4}")) {
             erros.add("Código de segurança deve ter 3 ou 4 dígitos.");
         }
-
-        rejeitarErros(erros);
     }
 
     private boolean vazio(String valor) {
@@ -457,12 +531,15 @@ public class ClienteService {
             "nome_curto", e.getNomeCurto(),
             "tipo", e.getTipo(),
             "tipo_residencia", e.getTipoResidencia(),
+            "tipo_logradouro", e.getTipoLogradouro(),
             "logradouro", e.getLogradouro(),
             "numero", e.getNumero(),
             "bairro", e.getBairro(),
             "cep", e.getCep(),
             "cidade", e.getCidade(),
-            "estado", e.getEstado()
+            "estado", e.getEstado(),
+            "pais", e.getPais(),
+            "observacoes", e.getObservacoes()
         );
     }
 
@@ -524,5 +601,9 @@ public class ClienteService {
         }
 
         return valores;
+    }
+
+    public List<String> listarBandeiras() {
+        return bandeiraRepository.listar();
     }
 }

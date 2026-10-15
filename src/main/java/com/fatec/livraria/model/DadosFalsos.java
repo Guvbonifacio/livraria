@@ -67,8 +67,16 @@ public class DadosFalsos {
     public static Cliente clienteExemplo(Long id) {
         Cliente cliente = new Cliente(id, "Ana Maria", "Feminino", "20/05/1995", "123.456.789-00", "(11) 98765-4321", "anamaria@email.com", "Senha@123");
 
-        cliente.getEnderecos().add(new Endereco("Casa", "Entrega","Casa", "Rua das Flores", "100", "Centro", "08700-000", "Mogi das Cruzes", "SP"));
-        cliente.getEnderecos().add(new Endereco("Trabalho", "Cobrança","Apartamento", "Av. Paulista", "1500", "Bela Vista", "01310-100", "São Paulo", "SP"));
+        cliente.getEnderecos().add(new Endereco(
+            "Casa", "ENTREGA", "Casa", "Rua", "das Flores", "100", 
+            "Centro", "08700-000", "Mogi das Cruzes", "SP", "Brasil", null
+        ));
+        
+        cliente.getEnderecos().add(new Endereco(
+            "Trabalho", "COBRANCA", "Apartamento", "Avenida", "Paulista", "1500", 
+            "Bela Vista", "01310-100", "São Paulo", "SP", "Brasil", null
+        ));
+
         cliente.getCartoes().add(new CartaoCredito(1L, "**** **** **** 1234", "ANA MARIA SILVA", "Mastercard", "123", true));
         cliente.getCartoes().add(new CartaoCredito(2L, "**** **** **** 5678", "ANA MARIA SILVA", "Visa", "456", false));
 
@@ -99,7 +107,6 @@ public class DadosFalsos {
         );
     }
 
-    // Corrigido: formato mês/ano para conformidade com RNF0043 e RN0072
     public static List<String> mesesVendas() {
         return List.of(
             "jan/2025", "fev/2025", "mar/2025", "abr/2025", "mai/2025", "jun/2025",

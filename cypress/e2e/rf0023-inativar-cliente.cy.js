@@ -21,12 +21,14 @@ describe('RF0023 - Inativar cliente', () => {
     cy.get('[name="enderecos[0].nomeCurto"]').type('Casa');
     cy.get('[name="enderecos[0].tipo"]').select('ENTREGA');
     cy.get('[name="enderecos[0].tipoResidencia"]').select('Casa');
+    cy.get('[name="enderecos[0].tipoLogradouro"]').type('Rua');
     cy.get('[name="enderecos[0].logradouro"]').type('Rua das Flores');
     cy.get('[name="enderecos[0].numero"]').type('100');
     cy.get('[name="enderecos[0].bairro"]').type('Centro');
     cy.get('[name="enderecos[0].cep"]').type('08700000');
     cy.get('[name="enderecos[0].cidade"]').type('Mogi das Cruzes');
     cy.get('[name="enderecos[0].estado"]').type('SP');
+    cy.get('[name="enderecos[0].pais"]').type('Brasil');
 
     cy.get('[name="cartoes[0].numero"]').type('4111111111111111');
     cy.get('[name="cartoes[0].nomeImpresso"]').type('INATIVAR TESTE');

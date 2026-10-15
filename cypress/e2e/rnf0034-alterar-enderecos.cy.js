@@ -20,12 +20,14 @@ function cadastrarClienteTeste(prefixo) {
       'enderecos[0].nomeCurto': 'Casa',
       'enderecos[0].tipo': 'ENTREGA',
       'enderecos[0].tipoResidencia': 'Casa',
+      'enderecos[0].tipoLogradouro': 'Rua',
       'enderecos[0].logradouro': 'Rua das Flores',
       'enderecos[0].numero': '100',
       'enderecos[0].bairro': 'Centro',
       'enderecos[0].cep': '08700000',
       'enderecos[0].cidade': 'Mogi das Cruzes',
       'enderecos[0].estado': 'SP',
+      'enderecos[0].pais': 'Brasil',
 
       'cartoes[0].numero': '4111111111111111',
       'cartoes[0].nomeImpresso': 'CLIENTE TESTE',
@@ -67,12 +69,15 @@ describe('RNF0034 / RF0026 - Alterar apenas endereços', () => {
           const campos = {
             nomeCurto: 'Trabalho',
             tipoResidencia: 'Comercial',
-            logradouro: 'Rua do Trabalho',
+            tipoLogradouro: 'Rua',
+            logradouro: 'do Trabalho',
             numero: '200',
             bairro: 'Centro',
             cep: '08700000',
             cidade: 'Mogi das Cruzes',
-            estado: 'SP'
+            estado: 'SP',
+            pais: 'Brasil',
+            observacoes: 'Sala 2'
           };
 
           Object.entries(campos).forEach(([campo, valor]) => {

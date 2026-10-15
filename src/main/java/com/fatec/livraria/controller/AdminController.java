@@ -52,7 +52,7 @@ public class AdminController {
     // Exibe os detalhes do cliente selecionado
     @GetMapping("/clientes/{id}")
     public String detalheCliente(@PathVariable Long id, Model model) {
-        Cliente cliente = clienteService.buscarPorId(id);
+        Cliente cliente = clienteService.exigirCliente(id);
 
         model.addAttribute("cliente", cliente);
         model.addAttribute("logs",logRepository.buscarPorRegistro("cliente", id)

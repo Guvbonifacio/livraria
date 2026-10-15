@@ -33,31 +33,16 @@ describe('RF0021 - Cadastrar cliente', () => {
 
     // Endereço
     cy.get('[name="enderecos[0].nomeCurto"]').type('Casa');
-    cy.wait(500);
-
     cy.get('[name="enderecos[0].tipo"]').select('ENTREGA');
-    cy.wait(500);
-
     cy.get('[name="enderecos[0].tipoResidencia"]').select('Casa');
-    cy.wait(500);
-
+    cy.get('[name="enderecos[0].tipoLogradouro"]').type('Rua');
     cy.get('[name="enderecos[0].logradouro"]').type('Rua das Flores');
-    cy.wait(500);
-
     cy.get('[name="enderecos[0].numero"]').type('100');
-    cy.wait(500);
-
     cy.get('[name="enderecos[0].bairro"]').type('Centro');
-    cy.wait(500);
-
     cy.get('[name="enderecos[0].cep"]').type('08700000');
-    cy.wait(500);
-
     cy.get('[name="enderecos[0].cidade"]').type('Mogi das Cruzes');
-    cy.wait(500);
-
     cy.get('[name="enderecos[0].estado"]').type('SP');
-    cy.wait(500);
+    cy.get('[name="enderecos[0].pais"]').type('Brasil');
 
     // Cartão de crédito
     cy.get('[name="cartoes[0].numero"]').type('4111111111111111');

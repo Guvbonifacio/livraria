@@ -79,16 +79,19 @@ public class ClienteRepository {
     }
 
     public Cliente buscarPorId(Long id) {
-        Cliente cliente = jdbc.queryForObject(
-            "SELECT * FROM cliente WHERE id = ?",
-            this::mapearCliente,
-            id
-        );
+    List<Cliente> achados = jdbc.query(
+        "SELECT * FROM cliente WHERE id = ?",
+        this::mapearCliente,
+        id
+    );
 
-        if (cliente != null) {
-            cliente.setEnderecos(buscarEnderecos(id));
-            cliente.setCartoes(buscarCartoes(id));
-        }
+    if (achados.isEmpty()) {
+        return null;
+    }
+
+    Cliente cliente = achados.get(0);
+    cliente.setEnderecos(buscarEnderecos(id));
+    cliente.setCartoes(buscarCartoes(id));
 
         return cliente;
     }
@@ -101,19 +104,24 @@ public class ClienteRepository {
     public Long salvarEndereco(Long clienteId, Endereco e) {
         jdbc.update("""
                 INSERT INTO endereco
-                    (cliente_id, nome_curto, tipo, tipo_residencia, logradouro, numero, bairro, cep, cidade, estado)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (cliente_id, nome_curto, tipo, tipo_residencia,
+                     tipo_logradouro, logradouro, numero, bairro,
+                     cep, cidade, estado, pais, observacoes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 clienteId,
                 e.getNomeCurto(),
                 e.getTipo(),
                 e.getTipoResidencia(),
+                e.getTipoLogradouro(),
                 e.getLogradouro(),
                 e.getNumero(),
                 e.getBairro(),
                 e.getCep(),
                 e.getCidade(),
-                e.getEstado());
+                e.getEstado(),
+                e.getPais(),
+                e.getObservacoes());
 
         return jdbc.queryForObject("SELECT last_insert_rowid()", Long.class);
     }
@@ -200,19 +208,32 @@ public class ClienteRepository {
     public void atualizarEndereco(Long clienteId, Endereco e) {
         jdbc.update("""
                 UPDATE endereco
-                SET nome_curto = ?, tipo = ?, tipo_residencia = ?, logradouro = ?,
-                    numero = ?, bairro = ?, cep = ?, cidade = ?, estado = ?
+                SET nome_curto = ?,
+                    tipo = ?,
+                    tipo_residencia = ?,
+                    tipo_logradouro = ?,
+                    logradouro = ?,
+                    numero = ?,
+                    bairro = ?,
+                    cep = ?,
+                    cidade = ?,
+                    estado = ?,
+                    pais = ?,
+                    observacoes = ?
                 WHERE id = ? AND cliente_id = ?
                 """,
                 e.getNomeCurto(),
                 e.getTipo(),
                 e.getTipoResidencia(),
+                e.getTipoLogradouro(),
                 e.getLogradouro(),
                 e.getNumero(),
                 e.getBairro(),
                 e.getCep(),
                 e.getCidade(),
                 e.getEstado(),
+                e.getPais(),
+                e.getObservacoes(),
                 e.getId(),
                 clienteId);
     }
@@ -296,13 +317,15 @@ public class ClienteRepository {
         e.setNomeCurto(rs.getString("nome_curto"));
         e.setTipo(rs.getString("tipo"));
         e.setTipoResidencia(rs.getString("tipo_residencia"));
+        e.setTipoLogradouro(rs.getString("tipo_logradouro"));
         e.setLogradouro(rs.getString("logradouro"));
         e.setNumero(rs.getString("numero"));
         e.setBairro(rs.getString("bairro"));
         e.setCep(rs.getString("cep"));
         e.setCidade(rs.getString("cidade"));
-        e.getEstado(); // mantendo compatibilidade
         e.setEstado(rs.getString("estado"));
+        e.setPais(rs.getString("pais"));
+        e.setObservacoes(rs.getString("observacoes"));
         return e;
     }
 
