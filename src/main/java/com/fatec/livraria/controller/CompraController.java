@@ -5,9 +5,10 @@ import com.fatec.livraria.model.EntregaCheckout;
 import com.fatec.livraria.model.FormularioEnderecoCheckout;
 import com.fatec.livraria.service.CarrinhoService;
 import com.fatec.livraria.service.CheckoutService;
-import com.fatec.livraria.service.ClienteService;
-import com.fatec.livraria.service.UsuarioAtual;
 import com.fatec.livraria.service.ValidacaoException;
+import com.fatec.livraria.model.FormularioPagamento;
+import com.fatec.livraria.service.PagamentoService;
+
 
 import java.util.List;
 
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.validation.BindingResult;
 
 @Controller
 @RequestMapping("/carrinho")
@@ -26,17 +28,16 @@ public class CompraController {
 
     private final CarrinhoService carrinho;
     private final CheckoutService checkout;
-    private final ClienteService clientes;
-    private final UsuarioAtual usuarioAtual;
+    private final PagamentoService pagamentos;
 
-    public CompraController(CarrinhoService carrinho,
-                            CheckoutService checkout,
-                            ClienteService clientes,
-                            UsuarioAtual usuarioAtual) {
-        this.carrinho = carrinho;
-        this.checkout = checkout;
-        this.clientes = clientes;
-        this.usuarioAtual = usuarioAtual;
+    public CompraController(
+        CarrinhoService carrinho,
+        CheckoutService checkout,
+        PagamentoService pagamentos) {
+
+    this.carrinho = carrinho;
+    this.checkout = checkout;
+    this.pagamentos = pagamentos;
     }
 
     @GetMapping("/checkout/endereco")
@@ -126,41 +127,66 @@ public class CompraController {
         return "checkout-endereco";
     }
 
-    @GetMapping("/checkout/pagamento")
-    public String checkoutPagamento(
-            Model model,
-            RedirectAttributes redirect) {
-        if (carrinho.listar().isEmpty()) {
-            return carrinhoVazio(redirect);
-        }
+    @PostMapping("/checkout/pagamento")
+public String validarPagamento(
+        @ModelAttribute("pagamento")
+        FormularioPagamento formulario,
+        BindingResult binding,
+        Model model,
+        RedirectAttributes redirect) {
 
-        EntregaCheckout entrega = checkout.obterEntrega();
+    if (carrinho.listar().isEmpty()) {
+        return carrinhoVazio(redirect);
+    }
 
-        if (entrega == null) {
-            redirect.addFlashAttribute(
-                "errosEntrega",
-                List.of(
-                    "Selecione o endereço antes de continuar."
-                )
-            );
+    EntregaCheckout entrega = checkout.obterEntrega();
 
-            return "redirect:/carrinho/checkout/endereco";
-        }
-
-        model.addAttribute(
-            "cartoes",
-            clientes.exigirCliente(
-                usuarioAtual.getClienteId()
-            ).getCartoes()
+    if (entrega == null) {
+        redirect.addFlashAttribute(
+            "errosEntrega",
+            List.of("Selecione o endereço antes de continuar.")
         );
 
-        model.addAttribute("entrega", entrega);
-        model.addAttribute("subtotal", entrega.getSubtotal());
-        model.addAttribute("frete", entrega.getFrete());
-        model.addAttribute("totalGeral", entrega.getTotal());
-
-        return "checkout-pagamento";
+        return "redirect:/carrinho/checkout/endereco";
     }
+
+    if (binding.hasErrors()) {
+        model.addAttribute(
+            "errosPagamento",
+            List.of("Dados de pagamento inválidos.")
+        );
+    } else {
+        try {
+            pagamentos.validarCartoes(
+                formulario.getValoresCartoes()
+            );
+
+            model.addAttribute("pagamentoValido", true);
+        } catch (ValidacaoException e) {
+            model.addAttribute(
+                "errosPagamento",
+                e.getErros()
+            );
+        }
+    }
+
+    preencherPagamento(model, formulario, entrega);
+
+    return "checkout-pagamento";
+}
+
+private void preencherPagamento(
+        Model model,
+        FormularioPagamento formulario,
+        EntregaCheckout entrega) {
+
+    model.addAttribute("pagamento", formulario);
+    model.addAttribute("cartoes", pagamentos.listarCartoes());
+    model.addAttribute("entrega", entrega);
+    model.addAttribute("subtotal", entrega.getSubtotal());
+    model.addAttribute("frete", entrega.getFrete());
+    model.addAttribute("totalGeral", entrega.getTotal());
+}
 
     private void preencher(
             Model model,

@@ -93,7 +93,10 @@ public class CarrinhoService {
     public BigDecimal calcularTotal(List<ItemCarrinho> itensExibidos) {
         return itensExibidos.stream()
             .map(item -> item.getSubtotalExato())
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+            .reduce(
+                BigDecimal.ZERO,
+            (acumulado, valor) -> acumulado.add(valor)
+            );
     }
 
     private Livro buscarLivroDisponivel(Long id) {
