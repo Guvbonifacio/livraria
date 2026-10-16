@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragmentos/layout :: cabeca}"></head>
+
+<body class="bg-light d-flex flex-column min-vh-100">
+
+<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+
+<main class="container my-5 flex-grow-1">
+    <div class="card shadow-sm mx-auto"
+         style="max-width: 640px">
+
+        <div class="card-body p-4 text-center">
+            <h1 class="h3">Pedido registrado</h1>
+
+            <p class="fs-5">
+                Pedido nº
+                <strong th:text="${pedido.id}"></strong>
+            </p>
+
+            <p>
+                Status:
+                <span class="badge bg-primary"
+                      th:text="${pedido.status}">
+                </span>
+            </p>
+
+            <p>
+                Total:
+                <strong
+                    th:text="'R$ ' +
+                        ${#numbers.formatDecimal(
+                            pedido.total, 1, 'POINT', 2, 'COMMA')}">
+                </strong>
+            </p>
+
+            <a class="btn btn-outline-primary"
+               th:href="@{/}">
+                Voltar ao catálogo
+            </a>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragmentos/layout :: rodape}"></footer>
+
+</body>
+</html>

@@ -44,11 +44,37 @@
       Distribuição válida. Nenhuma cobrança foi realizada.
     </div>
 
-    <!-- Formulário de Pagamento por Cartões -->
+    <!-- Formulário de Pagamento por Cartões e Cupons -->
     <form th:action="@{/carrinho/checkout/pagamento}" th:object="${pagamento}" method="post">
       <div class="row g-4">
 
         <div class="col-md-8">
+
+          <!-- Card de Cupons -->
+          <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+              <h5 class="m-0 fw-bold">Cupons</h5>
+            </div>
+
+            <div class="card-body">
+              <p class="text-muted small">Distribua o total entre seus cartões.
+                Mínimo de R$ 10,00 por cartão, com a exceção do saldo
+                inferior a R$ 10,00 após o uso dos cupons.
+                Deixe o valor vazio nos cartões que não deseja utilizar.
+              </p>
+
+              <p th:if="${#lists.isEmpty(cupons)}" class="text-muted">
+                Nenhum cupom disponível.
+              </p>
+
+              <div class="form-check mb-2" th:each="cupom : ${cupons}">
+                <input type="checkbox" class="form-check-input" th:field="*{cuponsIds}" th:value="${cupom.id}">
+                <label class="form-check-label" th:for="${#ids.prev('cuponsIds')}" th:text="${cupom.codigo} + ' — ' + ${cupom.tipo} + ' — R$ ' + ${#numbers.formatDecimal(cupom.valor, 1, 'POINT', 2, 'COMMA')}"></label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card de Cartões de Crédito -->
           <div class="card shadow-sm mb-4">
             <div class="card-header bg-white">
               <h5 class="m-0 fw-bold">Cartões de Crédito</h5>
@@ -56,7 +82,7 @@
 
             <div class="card-body">
               <p class="text-muted small">
-                Distribua o total entre seus cartões. Mínimo de R$ 10,00 por cartão. Deixe o valor vazio nos cartões que não deseja utilizar.
+                Distribua o total entre seus cartões. Deixe o valor vazio nos cartões que não deseja utilizar.
               </p>
 
               <p th:if="${#lists.isEmpty(cartoes)}" class="text-muted">
@@ -73,10 +99,11 @@
                   Valor neste cartão (R$)
                 </label>
 
-                <input type="number" class="form-control" step="0.01" min="10.00" th:id="'valor-cartao-' + ${cartao.id}" th:field="*{valoresCartoes[__${cartao.id}__]}" placeholder="Ex.: 25,00">
+                <input type="number" class="form-control" step="0.01" min="0.01" th:id="'valor-cartao-' + ${cartao.id}" th:field="*{valoresCartoes[__${cartao.id}__]}" placeholder="Ex.: 25,00">
               </div>
             </div>
           </div>
+
         </div>
 
         <!-- Resumo do Pedido -->
@@ -104,9 +131,19 @@
                 <strong class="text-success" th:text="'R$ ' + ${#numbers.formatDecimal(totalGeral, 1, 'POINT', 2, 'COMMA')}"></strong>
               </div>
 
-              <button type="submit" class="btn btn-primary w-100">
-                Validar distribuição
-              </button>
+             <button type="submit"
+                    name="acao"
+                    value="validar"
+                    class="btn btn-outline-primary w-100 mb-2">
+                 Validar distribuição
+             </button>
+
+                <button type="submit"
+                   name="acao"
+                   value="finalizar"
+                   class="btn btn-success w-100">
+                   Finalizar pedido
+                </button>
             </div>
           </div>
         </div>

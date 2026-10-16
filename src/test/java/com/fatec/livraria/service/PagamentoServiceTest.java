@@ -10,21 +10,31 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
+import com.fatec.livraria.repository.PedidoRepository;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(properties = {
     "spring.datasource.url=jdbc:sqlite::memory:",
     "spring.datasource.hikari.maximum-pool-size=1"
+    
 })
+
+@org.springframework.test.context.jdbc.Sql(
+    "/cenario-checkout.sql"
+)
+
+
 @Transactional
 class PagamentoServiceTest {
 
+    
     @Autowired ClienteService clientes;
     @Autowired LivroRepository livros;
     @Autowired FreteService frete;
     @Autowired UsuarioAtual usuario;
     @Autowired JdbcTemplate jdbc;
+    @Autowired PedidoRepository pedidos;
 
     CarrinhoService carrinho;
     CheckoutService checkout;
@@ -35,6 +45,12 @@ class PagamentoServiceTest {
 
     @BeforeEach
     void preparar() {
+        pagamentos = new PagamentoService(
+    clientes,
+    checkout,
+    usuario,
+    pedidos
+);
         carrinho = new CarrinhoService(livros);
 
         carrinho.adicionar(
@@ -54,9 +70,9 @@ class PagamentoServiceTest {
 
         checkout.confirmarEndereco(endereco);
 
-        pagamentos = new PagamentoService(
-            clientes, checkout, usuario
-        );
+pagamentos = new PagamentoService(
+    clientes, checkout, usuario, pedidos
+);
 
         primeiro = pagamentos.listarCartoes().get(0).getId();
 

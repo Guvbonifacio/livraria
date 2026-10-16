@@ -1,120 +1,247 @@
 package com.fatec.livraria.service;
 
-import com.fatec.livraria.model.CartaoCredito;
-import com.fatec.livraria.model.EntregaCheckout;
+import com.fatec.livraria.model.*;
+import com.fatec.livraria.model.PlanoPagamento.Parcela;
+import com.fatec.livraria.repository.PedidoRepository;
+import com.fatec.livraria.repository.PedidoRepository.CupomDisponivel;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDate;
+import java.util.*;
 import org.springframework.stereotype.Service;
 
 @Service
 public class PagamentoService {
 
-    private static final BigDecimal MINIMO_CARTAO =
-        new BigDecimal("10.00");
-
     private final ClienteService clientes;
     private final CheckoutService checkout;
-    private final UsuarioAtual usuarioAtual;
+    private final UsuarioAtual usuario;
+    private final PedidoRepository pedidos;
 
     public PagamentoService(
             ClienteService clientes,
             CheckoutService checkout,
-            UsuarioAtual usuarioAtual) {
+            UsuarioAtual usuario,
+            PedidoRepository pedidos) {
 
         this.clientes = clientes;
         this.checkout = checkout;
-        this.usuarioAtual = usuarioAtual;
+        this.usuario = usuario;
+        this.pedidos = pedidos;
     }
 
     public List<CartaoCredito> listarCartoes() {
         return clientes
-            .exigirCliente(usuarioAtual.getClienteId())
+            .exigirCliente(usuario.getClienteId())
             .getCartoes();
     }
 
-    // Primeira regra: pagamento integral com cartões cadastrados.
-    // A exceção da RN0035 será tratada junto aos cupons, no Service.
-    // Validar não cobra, não cria pedido e não grava pagamento.
-    public void validarCartoes(Map<Long, String> valoresCartoes) {
-        EntregaCheckout entrega = checkout.obterEntrega();
+    public List<CupomDisponivel> listarCupons() {
+        return pedidos.listarCupons(usuario.getClienteId())
+            .stream()
+            .map(pedidos::buscarCupom)
+            .filter(c -> c != null
+                && !c.validade().isBefore(LocalDate.now()))
+            .toList();
+    }
+
+    // Mantém compatibilidade com a validação anterior.
+    public void validarCartoes(Map<Long, String> valores) {
+        var formulario = new FormularioPagamento();
+        formulario.setValoresCartoes(valores);
+
+        var entrega = checkout.obterEntrega();
 
         if (entrega == null) {
-            throw new ValidacaoException(
-                List.of("Selecione o endereço antes de continuar.")
+            throw erro(
+                "Selecione o endereço antes de continuar."
             );
         }
 
-        var permitidos = new HashSet<Long>();
+        preparar(formulario, entrega.getTotal());
+    }
+
+    // Não grava pagamentos, não consome cupons e não emite crédito.
+    // O total deve ser calculado pelo Service.
+    public PlanoPagamento preparar(
+            FormularioPagamento formulario,
+            BigDecimal total) {
+
+        if (formulario == null
+                || total == null
+                || total.signum() <= 0) {
+            throw erro("Dados de pagamento inválidos.");
+        }
+
+        var parcelas = new ArrayList<Parcela>();
+        var ids = new HashSet<Long>();
+
+        BigDecimal somaCupons = BigDecimal.ZERO;
+        BigDecimal menorCupom = null;
+        int promocionais = 0;
+
+        var selecionados = formulario.getCuponsIds();
+
+        if (selecionados != null) {
+            for (Long id : selecionados) {
+                if (id == null || !ids.add(id)) {
+                    throw erro("Cupom repetido ou inválido.");
+                }
+
+                var cupom = pedidos.buscarCupom(id);
+
+                if (cupom == null
+                        || !cupom.ativo()
+                        || cupom.validade().isBefore(LocalDate.now())
+                        || (
+                            cupom.clienteId() != null
+                            && !cupom.clienteId().equals(
+                                usuario.getClienteId()
+                            )
+                        )) {
+
+                    throw erro(
+                        "Cupom inválido, vencido ou "
+                        + "indisponível para este cliente."
+                    );
+                }
+
+                if ("PROMOCIONAL".equals(cupom.tipo())
+                        && ++promocionais > 1) {
+                    throw erro(
+                        "Utilize no máximo um cupom "
+                        + "promocional por pedido."
+                    );
+                }
+
+                somaCupons = somaCupons.add(cupom.valor());
+
+                menorCupom = menorCupom == null
+                    ? cupom.valor()
+                    : menorCupom.min(cupom.valor());
+
+                parcelas.add(new Parcela(
+                    "CUPOM_" + cupom.tipo(),
+                    cupom.valor(),
+                    null,
+                    null,
+                    null,
+                    id
+                ));
+            }
+        }
+
+        // RN0036: se retirar algum cupom ainda cobre o total,
+        // existe cupom desnecessário na seleção.
+        if (menorCupom != null
+                && somaCupons.subtract(menorCupom)
+                    .compareTo(total) >= 0) {
+
+            throw erro(
+                "Remova o cupom desnecessário: "
+                + "os demais já cobrem a compra."
+            );
+        }
+
+        BigDecimal restante = total
+            .subtract(somaCupons)
+            .max(BigDecimal.ZERO);
+
+        var permitidos = new HashMap<Long, CartaoCredito>();
 
         listarCartoes().forEach(
-            cartao -> permitidos.add(cartao.getId())
+            cartao -> permitidos.put(cartao.getId(), cartao)
         );
 
-        var erros = new ArrayList<String>();
-        BigDecimal soma = BigDecimal.ZERO;
-        int selecionados = 0;
+        var cartoes = new ArrayList<Parcela>();
+        BigDecimal somaCartoes = BigDecimal.ZERO;
 
-        if (valoresCartoes != null) {
-            for (var entrada : valoresCartoes.entrySet()) {
+        if (formulario.getValoresCartoes() != null) {
+            for (var entrada :
+                    formulario.getValoresCartoes().entrySet()) {
+
                 String texto = entrada.getValue();
 
                 if (texto == null || texto.isBlank()) {
                     continue;
                 }
 
-                selecionados++;
+                var cartao = permitidos.get(entrada.getKey());
 
-                // Não confia no ID recebido pelo formulário.
-                if (!permitidos.contains(entrada.getKey())) {
-                    erros.add(
+                if (cartao == null) {
+                    throw erro(
                         "Cartão não encontrado no seu perfil."
                     );
-                    continue;
                 }
 
                 texto = texto.trim();
 
                 if (!texto.matches("[0-9]+(?:[.,][0-9]{1,2})?")) {
-                    erros.add(
+                    throw erro(
                         "Informe um valor monetário válido, "
                         + "com até duas casas decimais."
                     );
-                    continue;
                 }
 
-                BigDecimal valor = new BigDecimal(
+                var valor = new BigDecimal(
                     texto.replace(',', '.')
                 );
 
-                if (valor.compareTo(MINIMO_CARTAO) < 0) {
-                    erros.add(
+                if (valor.signum() <= 0) {
+                    throw erro(
                         "O valor mínimo por cartão é R$ 10,00."
                     );
                 }
 
-                soma = soma.add(valor);
+                somaCartoes = somaCartoes.add(valor);
+
+                cartoes.add(new Parcela(
+                    "CARTAO",
+                    valor,
+                    cartao.getId(),
+                    cartao.getNumero(),
+                    cartao.getBandeira(),
+                    null
+                ));
             }
         }
 
-        if (selecionados == 0) {
-            erros.add(
-                "Informe o valor de pelo menos um cartão."
+        // RN0035: admite um cartão com o saldo inferior a R$ 10
+        // somente depois do uso integral dos cupons selecionados.
+        boolean excecao =
+            somaCupons.signum() > 0
+            && restante.signum() > 0
+            && restante.compareTo(new BigDecimal("10.00")) < 0
+            && cartoes.size() == 1;
+
+        for (var cartao : cartoes) {
+            if (cartao.valor()
+                    .compareTo(new BigDecimal("10.00")) < 0
+                    && !excecao) {
+
+                throw erro(
+                    "O valor mínimo por cartão é R$ 10,00."
+                );
+            }
+        }
+
+        if (somaCartoes.compareTo(restante) != 0
+                || parcelas.isEmpty() && cartoes.isEmpty()) {
+
+            throw erro(
+                "A soma dos cartões deve cobrir exatamente "
+                + "o restante da compra, incluindo o frete."
             );
         }
 
-        // Inclui o frete e usa o total recalculado no servidor.
-        if (soma.compareTo(entrega.getTotal()) != 0) {
-            erros.add(
-                "A soma dos cartões deve ser igual ao total "
-                + "da compra, incluindo o frete."
-            );
-        }
+        parcelas.addAll(cartoes);
 
-        if (!erros.isEmpty()) {
-            throw new ValidacaoException(erros);
-        }
+        return new PlanoPagamento(
+            parcelas,
+            somaCupons.subtract(total).max(BigDecimal.ZERO)
+        );
+    }
+
+    private ValidacaoException erro(String mensagem) {
+        return new ValidacaoException(List.of(mensagem));
     }
 }

@@ -8,7 +8,7 @@ import com.fatec.livraria.service.CheckoutService;
 import com.fatec.livraria.service.ValidacaoException;
 import com.fatec.livraria.model.FormularioPagamento;
 import com.fatec.livraria.service.PagamentoService;
-
+import com.fatec.livraria.service.FinalizacaoCheckoutService;
 
 import java.util.List;
 
@@ -29,16 +29,19 @@ public class CompraController {
     private final CarrinhoService carrinho;
     private final CheckoutService checkout;
     private final PagamentoService pagamentos;
+    private final FinalizacaoCheckoutService finalizacao;
 
     public CompraController(
         CarrinhoService carrinho,
         CheckoutService checkout,
-        PagamentoService pagamentos) {
+        PagamentoService pagamentos,
+        FinalizacaoCheckoutService finalizacao) {
 
     this.carrinho = carrinho;
     this.checkout = checkout;
     this.pagamentos = pagamentos;
-    }
+    this.finalizacao = finalizacao;
+}
 
     @GetMapping("/checkout/endereco")
     public String checkoutEndereco(
@@ -127,11 +130,41 @@ public class CompraController {
         return "checkout-endereco";
     }
 
+    @GetMapping("/checkout/pagamento")
+public String checkoutPagamento(
+        Model model,
+        RedirectAttributes redirect) {
+
+    if (carrinho.listar().isEmpty()) {
+        return carrinhoVazio(redirect);
+    }
+
+    var entrega = checkout.obterEntrega();
+
+    if (entrega == null) {
+        redirect.addFlashAttribute(
+            "errosEntrega",
+            List.of("Selecione o endereço antes de continuar.")
+        );
+
+        return "redirect:/carrinho/checkout/endereco";
+    }
+
+    preencherPagamento(
+        model,
+        new FormularioPagamento(),
+        entrega
+    );
+
+    return "checkout-pagamento";
+}
+
     @PostMapping("/checkout/pagamento")
 public String validarPagamento(
         @ModelAttribute("pagamento")
         FormularioPagamento formulario,
         BindingResult binding,
+        @RequestParam(defaultValue = "validar") String acao,
         Model model,
         RedirectAttributes redirect) {
 
@@ -157,15 +190,42 @@ public String validarPagamento(
         );
     } else {
         try {
-            pagamentos.validarCartoes(
-                formulario.getValoresCartoes()
+            if ("finalizar".equals(acao)) {
+                Long pedidoId = finalizacao.finalizar(formulario);
+
+                return "redirect:/pedidos/"
+                    + pedidoId
+                    + "/confirmacao";
+            }
+
+            if (!"validar".equals(acao)) {
+                throw new org.springframework.web.server
+                    .ResponseStatusException(
+                        org.springframework.http.HttpStatus.BAD_REQUEST,
+                        "Ação inválida."
+                    );
+            }
+
+            pagamentos.preparar(
+                formulario,
+                entrega.getTotal()
             );
 
             model.addAttribute("pagamentoValido", true);
+
         } catch (ValidacaoException e) {
             model.addAttribute(
                 "errosPagamento",
                 e.getErros()
+            );
+
+        } catch (org.springframework.dao.DataAccessException e) {
+            model.addAttribute(
+                "errosPagamento",
+                List.of(
+                    "Não foi possível registrar o pedido. "
+                    + "Nenhuma alteração foi confirmada."
+                )
             );
         }
     }
@@ -186,6 +246,7 @@ private void preencherPagamento(
     model.addAttribute("subtotal", entrega.getSubtotal());
     model.addAttribute("frete", entrega.getFrete());
     model.addAttribute("totalGeral", entrega.getTotal());
+    model.addAttribute("cupons", pagamentos.listarCupons());
 }
 
     private void preencher(

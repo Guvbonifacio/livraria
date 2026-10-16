@@ -158,4 +158,8 @@ public class CarrinhoService {
     private ValidacaoException erro(String mensagem) {
         return new ValidacaoException(List.of(mensagem));
     }
+
+    public synchronized void limpar() {
+    itens.clear();
+}
 }
