@@ -1,6 +1,9 @@
 package com.fatec.livraria.model;
 
+import java.math.BigDecimal;
+
 public class ItemCarrinho {
+
     private Livro livro;
     private int quantidade;
 
@@ -9,10 +12,14 @@ public class ItemCarrinho {
         this.quantidade = quantidade;
     }
 
-    public double getSubtotal() {// Calcula o subtotal do item
+    public double getSubtotal() {
         return livro.getPreco() * quantidade;
     }
 
+    public BigDecimal getSubtotalExato() {
+        return BigDecimal.valueOf(livro.getPreco())
+            .multiply(BigDecimal.valueOf(quantidade));
+    }
 
     public Livro getLivro() {
         return livro;

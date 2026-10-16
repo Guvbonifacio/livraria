@@ -417,7 +417,7 @@ public void alterar(Cliente cliente) {
             .orElseThrow(() -> erro("Cartão não encontrado para este cliente."));
     }
 
-    private void validarEndereco(Endereco e) {
+    public void validarEndereco(Endereco e) {
         List<String> erros = new ArrayList<>();
         coletarErrosEndereco(e, erros);
         rejeitarErros(erros);

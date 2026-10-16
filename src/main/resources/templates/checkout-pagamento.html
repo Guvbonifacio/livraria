@@ -18,9 +18,37 @@
         </div>
     </div>
 
-    <h2 class="mb-4">Forma de Pagamento</h2>
+    <h2 class="mb-4">Forma de Pagamento</h2><div class="card shadow-sm mb-4"
+     data-cy="entrega-confirmada">
 
-    <form th:action="@{/carrinho/checkout/pagamento}" method="POST">
+    <div class="card-body">
+        <h5>Entregar em</h5>
+
+        <p class="mb-1"
+           th:text="${entrega.endereco.tipoLogradouro} + ' ' + ${entrega.endereco.logradouro} + ', ' + ${entrega.endereco.numero}">
+        </p>
+
+        <p class="mb-1"
+           th:text="${entrega.endereco.bairro} + ' - ' + ${entrega.endereco.cidade} + '/' + ${entrega.endereco.estado} + ' - ' + ${entrega.endereco.pais}">
+        </p>
+
+        <p class="mb-1"
+           th:text="'CEP: ' + ${entrega.endereco.cep}">
+        </p>
+
+        <p class="mb-1"
+           th:if="${!#strings.isEmpty(entrega.endereco.observacoes)}"
+           th:text="${entrega.endereco.observacoes}">
+        </p>
+
+        <a th:href="@{/carrinho/checkout/endereco}"
+           class="btn btn-outline-secondary btn-sm">
+            Alterar endereço
+        </a>
+    </div>
+</div>
+
+    <div>
         <div class="row g-4">
             
             <div class="col-md-8">
@@ -96,9 +124,11 @@
                             <strong class="fs-5 text-success" th:text="'R$ ' + ${#numbers.formatDecimal(totalGeral, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
                         </div>
 
-                        <button type="submit" class="btn btn-success w-100 btn-lg">
-                            Finalizar e Confirmar Pedido 
-                        </button>
+                        <button type="button"
+        class="btn btn-success w-100 btn-lg"
+        disabled>
+    Finalizar e Confirmar Pedido
+</button>
                     </div>
                 </div>
             </div>

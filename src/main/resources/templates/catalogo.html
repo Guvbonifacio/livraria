@@ -1,74 +1,107 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-
 <head th:replace="~{fragmentos/layout :: cabeca}"></head>
-<div th:replace="~{fragmentos/layout :: chatbot}"></div>
 
 <body class="bg-light d-flex flex-column min-vh-100">
 
-<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+  <div th:replace="~{fragmentos/layout :: chatbot}"></div>
+  <nav th:replace="~{fragmentos/layout :: menu}"></nav>
 
-<div class="container">
+  <main class="container flex-grow-1 my-4">
 
     <h1 class="mb-4">Catálogo de Livros</h1>
 
-    <!-- Busca e filtro. Ainda em protótipo não filtram nada. -->
-    <form class="row g-2 mb-4">
-        <div class="col-md-8">
-            <input type="text" class="form-control" placeholder="Buscar por título, autor ou ISBN">
-        </div>
-        <div class="col-md-2">
-            <select class="form-select">
-                <option>Todas as categorias</option>
-                <!--<option>Autoajuda</option> 
-                <option>Fantasia</option>
-                <option>Ficção</option>
-                <option>Literatura Clássica</option>
-                <option>Teste última linha</option> -->
-                <option th:each="categoria : ${categorias}" th:text="${categoria}">Categoria</option>
-                
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button type="button" class="btn btn-primary w-100">Buscar</button>
-        </div>
+    <!-- BUSCA E FILTRO -->
+    <form class="row g-2 mb-4" method="GET" th:action="@{/}">
+      <div class="col-12 col-md-7 col-lg-8">
+        <input type="search" class="form-control" name="busca" th:value="${busca}" placeholder="Buscar por título, autor ou ISBN" aria-label="Buscar por título, autor ou ISBN">
+      </div>
+
+      <div class="col-8 col-md-3 col-lg-2">
+        <select class="form-select" name="categoria" aria-label="Filtrar por categoria">
+          <option value="">Todas as categorias</option>
+          <option th:each="categoria : ${categorias}" th:value="${categoria}" th:text="${categoria}" th:selected="${categoria == categoriaSelecionada}">
+            Categoria
+          </option>
+        </select>
+      </div>
+
+      <div class="col-4 col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Buscar</button>
+      </div>
     </form>
 
-    <!-- Recomendações do chatbot (RNF0044 -uso de IA generativa.) -->
+    <!-- RECOMENDAÇÕES DO CHATBOT -->
     <div class="alert alert-info">
-        <strong>Recomendados para você:</strong>
-        Com base nas suas compras de Fantasia, você pode gostar de
-        <em>O Senhor dos Anéis</em> e <em>Duna</em>.
+      <strong>Recomendados para você:</strong>
+      Com base nas suas compras de Fantasia, você pode gostar de <em>O Senhor dos Anéis</em> e <em>Duna</em>.
     </div>
 
-    <!-- um cartão por livro -->
-    <div class="row row-cols-2">
-        <div class="col-md-3 mb-5" th:each="livro : ${livros}">
-            <div class="card h-100">
-                <div class="bg-secondary text-white d-flex align-items-center justify-content-center"
-                    style="height: 180px;">
-                    Capa
+    <!-- BUSCA SEM RESULTADOS -->
+    <div th:if="${#lists.isEmpty(livros)}" class="card border-0 shadow-sm mb-5">
+      <div class="card-body text-center py-5">
+        <h2 class="h5">Nenhum livro encontrado</h2>
+        <p class="text-muted mb-3">Tente outro título, autor, ISBN ou categoria.</p>
+        <a th:href="@{/}" class="btn btn-outline-primary">Ver todos os livros</a>
+      </div>
+    </div>
+
+    <!-- CATÁLOGO -->
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4 mb-5">
+      <div class="col" th:each="livro : ${livros}">
+        <div class="card h-100 shadow-sm">
+
+          <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded-top" style="height: 180px;">
+            Capa
+          </div>
+
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title" th:text="${livro.titulo}">Título</h5>
+            <p class="card-text text-muted mb-1" th:text="${livro.autor}">Autor</p>
+
+            <span class="badge bg-light text-dark text-wrap mb-2 align-self-start border" th:text="${livro.categoria}">
+              Categoria
+            </span>
+
+            <p class="h5 text-success mb-2" th:text="'R$ ' + ${#numbers.formatDecimal(livro.preco, 1, 'POINT', 2, 'COMMA')}">
+              R$ 0,00
+            </p>
+
+            <p class="small mb-3">
+              <span th:if="${livro.estoque > 0}" class="text-muted" th:text="'Disponível: ' + ${livro.estoque} + ' un'"></span>
+              <span th:unless="${livro.estoque > 0}" class="text-secondary fw-semibold">Indisponível</span>
+            </p>
+
+            <!-- AÇÕES DO CARD (DETALHES + ADICIONAR AO CARRINHO) -->
+            <div class="mt-auto">
+              <a class="btn btn-outline-primary w-100 mb-2" th:href="@{/livro/{id}(id=${livro.id})}">
+                Ver detalhes
+              </a>
+
+              <form th:action="@{/carrinho/adicionar}" method="POST" class="row g-2">
+                <input type="hidden" name="livroId" th:value="${livro.id}">
+
+                <div class="col-4">
+                  <label class="visually-hidden" th:for="'quantidade-catalogo-' + ${livro.id}">Quantidade</label>
+                  <input type="number" class="form-control text-center" name="quantidade" th:id="'quantidade-catalogo-' + ${livro.id}" value="1" min="1" th:max="${livro.estoque}" th:disabled="${livro.estoque == 0}" required>
                 </div>
-                <div class="card-body d-flex flex-column">
-                    <h5 class="card-title" th:text="${livro.titulo}">Título</h5>
-                    <p class="card-text text-muted mb-1" th:text="${livro.autor}">Autor</p>
-                    <span class="badge bg-light text-dark mb-2 align-self-start"
-                          th:text="${livro.categoria}">Categoria</span>
-                    <p class="h5 text-success"
-                       th:text="'R$ ' + ${#numbers.formatDecimal(livro.preco, 1, 'POINT', 2, 'COMMA')}"> <!-- altera o formato de 
-                       exibicao padrao. Colora cifrão e virgula no lugar do ponto. RNF 0044 -->
-                        R$ 0,00
-                    </p>
-                    <a class="btn btn-outline-primary mt-auto"
-                       th:href="@{/livro/{id}(id=${livro.id})}">Ver detalhes</a> <!-- Cria URL a partir do id do livro -->
+
+                <div class="col-8">
+                  <button type="submit" class="btn btn-primary w-100" th:disabled="${livro.estoque == 0}">
+                    Adicionar
+                  </button>
                 </div>
+              </form>
             </div>
+
+          </div>
         </div>
+      </div>
     </div>
 
-</div>
+  </main>
 
-<footer th:replace="~{fragmentos/layout :: rodape}"></footer>
+  <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
 
 </body>
 </html>

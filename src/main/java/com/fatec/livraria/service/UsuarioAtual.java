@@ -10,4 +10,11 @@ public class UsuarioAtual {
         // Substituir o valor fixo pelo identificador do usuário autenticado.
         return "usuario-teste";
     }
+
+    public Long getClienteId() {
+    // Lacuna: ainda não há autenticação.
+    // Usa provisoriamente o cliente de demonstração criado pelo data.sql.
+    // Substituir pelo ID do cliente autenticado futuramente.
+    return 1L;
+}
 }

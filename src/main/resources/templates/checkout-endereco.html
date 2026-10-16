@@ -2,101 +2,413 @@
 <html xmlns:th="http://www.thymeleaf.org">
 
 <head th:replace="~{fragmentos/layout :: cabeca}"></head>
-<div th:replace="~{fragmentos/layout :: chatbot}"></div>
 
 <body class="bg-light d-flex flex-column min-vh-100">
 
-<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+    <div th:replace="~{fragmentos/layout :: chatbot}"></div>
+    <nav th:replace="~{fragmentos/layout :: menu}"></nav>
 
-<main class="container my-4">
-    <!-- Indicador de Progresso do Checkout -->
-    <div class="row mb-4">
-        <div class="col-12 text-center">
-            <span class="badge bg-primary fs-6 p-2 me-2">1. Endereço</span> →
-            <span class="badge bg-secondary fs-6 p-2 ms-2 me-2">2. Pagamento</span> →
-            <span class="badge bg-secondary fs-6 p-2 ms-2">3. Confirmação</span>
+    <main class="container my-4 flex-grow-1">
+
+        <div class="text-center mb-4">
+            <span class="badge bg-primary fs-6 p-2">
+                1. Endereço
+            </span>
+
+            <span class="mx-2">→</span>
+
+            <span class="badge bg-secondary fs-6 p-2">
+                2. Pagamento
+            </span>
+
+            <span class="mx-2">→</span>
+
+            <span class="badge bg-secondary fs-6 p-2">
+                3. Confirmação
+            </span>
         </div>
-    </div>
 
-    <h2 class="mb-4">Selecione o Endereço de Entrega</h2>
+        <h2 class="mb-4">Selecione o Endereço de Entrega</h2>
 
-    <form th:action="@{/carrinho/checkout/endereco}" method="POST">
-        <div class="row g-4">
-            
-            <!-- Lista de Endereços Salvos -->
-            <div class="col-md-8">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-white">
-                        <h5 class="m-0 fw-bold">Seus Endereços Cadastrados</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="form-check mb-3 p-3 border rounded" th:each="end, stat : ${enderecos}">
-                                <input class="form-check-input" type="radio" name="enderecoId" 
-                                        th:id="'end-' + ${stat.index}" th:value="${stat.index}" th:checked="${stat.first}">
-                                <label class="form-check-label ms-2" th:for="'end-' + ${stat.index}">
-                                    <strong th:text="${end.logradouro} + ', ' + ${end.numero}">Rua Exemplo, 123</strong><br>
-                                    <span class="text-muted" th:text="${end.bairro} + ' - ' + ${end.cidade} + '/' + ${end.estado}">Bairro - Cidade/UF</span><br>
-                                    <small class="text-secondary" th:text="'CEP: ' + ${end.cep}">CEP 00000-000</small>
-                                </label>
+        <div class="alert alert-danger"
+             role="alert"
+             th:if="${errosEntrega != null}"
+             data-cy="erros-entrega">
+            <ul class="mb-0">
+                <li th:each="erro : ${errosEntrega}"
+                    th:text="${erro}"></li>
+            </ul>
+        </div>
+
+        <form th:action="@{/carrinho/checkout/endereco}"
+              th:object="${formulario}"
+              method="POST"
+              id="formEntrega">
+
+            <div class="row g-4">
+
+                <div class="col-lg-8">
+                    <div class="card shadow-sm mb-4">
+
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Endereço de entrega</h5>
                         </div>
 
-                        <!-- Botão para Cadastrar Novo Endereço no Checkout (RF0035) -->
-                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" data-bs-toggle="collapse" data-bs-target="#novoEnderecoForm">
-                             Usar um Novo Endereço
-                        </button>
+                        <div class="card-body">
 
-                        <!-- Formulário Colapsável para Novo Endereço (RF0035) -->
-                        <div class="collapse mt-3 border p-3 rounded bg-white" id="novoEnderecoForm">
-                            <h6>Novo Endereço de Entrega</h6>
-                            <div class="row g-2">
-                                <div class="col-md-6">
-                                    <input type="text" class="form-control form-control-sm" placeholder="Apelido (ex: Casa/trabalho)">
+                            <!-- ENDEREÇO CADASTRADO -->
+                            <div class="form-check mb-3"
+                                 th:if="${!#lists.isEmpty(enderecos)}">
+
+                                <input class="form-check-input"
+                                       type="radio"
+                                       th:field="*{origem}"
+                                       value="CADASTRADO"
+                                       id="origemCadastrado">
+
+                                <label class="form-check-label fw-semibold"
+                                       for="origemCadastrado">
+                                    Usar endereço cadastrado
+                                </label>
+                            </div>
+
+                            <p class="text-muted"
+                               th:if="${#lists.isEmpty(enderecos)}">
+                                Não há endereços de entrega cadastrados.
+                                Informe um novo abaixo.
+                            </p>
+
+                            <fieldset id="enderecosCadastrados"
+                                      th:disabled="${formulario.origem != 'CADASTRADO'}">
+
+                                <legend class="visually-hidden">
+                                    Endereços cadastrados
+                                </legend>
+
+                                <div class="form-check border rounded p-3 ps-5 mb-3"
+                                     th:each="end : ${enderecos}">
+
+                                    <input class="form-check-input"
+                                           type="radio"
+                                           th:field="*{enderecoId}"
+                                           th:value="${end.id}"
+                                           th:id="'endereco-' + ${end.id}"
+                                           required>
+
+                                    <label class="form-check-label"
+                                           th:for="'endereco-' + ${end.id}">
+
+                                        <strong th:text="${end.nomeCurto}"></strong>
+
+                                        <span class="d-block"
+                                              th:text="${end.tipoLogradouro} + ' ' + ${end.logradouro} + ', ' + ${end.numero}">
+                                        </span>
+
+                                        <span class="d-block text-muted"
+                                              th:text="${end.bairro} + ' - ' + ${end.cidade} + '/' + ${end.estado} + ' - ' + ${end.pais}">
+                                        </span>
+
+                                        <small th:text="'CEP: ' + ${end.cep}">
+                                        </small>
+
+                                        <small class="d-block"
+                                               th:if="${!#strings.isEmpty(end.observacoes)}"
+                                               th:text="${end.observacoes}">
+                                        </small>
+                                    </label>
                                 </div>
-                                <div class="col-md-6">
-                                    <input type="text" class="form-control form-control-sm" placeholder="CEP">
+                            </fieldset>
+
+                            <!-- NOVO ENDEREÇO -->
+                            <div class="form-check mt-3">
+                                <input class="form-check-input"
+                                       type="radio"
+                                       th:field="*{origem}"
+                                       value="NOVO"
+                                       id="origemNovo">
+
+                                <label class="form-check-label fw-semibold"
+                                       for="origemNovo">
+                                    Usar um novo endereço
+                                </label>
+                            </div>
+
+                            <div id="novoEnderecoForm"
+                                 class="border rounded bg-light p-3 mt-3"
+                                 th:classappend="${formulario.origem != 'NOVO'} ? 'd-none' : ''">
+
+                                <fieldset id="camposNovoEndereco"
+                                          th:disabled="${formulario.origem != 'NOVO'}">
+
+                                    <legend class="h6">
+                                        Novo endereço de entrega
+                                    </legend>
+
+                                    <div class="row g-3">
+
+                                        <div class="col-md-6">
+                                            <label class="form-label"
+                                                   for="novoEndereco.nomeCurto">
+                                                Nome curto
+                                            </label>
+                                            <input class="form-control"
+                                                   type="text"
+                                                   th:field="*{novoEndereco.nomeCurto}"
+                                                   required>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label"
+                                                   for="novoEndereco.tipoResidencia">
+                                                Tipo de residência
+                                            </label>
+                                            <select class="form-select"
+                                                    th:field="*{novoEndereco.tipoResidencia}"
+                                                    required>
+                                                <option value="">Selecione</option>
+                                                <option value="Casa">Casa</option>
+                                                <option value="Apartamento">Apartamento</option>
+                                                <option value="Outro">Outro</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label"
+                                                   for="novoEndereco.tipoLogradouro">
+                                                Tipo de logradouro
+                                            </label>
+                                            <input class="form-control"
+                                                   type="text"
+                                                   th:field="*{novoEndereco.tipoLogradouro}"
+                                                   required>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label"
+                                                   for="novoEndereco.logradouro">
+                                                Logradouro
+                                            </label>
+                                            <input class="form-control"
+                                                   type="text"
+                                                   th:field="*{novoEndereco.logradouro}"
+                                                   required>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label"
+                                                   for="novoEndereco.numero">
+                                                Número
+                                            </label>
+                                            <input class="form-control"
+                                                   type="text"
+                                                   th:field="*{novoEndereco.numero}"
+                                                   required>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label"
+                                                   for="novoEndereco.bairro">
+                                                Bairro
+                                            </label>
+                                            <input class="form-control"
+                                                   type="text"
+                                                   th:field="*{novoEndereco.bairro}"
+                                                   required>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label"
+                                                   for="novoEndereco.cep">
+                                                CEP
+                                            </label>
+                                            <input class="form-control"
+                                                   type="text"
+                                                   th:field="*{novoEndereco.cep}"
+                                                   required>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label"
+                                                   for="novoEndereco.cidade">
+                                                Cidade
+                                            </label>
+                                            <input class="form-control"
+                                                   type="text"
+                                                   th:field="*{novoEndereco.cidade}"
+                                                   required>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label"
+                                                   for="novoEndereco.estado">
+                                                Estado / UF
+                                            </label>
+                                            <input class="form-control"
+                                                   type="text"
+                                                   th:field="*{novoEndereco.estado}"
+                                                   required>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label"
+                                                   for="novoEndereco.pais">
+                                                País
+                                            </label>
+                                            <input class="form-control"
+                                                   type="text"
+                                                   th:field="*{novoEndereco.pais}"
+                                                   required>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <label class="form-label"
+                                                   for="novoEndereco.observacoes">
+                                                Observações (opcional)
+                                            </label>
+                                            <textarea class="form-control"
+                                                      th:field="*{novoEndereco.observacoes}"></textarea>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="form-check">
+                                                <input class="form-check-input"
+                                                       type="checkbox"
+                                                       id="salvarPerfil"
+                                                       th:field="*{salvarPerfil}">
+
+                                                <label class="form-check-label"
+                                                       for="salvarPerfil">
+                                                    Incorporar este endereço ao meu perfil
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </fieldset>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RESUMO -->
+                <div class="col-lg-4">
+                    <div class="card shadow-sm">
+
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Resumo da Entrega</h5>
+                        </div>
+
+                        <div class="card-body">
+
+                            <div class="d-flex justify-content-between mb-3">
+                                <span>Subtotal dos livros:</span>
+
+                                <strong th:text="'R$ ' + ${#numbers.formatDecimal(subtotal, 1, 'POINT', 2, 'COMMA')}">
+                                </strong>
+                            </div>
+
+                            <div data-cotacao
+                                 th:classappend="${frete == null} ? 'd-none' : ''">
+
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Frete:</span>
+
+                                    <strong class="text-primary"
+                                            data-cy="frete"
+                                            th:if="${frete != null}"
+                                            th:text="'R$ ' + ${#numbers.formatDecimal(frete, 1, 'POINT', 2, 'COMMA')}">
+                                    </strong>
                                 </div>
-                                <div class="col-md-8">
-                                    <input type="text" class="form-control form-control-sm" placeholder="Logradouro / Rua">
-                                </div>
-                                <div class="col-md-4">
-                                    <input type="text" class="form-control form-control-sm" placeholder="Número">
-                                </div>
-                                <div class="col-12 form-check ms-2 mt-2">
-                                    <!-- Opção RF0035: Salvar no perfil para compras futuras -->
-                                    <input type="checkbox" class="form-check-input" id="salvarPerfil" name="salvarPerfil" value="true">
-                                    <label class="form-check-label small" for="salvarPerfil">Salvar este novo endereço no meu perfil</label>
+
+                                <div class="d-flex justify-content-between mb-3">
+                                    <strong>Total:</strong>
+
+                                    <strong class="text-success"
+                                            th:if="${totalGeral != null}"
+                                            th:text="'R$ ' + ${#numbers.formatDecimal(totalGeral, 1, 'POINT', 2, 'COMMA')}">
+                                    </strong>
                                 </div>
                             </div>
+
+                            <p class="text-muted small"
+                               data-sem-cotacao
+                               th:classappend="${frete != null} ? 'd-none' : ''">
+                                Selecione ou preencha o endereço
+                                e calcule o frete.
+                            </p>
+
+                            <button type="submit"
+                                    name="acao"
+                                    value="calcular"
+                                    class="btn btn-outline-primary w-100 mb-2">
+                                Calcular frete
+                            </button>
+
+                            <button type="submit"
+                                    name="acao"
+                                    value="continuar"
+                                    class="btn btn-success w-100 btn-lg">
+                                Ir para o Pagamento →
+                            </button>
+
+                            <a th:href="@{/carrinho}"
+                               class="btn btn-outline-secondary w-100 mt-2">
+                                Voltar ao carrinho
+                            </a>
+
                         </div>
                     </div>
                 </div>
+
             </div>
+        </form>
 
-            <!-- Resumo do Frete e Botão Avançar -->
-            <div class="col-md-4">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-white">
-                        <h5 class="m-0 fw-bold">Resumo da Entrega</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Frete Calculado:</span>
-                            <strong class="text-primary" th:text="'R$ ' + ${#numbers.formatDecimal(frete, 1, 'POINT', 2, 'COMMA')}">R$ 15,00</strong>
-                        </div>
-                        <p class="text-muted small">Prazo estimado: 3 a 5 dias úteis após a aprovação.</p>
-                        <hr>
-                        <button type="submit" class="btn btn-success w-100 btn-lg">
-                            Ir para o Pagamento →
-                        </button>
-                    </div>
-                </div>
-            </div>
+    </main>
 
-        </div>
-    </form>
-</main>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('formEntrega');
 
-<footer th:replace="~{fragmentos/layout :: rodape}"></footer>
+            function atualizarOrigem() {
+                const novo =
+                    form.querySelector('[name="origem"]:checked')
+                        ?.value === 'NOVO';
+
+                document.getElementById('enderecosCadastrados')
+                    .disabled = novo;
+
+                document.getElementById('camposNovoEndereco')
+                    .disabled = !novo;
+
+                document.getElementById('novoEnderecoForm')
+                    .classList.toggle('d-none', !novo);
+            }
+
+            function invalidarCotacao() {
+                form.querySelector('[data-cotacao]')
+                    .classList.add('d-none');
+
+                form.querySelector('[data-sem-cotacao]')
+                    .classList.remove('d-none');
+            }
+
+            form.querySelectorAll('[name="origem"]')
+                .forEach(function (radio) {
+                    radio.addEventListener(
+                        'change',
+                        atualizarOrigem
+                    );
+                });
+
+            form.addEventListener('input', invalidarCotacao);
+            form.addEventListener('change', invalidarCotacao);
+
+            atualizarOrigem();
+        });
+    </script>
+
+    <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
 
 </body>
 </html>

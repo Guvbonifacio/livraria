@@ -2,78 +2,154 @@
 <html xmlns:th="http://www.thymeleaf.org">
 
 <head th:replace="~{fragmentos/layout :: cabeca}"></head>
-<div th:replace="~{fragmentos/layout :: chatbot}"></div>
+
 <body class="bg-light d-flex flex-column min-vh-100">
 
-<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+    <div th:replace="~{fragmentos/layout :: chatbot}"></div>
+    <nav th:replace="~{fragmentos/layout :: menu}"></nav>
 
-<main class="container my-5" th:if="${livro != null}">
-    <div class="row bg-white p-4 rounded shadow-sm">
-        
-        <!-- Coluna da esquerda: Caixa Cinza Fixa -->
-        <div class="col-md-4 text-center border-end pe-md-4">
-            <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded mb-3 shadow-sm mx-auto"
-                 style="height: 300px; max-width: 220px;">
-                <span class="fs-4">Capa</span>
-            </div>
+    <main class="container my-5"
+          th:if="${livro != null}">
 
-            <h2 class="text-success fw-bold my-2" th:text="'R$ ' + ${#numbers.formatDecimal(livro.preco, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</h2>
-            
-            <p class="text-muted small mb-3">
-                Estoque disponível: <strong class="text-dark" th:text="${livro.estoque} + ' un'">0 un</strong>
-            </p>
+        <div class="row bg-white p-4 rounded shadow-sm">
 
-            <form action="/carrinho/adicionar" method="POST">
-                <input type="hidden" name="livroId" th:value="${livro.id}">
-                
-                <div class="mb-3 d-flex align-items-center justify-content-center">
-                    <label for="quantidade" class="me-2 fw-semibold">Qtd:</label>
-                    <input type="number" id="quantidade" name="quantidade" value="1" min="1" th:max="${livro.estoque}" 
-                    class="form-control text-center" style="width: 80px;"> <!-- Limita a qtd ao maximo em estoque -->
+            <!-- CAPA, PREÇO E QUANTIDADE -->
+            <div class="col-md-4 text-center border-end pe-md-4">
+
+                <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded mb-3 shadow-sm mx-auto"
+                     style="height: 300px; max-width: 220px;">
+                    <span class="fs-4">Capa</span>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-lg w-100">
-                     Adicionar ao Carrinho
-                </button>
-            </form>
+                <h2 class="text-success fw-bold my-2"
+                    th:text="'R$ ' + ${#numbers.formatDecimal(livro.preco, 1, 'POINT', 2, 'COMMA')}">
+                    R$ 0,00
+                </h2>
 
-            <div class="mt-4">
-                <a th:href="@{/}" class="btn btn-outline-secondary w-100">Voltar ao Catálogo</a>
+                <p class="text-muted small mb-3">
+                    Estoque disponível:
+                    <strong class="text-dark"
+                            th:text="${livro.estoque} + ' un'">
+                        0 un
+                    </strong>
+                </p>
+
+                <div th:if="${livro.estoque == 0}"
+                     class="alert alert-secondary py-2"
+                     role="status">
+                    Livro indisponível no momento.
+                </div>
+
+                <form th:action="@{/carrinho/adicionar}"
+                      method="POST">
+
+                    <input type="hidden"
+                           name="livroId"
+                           th:value="${livro.id}">
+
+                    <div class="mb-3 d-flex align-items-center justify-content-center">
+                        <label for="quantidade"
+                               class="me-2 fw-semibold">
+                            Qtd:
+                        </label>
+
+                        <input type="number"
+                               id="quantidade"
+                               name="quantidade"
+                               value="1"
+                               min="1"
+                               th:max="${livro.estoque}"
+                               th:disabled="${livro.estoque == 0}"
+                               class="form-control text-center"
+                               style="width: 80px;"
+                               required>
+                    </div>
+
+                    <button type="submit"
+                            class="btn btn-primary btn-lg w-100"
+                            th:disabled="${livro.estoque == 0}">
+                        Adicionar ao Carrinho
+                    </button>
+                </form>
+
+                <div class="mt-4">
+                    <a th:href="@{/}"
+                       class="btn btn-outline-secondary w-100">
+                        Voltar ao Catálogo
+                    </a>
+                </div>
             </div>
-        </div>
 
-        <!-- Coluna da Direita: Ficha Técnica Completa (RN0011) -->
-        <div class="col-md-8 ps-md-4 mt-4 mt-md-0">
-            <h1 class="fw-bold mb-1" th:text="${livro.titulo}">Título do Livro</h1>
-            <p class="text-muted fs-5 mb-2">por <strong th:text="${livro.autor}">Autor</strong></p>
-            <span class= th:text="${livro.categoria}">Categoria:</span>
-            <span class="badge bg-secondary mb-4" th:text="${livro.categoria}">Categoria</span>
+            <!-- DESCRIÇÃO E FICHA TÉCNICA -->
+            <div class="col-md-8 ps-md-4 mt-4 mt-md-0">
 
-            <h5 class="fw-bold text-primary border-bottom pb-2">Sinopse</h5>
-            <p class="text-secondary lh-base" th:text="${livro.sinopse}">Descrição detalhada do livro...</p>
+                <h1 class="fw-bold mb-1"
+                    th:text="${livro.titulo}">
+                    Título do Livro
+                </h1>
 
-            <h5 class="fw-bold text-primary border-bottom pb-2 mt-4">Ficha Técnica</h5>
-            <div class="row g-2 text-sm">
-                <div class="col-6"><strong>Editora:</strong> <span th:text="${livro.editora}"></span></div>
-                <div class="col-6"><strong>Edição:</strong> <span th:text="${livro.edicao}"></span></div>
-                <div class="col-6"><strong>Ano de Publicação:</strong> <span th:text="${livro.ano}"></span></div>
-                <div class="col-6"><strong>Nº de Páginas:</strong> <span th:text="${livro.paginas}"></span></div>
-                <div class="col-6"><strong>ISBN:</strong> <span th:text="${livro.isbn}"></span></div>
-                <div class="col-6"><strong>Dimensões:</strong> <span th:text="${livro.dimensoes}"></span></div>
+                <p class="text-muted fs-5 mb-2">
+                    por
+                    <strong th:text="${livro.autor}">
+                        Autor
+                    </strong>
+                </p>
+
+                <span class="badge bg-secondary text-wrap mb-4"
+                      th:text="${livro.categoria}">
+                    Categoria
+                </span>
+
+                <h5 class="fw-bold text-primary border-bottom pb-2">
+                    Sinopse
+                </h5>
+
+                <p class="text-secondary lh-base"
+                   th:text="${livro.sinopse}">
+                    Descrição detalhada do livro.
+                </p>
+
+                <h5 class="fw-bold text-primary border-bottom pb-2 mt-4">
+                    Ficha Técnica
+                </h5>
+
+                <div class="row g-2">
+                    <div class="col-12 col-sm-6">
+                        <strong>Editora:</strong>
+                        <span th:text="${livro.editora}"></span>
+                    </div>
+
+                    <div class="col-12 col-sm-6">
+                        <strong>Edição:</strong>
+                        <span th:text="${livro.edicao}"></span>
+                    </div>
+
+                    <div class="col-12 col-sm-6">
+                        <strong>Ano de Publicação:</strong>
+                        <span th:text="${livro.ano}"></span>
+                    </div>
+
+                    <div class="col-12 col-sm-6">
+                        <strong>Nº de Páginas:</strong>
+                        <span th:text="${livro.paginas}"></span>
+                    </div>
+
+                    <div class="col-12 col-sm-6">
+                        <strong>ISBN:</strong>
+                        <span th:text="${livro.isbn}"></span>
+                    </div>
+
+                    <div class="col-12 col-sm-6">
+                        <strong>Dimensões:</strong>
+                        <span th:text="${livro.dimensoes}"></span>
+                    </div>
+                </div>
             </div>
+
         </div>
+    </main>
 
-    </div>
-</main>
-
-<main class="container text-center my-5" th:if="${livro == null}">
-    <div class="alert alert-danger shadow-sm">
-        <h4>Livro não encontrado!</h4>
-        <a th:href="@{/}" class="btn btn-primary mt-3">Voltar ao Catálogo</a>
-    </div>
-</main>
-
-<footer th:replace="~{fragmentos/layout :: rodape}"></footer>
+    <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
 
 </body>
 </html>
