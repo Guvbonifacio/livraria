@@ -60,8 +60,7 @@ public class PagamentoService {
         preparar(formulario, entrega.getTotal());
     }
 
-    // Não grava pagamentos, não consome cupons e não emite crédito.
-    // O total deve ser calculado pelo Service.
+    // Não grava pagamentos, não consome cupons e não emite crédito. O total deve ser calculado pelo Service.
     public PlanoPagamento preparar(
             FormularioPagamento formulario,
             BigDecimal total) {
@@ -130,8 +129,7 @@ public class PagamentoService {
             }
         }
 
-        // RN0036: se retirar algum cupom ainda cobre o total,
-        // existe cupom desnecessário na seleção.
+        // RN0036: se retirar algum cupom ainda cobre o total, existe cupom desnecessário na seleção.
         if (menorCupom != null
                 && somaCupons.subtract(menorCupom)
                     .compareTo(total) >= 0) {
@@ -205,7 +203,7 @@ public class PagamentoService {
             }
         }
 
-        // RN0035: admite um cartão com o saldo inferior a R$ 10
+        // RN0035é a excessão que admite um cartão com o saldo inferior a R$ 10
         // somente depois do uso integral dos cupons selecionados.
         boolean excecao =
             somaCupons.signum() > 0
@@ -219,7 +217,7 @@ public class PagamentoService {
                     && !excecao) {
 
                 throw erro(
-                    "O valor mínimo por cartão é R$ 10,00."
+                    "O valor mínimo de pagamento por cartão é de R$ 10,00."
                 );
             }
         }
