@@ -1,5 +1,7 @@
 # Checklist do projeto — atualizado em 21/10/2026
 
+**Entrega do UC Gerenciar Vendas Eletrônicas: 28/10/2026. Meta: sem pendências.**
+
 Documento vivo. Marcar o que for concluído e manter atualizado: é a referência para
 retomar o trabalho a qualquer momento, inclusive em outra máquina ou nova sessão.
 
@@ -118,9 +120,35 @@ Nada da entrega de vendas avança sem isto.
 
 ---
 
+## Cronograma — entrega em 28/10/2026
+
+**Regra que mudou:** o teste de cada cenário é escrito **junto com a funcionalidade**,
+não no fim. Deixar os 11 testes para o último dia foi o que inviabilizou a apresentação
+de 19/10.
+
+| Dia | Trabalho | Cenários fechados | Horas |
+|---|---|---|---|
+| 21/10 | Etapa 1 — destravar: tabelas e admin fora do protótipo | — | 7 |
+| 22/10 | Etapa 2 — validação do pagamento, APROVADA/REPROVADA, baixa de estoque | 1 e 5 | 8 |
+| 23/10 | Etapa 3 — despachar e entregar · DF001 (cartão novo na compra) | 7 | 9 |
+| 24/10 | Etapa 5a — solicitar troca, autorizar, notificar | 8 e 9 | 8 |
+| 25/10 | Etapa 5b — confirmar recebimento, cupom, reentrada em estoque | 10 e 11 | 8 |
+| 26/10 | Etapa 4 — bloqueio e expiração do carrinho | 6 | 9 |
+| 27/10 | Etapa 8 — documentação, Planner, ensaio da apresentação | — | 6 |
+| 28/10 | **Entrega** | | |
+
+Cenários 2 e 4 já estão prontos. O cenário 3 é um ajuste de 15 minutos: trocar o cupom
+de troca por promocional na rotina de preparação do `rn0035`.
+
+**Se algum dia atrasar**, o corte é a Etapa 4 (26/10): custa 9 horas e entrega um único
+cenário. Declarar como pendente é defensável — é a única parte do sistema com
+comportamento dependente de relógio.
+
+
+---
+
 ## Perguntas em aberto para o professor
 
-1. **Qual a data da entrega do UC Gerenciar Vendas Eletrônicas?**
 2. A numeração de RF do enunciado está deslocada em um a partir de "finalizar compra"
    (enunciado `RF0037` = DRS `RF0038`, e assim por diante até `RF0044` = `RF0045`).
    Seguir o DRS?
