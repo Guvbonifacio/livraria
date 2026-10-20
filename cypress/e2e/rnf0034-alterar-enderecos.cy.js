@@ -65,6 +65,9 @@ describe('RNF0034 / RF0026 - Alterar apenas endereços', () => {
 
       cy.get('#modalEndereco')
         .should('be.visible')
+        // Espera a animacao do Bootstrap terminar: digitar durante o
+        // fade perde caracteres de forma intermitente.
+        .and('have.css', 'opacity', '1')
         .within(() => {
           const campos = {
             nomeCurto: 'Trabalho',

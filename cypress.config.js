@@ -259,6 +259,37 @@ module.exports = defineConfig({
           }
         },
 
+        // Estoque e reservas de um livro, para provar a baixa (RF0053 /
+        // RN0028) e o desbloqueio das compras nao aprovadas.
+        'vendas:estoque'(livroId) {
+          const db = banco();
+
+          try {
+            return {
+              total: db.prepare(`
+                SELECT COALESCE(SUM(quantidade), 0) AS n
+                FROM item_estoque
+                WHERE livro_id = ?
+              `).get(Number(livroId)).n,
+
+              lotes: db.prepare(`
+                SELECT id, quantidade
+                FROM item_estoque
+                WHERE livro_id = ?
+                ORDER BY data_entrada, id
+              `).all(Number(livroId)),
+
+              reservas: db.prepare(`
+                SELECT COUNT(*) AS n
+                FROM reserva_estoque
+                WHERE livro_id = ?
+              `).get(Number(livroId)).n
+            };
+          } finally {
+            db.close();
+          }
+        },
+
         'vendas:pedido'(id) {
           const db = banco();
 
@@ -327,6 +358,50 @@ module.exports = defineConfig({
                 WHERE cliente_id = 1
                 ORDER BY id
               `).all()
+            };
+          } finally {
+            db.close();
+          }
+        },
+
+        'vendas:entrega'(id) {
+          const db = banco();
+
+          try {
+            const pedidoId = Number(id);
+
+            if (!Number.isSafeInteger(pedidoId) || pedidoId <= 0) {
+              throw new Error('Identificador de pedido inválido.');
+            }
+
+            return {
+              pedido: db.prepare(`
+                SELECT id, status
+                FROM pedido
+                WHERE id = ?
+              `).get(pedidoId) || null,
+
+              estoque: db.prepare(`
+                SELECT livro_id, SUM(quantidade) AS quantidade
+                FROM item_estoque
+                GROUP BY livro_id
+                ORDER BY livro_id
+              `).all(),
+
+              pagamentos: db.prepare(`
+                SELECT id, status
+                FROM pagamento
+                WHERE pedido_id = ?
+                ORDER BY id
+              `).all(pedidoId),
+
+              logs: db.prepare(`
+                SELECT operacao, dados
+                FROM log_transacao
+                WHERE tabela = 'pedido'
+                  AND registro_id = ?
+                ORDER BY id
+              `).all(pedidoId)
             };
           } finally {
             db.close();

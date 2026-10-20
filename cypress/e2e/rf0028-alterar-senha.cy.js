@@ -61,6 +61,9 @@ describe('RF0028 - Alterar apenas a senha', () => {
 
     cy.get('#modalSenha')
       .should('be.visible')
+      // Espera a animacao do Bootstrap terminar: digitar durante o
+      // fade perde caracteres de forma intermitente.
+      .and('have.css', 'opacity', '1')
       .within(() => {
         cy.get('[name="senhaAtual"]')
           .type(atual, { log: false });
@@ -122,7 +125,9 @@ describe('RF0028 - Alterar apenas a senha', () => {
 
       enviarAlteracao('SenhaErrada@999', novaSenha);
 
-      cy.get('#modalSenha').should('be.visible');
+      cy.get('#modalSenha')
+        .should('be.visible')
+        .and('have.css', 'opacity', '1');
 
       cy.get('[data-cy="erros-senha"]')
         .should('be.visible')

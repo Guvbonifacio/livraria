@@ -6,9 +6,9 @@ import com.fatec.livraria.service.AdministracaoService;
 import com.fatec.livraria.service.ClienteService;
 import com.fatec.livraria.service.ValidacaoException;
 import com.fatec.livraria.service.ProcessamentoPedidoService;
-import com.fatec.livraria.service.ValidacaoException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import com.fatec.livraria.service.EntregaPedidoService;
 
 import java.util.List;
 
@@ -30,17 +30,20 @@ public class AdminController {
     private final LogRepository logRepository;
     private final AdministracaoService administracao;
     private final ProcessamentoPedidoService processamento;
+    private final EntregaPedidoService entrega;
 
     public AdminController(
         ClienteService clienteService,
         LogRepository logRepository,
         AdministracaoService administracao,
-        ProcessamentoPedidoService processamento) {
+        ProcessamentoPedidoService processamento,
+        EntregaPedidoService entrega) {
 
     this.clienteService = clienteService;
     this.logRepository = logRepository;
     this.administracao = administracao;
     this.processamento = processamento;
+    this.entrega = entrega;
     }
 
     // Painel principal
@@ -142,19 +145,28 @@ public class AdminController {
         return "admin-pedido-detalhe";
     }
 
-// Processa o pagamento e atualiza o status do pedido.
-    @PostMapping("/pedidos/{id}/status")
+// Processa pagamento, despacho e confirmação de entrega.
+@PostMapping("/pedidos/{id}/status")
 public String alterarStatusPedido(
         @PathVariable Long id,
         @RequestParam String novoStatus,
         RedirectAttributes redirect) {
 
     try {
-        String status = processamento.processar(id, novoStatus);
+        String status;
+
+        if ("EM TRANSPORTE".equals(novoStatus)
+                || "ENTREGUE".equals(novoStatus)) {
+
+            status = entrega.transicionar(id, novoStatus);
+
+        } else {
+            status = processamento.processar(id, novoStatus);
+        }
 
         redirect.addFlashAttribute(
             "sucessoProcessamento",
-            "Resultado do pagamento: " + status + "."
+            "Status do pedido: " + status + "."
         );
 
     } catch (ValidacaoException e) {
@@ -167,7 +179,7 @@ public String alterarStatusPedido(
         redirect.addFlashAttribute(
             "errosProcessamento",
             List.of(
-                "Não foi possível processar o pedido. "
+                "Não foi possível atualizar o pedido. "
                 + "Nenhuma alteração foi confirmada."
             )
         );

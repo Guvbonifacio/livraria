@@ -24,12 +24,14 @@
     <!-- Mensagens de Sucesso / Erro -->
     <div class="alert alert-success"
          role="status"
+         data-cy="sucesso-processamento"
          th:if="${sucessoProcessamento != null}"
          th:text="${sucessoProcessamento}">
     </div>
 
     <div class="alert alert-danger"
          role="alert"
+         data-cy="erros-processamento"
          th:if="${errosProcessamento != null}">
       <ul class="mb-0">
         <li th:each="erro : ${errosProcessamento}"
@@ -74,7 +76,9 @@
       <div class="card-body">
         <p class="mb-3">
           <strong class="me-2">Status atual:</strong>
-          <span th:switch="${pedido.status}">
+          <span data-cy="status-pedido"
+                th:attr="data-status=${pedido.status}"
+                th:switch="${pedido.status}">
             <span th:case="'EM PROCESSAMENTO'" class="badge bg-warning text-dark fs-6">Em processamento</span>
             <span th:case="'APROVADA'" class="badge bg-info text-dark fs-6">Aprovada</span>
             <span th:case="'REPROVADA'" class="badge bg-danger fs-6">Reprovada</span>
@@ -95,6 +99,7 @@
           <!-- A simulação de aceite ainda depende da validação dos cupons. -->
           <button th:if="${pedido.status == 'EM PROCESSAMENTO'}"
                   type="submit"
+                  data-cy="simular-aceite"
                   name="novoStatus"
                   value="APROVADA"
                   class="btn btn-success">
@@ -107,25 +112,30 @@
                                pedido.pagamentos.?[forma == 'CARTAO']
                            )}"
                   type="submit"
+                  data-cy="simular-recusa"
                   name="novoStatus"
                   value="REPROVADA"
                   class="btn btn-danger">
             Simular recusa da operadora
           </button>
 
-          <!-- Será implementado na etapa de despacho. -->
+          <!-- Despacho do pedido -->
           <button th:if="${pedido.status == 'APROVADA'}"
-                  type="button"
+                  type="submit"
+                  name="novoStatus"
+                  value="EM TRANSPORTE"
                   class="btn btn-primary"
-                  disabled>
+                  data-cy="despachar-pedido">
             Despachar
           </button>
 
-          <!-- Será implementado na etapa de entrega. -->
+          <!-- Entrega do pedido -->
           <button th:if="${pedido.status == 'EM TRANSPORTE'}"
-                  type="button"
+                  type="submit"
+                  name="novoStatus"
+                  value="ENTREGUE"
                   class="btn btn-success"
-                  disabled>
+                  data-cy="entregar-pedido">
             Confirmar entrega
           </button>
         </form>
@@ -213,7 +223,11 @@
         <div class="border rounded p-3 mb-2" th:each="pagamento : ${pedido.pagamentos}">
           <div class="d-flex justify-content-between align-items-center mb-1">
             <strong th:text="${pagamento.forma}"></strong>
-            <span class="badge bg-secondary" th:text="${pagamento.status}"></span>
+            <span class="badge bg-secondary"
+                  data-cy="status-pagamento"
+                  th:text="${pagamento.status}">
+              Status
+            </span>
           </div>
 
           <p class="mb-1 fw-bold text-success" th:text="'R$ ' + ${#numbers.formatDecimal(pagamento.valor, 1, 'POINT', 2, 'COMMA')}"></p>

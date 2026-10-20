@@ -66,6 +66,9 @@ describe('RF0027 - Cartão preferencial', () => {
 
       cy.get('#modalCartao')
         .should('be.visible')
+        // Espera a animacao do Bootstrap terminar: digitar durante o
+        // fade perde caracteres de forma intermitente.
+        .and('have.css', 'opacity', '1')
         .within(() => {
           cy.get('[name="numero"]')
             .type('5555555555554444', { log: false });

@@ -131,6 +131,10 @@ Para recomeçar do zero, apague o `e2e.db` antes de subir a aplicação.
 | `rn0034-multiplos-cartoes.cy.js` | RN0034 — Mínimo por cartão |
 | `rn0035-cupom-com-cartao.cy.js` | RN0035 — Exceção ao mínimo |
 | `rn0036-cupom-excedente.cy.js` | RN0036 — Cupom de troca do excedente |
+| `rn0038-compra-aprovada.cy.js` | RN0037, RN0038, RF0053 — Aprovação e baixa de estoque |
+| `rn0028-compra-reprovada.cy.js` | RN0028, RN0038 — Reprovação, estoque preservado |
+| `rf0039-despachar-pedido.cy.js` | RF0039, RN0039 — Despachar: APROVADA → EM TRANSPORTE |
+| `rf0040-confirmar-entrega.cy.js` | RF0040, RN0040 — Entregar: EM TRANSPORTE → ENTREGUE |
 
 ## Estrutura
 

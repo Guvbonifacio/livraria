@@ -16,11 +16,16 @@ Plano de Testes (18/10).
 **Não apresentado:** os testes do fluxo de vendas (19/10) — ficou para a última hora.
 
 **Implementado e testado:** CRUD de cliente completo, carrinho, endereço, frete,
-pagamento com múltiplos cartões e cupons, finalização do pedido com status
-`EM PROCESSAMENTO`. 17 testes Cypress, sendo 16 aprovados e 1 reprovado (DF001).
+pagamento com múltiplos cartões e cupons, finalização do pedido, validação do
+pagamento com operadora simulada, `APROVADA`/`REPROVADA` e baixa de estoque.
+21 arquivos Cypress (20 aprovados, 1 reprovado: DF001) e 24 testes JUnit.
 
-**Área administrativa:** ainda é protótipo — `AdminController` tem 12 chamadas a
-`DadosFalsos`.
+**Área administrativa:** `AdminController` já usa o repositório real. Sobraram
+7 chamadas a `DadosFalsos`, em `PedidoController` e `CupomController` — telas do
+cliente, que são a etapa 6.
+
+**Nota sobre a RN0044:** o DRS também exige notificar o usuário **5 minutos antes**
+de o bloqueio expirar. Isso não estava no checklist e entra na etapa 4.
 
 ---
 
@@ -45,17 +50,43 @@ Nada da entrega de vendas avança sem isto.
 
 ## 2. Validação do pagamento e estoque (≈6 h)
 
-- [ ] `RN0037` — validar validade e veracidade dos cupons
-- [ ] `RN0037` — simular o aceite da operadora de cartão (autorizado pelo professor)
-- [ ] `RN0038` — definir status `APROVADA` ou `REPROVADA`
-- [ ] `RF0053` + `RN0028` — baixa de estoque **somente** para compras aprovadas
-- [ ] `RN0028` — desbloquear itens das compras não aprovadas, mantendo-os em estoque
-- [ ] `RN0032` — revalidar estoque entre o carrinho e a finalização, notificando o cliente
+- [x] `RN0037` — validar validade e veracidade dos cupons
+- [x] `RN0037` — simular o aceite da operadora de cartão (autorizado pelo professor)
+- [x] `RN0038` — definir status `APROVADA` ou `REPROVADA`
+- [x] `RF0053` + `RN0028` — baixa de estoque **somente** para compras aprovadas
+- [x] `RN0028` — desbloquear itens das compras não aprovadas, mantendo-os em estoque
+- [x] Cenários 1 e 5 em Cypress (`rn0038-compra-aprovada`, `rn0028-compra-reprovada`)
+- [ ] **`RN0032` — falta implementar.** Ver abaixo.
 
-## 3. Fluxo do administrador (≈4 h)
+### RN0032 — o que o DRS exige, literalmente
 
-- [ ] `RF0039` + `RN0039` — despachar: `APROVADA` → `EM TRANSPORTE`
-- [ ] `RF0040` + `RN0040` — confirmar entrega: `EM TRANSPORTE` → `ENTREGUE`
+> *Caso o estoque seja alterado entre a adição ao carrinho e a finalização da compra,
+> o sistema deve:*
+> - *Exibir uma notificação ao usuário informando a mudança na disponibilidade do item.*
+> - *Atualizar automaticamente a quantidade disponível no carrinho.*
+> - *Remover itens automaticamente caso fiquem indisponíveis, com uma mensagem de alerta.*
+
+São **três ações**, e nenhuma é "recusar a compra".
+
+⚠️ **O momento é outro.** A RN0032 vale "entre a adição ao carrinho e a finalização" —
+ou seja, no checkout do **cliente**, não na aprovação do administrador. Hoje a
+revalidação está em `EstoquePedidoService.baixar()`, que roda no processamento: lança
+exceção e o pedido fica preso em `EM PROCESSAMENTO`.
+
+Então são dois ajustes distintos:
+
+- [ ] **No checkout** (`FinalizacaoCheckoutService` / `CarrinhoService`): aplicar as três
+      ações da RN0032 antes de gravar o pedido, gravando a notificação na tabela
+      `notificacao` e exibindo o alerta na tela
+- [ ] **No processamento** (`EstoquePedidoService.baixar`): o DRS **não** diz o que fazer
+      se o estoque faltar nesse momento. Registrar como inconsistência no CDU02 e
+      manter o comportamento atual (exceção, pedido intacto), declarando a escolha
+
+## 3. Fluxo do administrador (≈4 h) — concluída
+
+- [x] `RF0039` + `RN0039` — despachar: `APROVADA` → `EM TRANSPORTE`
+- [x] `RF0040` + `RN0040` — confirmar entrega: `EM TRANSPORTE` → `ENTREGUE`
+- [x] Cenário 7 em Cypress (`rf0039-despachar-pedido`, `rf0040-confirmar-entrega`)
 
 ## 4. Bloqueio e expiração do carrinho (≈8 h) — **o mais difícil**
 
@@ -90,13 +121,13 @@ Nada da entrega de vendas avança sem isto.
 
 | # | Cenário | Situação |
 |---|---|---|
-| 1 | Compra aprovada com um cartão | depende da etapa 2 |
+| 1 | Compra aprovada com um cartão | ✅ pronto (`rn0038-compra-aprovada`) |
 | 2 | Dois cartões, tentativa abaixo de R$ 10,00 bloqueada | ✅ pronto (`rn0034`) |
 | 3 | Cupom **promocional** + cartão abaixo de R$ 10,00 | ⚠️ o teste usa cupom de troca; trocar na preparação (15 min) |
 | 4 | Cupons de troca acima do valor, com cupom da diferença | ✅ pronto (`rn0036`) |
-| 5 | Compra `REPROVADA`, itens desbloqueados, sem baixa | depende da etapa 2 |
+| 5 | Compra `REPROVADA`, itens desbloqueados, sem baixa | ✅ pronto (`rn0028-compra-reprovada`) |
 | 6 | Expiração do bloqueio no carrinho | depende da etapa 4 |
-| 7 | Admin: `APROVADA` → `EM TRANSPORTE` → `ENTREGUE` | depende das etapas 1, 2 e 3 |
+| 7 | Admin: `APROVADA` → `EM TRANSPORTE` → `ENTREGUE` | ✅ pronto (`rf0039`, `rf0040`) |
 | 8 | Troca bloqueada em pedido não `ENTREGUE` | depende da etapa 5 |
 | 9 | Troca de um item e de uma compra inteira | depende da etapa 5 |
 | 10 | Fluxo completo da troca | depende da etapa 5 |

@@ -634,4 +634,22 @@ private Pedido mapearAdministrativo(
         List.of()
     );
 }
+
+public int transicionarStatus(
+        Long id,
+        String origem,
+        String destino) {
+
+    return jdbc.update(
+        """
+        UPDATE pedido
+        SET status = ?
+        WHERE id = ?
+          AND status = ?
+        """,
+        destino,
+        id,
+        origem
+    );
+}
 }
