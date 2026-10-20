@@ -33,7 +33,7 @@
                         </thead>
 
                         <tbody>
-                            <tr th:each="troca : ${trocas}">
+                            <tr th:each="troca : ${trocas}"th:attr="data-troca-id=${troca.id}"data-cy="linha-troca">
                                 <td th:text="${troca.id}">1</td>
                                 <td th:text="${troca.pedido.id}">1001</td>
                                 <td th:text="${troca.pedido.cliente.nome}">Ana Maria</td>

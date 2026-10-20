@@ -17,6 +17,23 @@
             </a>
         </div>
 
+        <div class="alert alert-success"
+             role="status"
+             th:if="${sucessoAutorizacao != null}"
+             th:text="${sucessoAutorizacao}"
+             data-cy="sucesso-autorizacao">
+        </div>
+
+        <div class="alert alert-danger"
+             role="alert"
+             th:if="${errosAutorizacao != null}">
+            <ul class="mb-0">
+                <li th:each="erro : ${errosAutorizacao}"
+                    th:text="${erro}">
+                </li>
+            </ul>
+        </div>
+
         <!-- INFORMAÇÕES DA SOLICITAÇÃO -->
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-white py-3">
@@ -41,7 +58,8 @@
 
                 <p class="mb-0">
                     <strong>Status:</strong>
-                    <span th:switch="${troca.status}">
+                    <span th:switch="${troca.status}"
+                          data-cy="status-troca">
                         <span th:case="'EM TROCA'" class="badge bg-warning text-dark">EM TROCA</span>
                         <span th:case="'TROCA AUTORIZADA'" class="badge bg-primary">TROCA AUTORIZADA</span>
                         <span th:case="'TROCADO'" class="badge bg-success">TROCADO</span>
@@ -87,10 +105,13 @@
 
             <div class="card-body">
                 <form th:action="@{/admin/trocas/{id}/analisar(id=${troca.id})}" method="POST" class="d-flex gap-2">
-                    <button type="submit" name="decisao" value="ACEITAR" class="btn btn-success">
+                    <button type="submit"
+                            name="decisao"
+                            value="ACEITAR"
+                            class="btn btn-success"
+                            data-cy="autorizar-troca">
                         Autorizar Troca
                     </button>
-
                 </form>
             </div>
         </div>
@@ -123,7 +144,9 @@
                         </label>
                     </div>
 
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit"
+                            class="btn btn-success"
+                            disabled>
                         Confirmar Recebimento e Concluir Troca
                     </button>
                 </form>

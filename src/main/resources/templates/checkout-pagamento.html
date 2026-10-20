@@ -128,22 +128,27 @@
 
               <div class="d-flex justify-content-between mb-3">
                 <strong>Total a Pagar:</strong>
-                <strong class="text-success" th:text="'R$ ' + ${#numbers.formatDecimal(totalGeral, 1, 'POINT', 2, 'COMMA')}"></strong>
+                <strong class="text-success">
+                  <span data-cy="total-checkout"
+                        th:attr="data-valor=${totalGeral}"
+                        th:text="|R$ ${#numbers.formatDecimal(totalGeral, 1, 'POINT', 2, 'COMMA')}|">
+                  </span>
+                </strong>
               </div>
 
-             <button type="submit"
-                    name="acao"
-                    value="validar"
-                    class="btn btn-outline-primary w-100 mb-2">
-                 Validar distribuição
-             </button>
+              <button type="submit"
+                      name="acao"
+                      value="validar"
+                      class="btn btn-outline-primary w-100 mb-2">
+                Validar distribuição
+              </button>
 
-                <button type="submit"
-                   name="acao"
-                   value="finalizar"
-                   class="btn btn-success w-100">
-                   Finalizar pedido
-                </button>
+              <button type="submit"
+                      name="acao"
+                      value="finalizar"
+                      class="btn btn-success w-100">
+                Finalizar pedido
+              </button>
             </div>
           </div>
         </div>

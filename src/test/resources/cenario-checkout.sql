@@ -1,3 +1,7 @@
+DELETE FROM item_troca;
+DELETE FROM troca;
+DELETE FROM notificacao;
+DELETE FROM reserva_estoque;
 DELETE FROM log_transacao;
 DELETE FROM pagamento;
 DELETE FROM item_pedido;
@@ -6,10 +10,6 @@ DELETE FROM pedido;
 DELETE FROM cartao_credito;
 DELETE FROM endereco;
 DELETE FROM cliente;
-DELETE FROM item_troca;
-DELETE FROM troca;
-DELETE FROM notificacao;
-DELETE FROM reserva_estoque;
 
 INSERT INTO cliente (
     id, nome, genero, data_nascimento, cpf,

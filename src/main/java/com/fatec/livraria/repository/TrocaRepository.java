@@ -105,4 +105,115 @@ public class TrocaRepository {
             ? null
             : LocalDateTime.parse(valor);
     }
+
+    public List<Troca> listarDoPedido(Long pedidoId) {
+    return jdbc.query(
+        """
+        SELECT *
+        FROM troca
+        WHERE pedido_id = ?
+        ORDER BY id DESC
+        """,
+        this::mapear,
+        pedidoId
+    );
+}
+
+public List<Long> listarItensSolicitados(Long pedidoId) {
+    return jdbc.query(
+        """
+        SELECT it.item_pedido_id
+        FROM item_troca it
+        JOIN troca t ON t.id = it.troca_id
+        WHERE t.pedido_id = ?
+        """,
+        (rs, linha) -> rs.getLong("item_pedido_id"),
+        pedidoId
+    );
+}
+
+public Long salvar(Long pedidoId, String motivo) {
+    jdbc.update(
+        """
+        INSERT INTO troca (
+            pedido_id,
+            status,
+            motivo,
+            data_solicitacao
+        )
+        VALUES (?, 'EM TROCA', ?, ?)
+        """,
+        pedidoId,
+        motivo,
+        LocalDateTime.now().toString()
+    );
+
+    return jdbc.queryForObject(
+        "SELECT last_insert_rowid()",
+        Long.class
+    );
+}
+
+public Long salvarItem(
+        Long trocaId,
+        Long itemPedidoId,
+        int quantidade) {
+
+    jdbc.update(
+        """
+        INSERT INTO item_troca (
+            troca_id,
+            item_pedido_id,
+            quantidade
+        )
+        VALUES (?, ?, ?)
+        """,
+        trocaId,
+        itemPedidoId,
+        quantidade
+    );
+
+    return jdbc.queryForObject(
+        "SELECT last_insert_rowid()",
+        Long.class
+    );
+}
+
+public record ItemSolicitado(
+    Long itemPedidoId,
+    int quantidade
+) {}
+
+public List<ItemSolicitado> listarItensDaTroca(Long trocaId) {
+    return jdbc.query(
+        """
+        SELECT item_pedido_id, quantidade
+        FROM item_troca
+        WHERE troca_id = ?
+        ORDER BY id
+        """,
+        (rs, linha) -> new ItemSolicitado(
+            rs.getLong("item_pedido_id"),
+            rs.getInt("quantidade")
+        ),
+        trocaId
+    );
+}
+
+public int autorizar(
+        Long id,
+        LocalDateTime dataAutorizacao) {
+
+    return jdbc.update(
+        """
+        UPDATE troca
+        SET status = 'TROCA AUTORIZADA',
+            data_autorizacao = ?
+        WHERE id = ?
+          AND status = 'EM TROCA'
+        """,
+        dataAutorizacao.toString(),
+        id
+    );
+}
 }

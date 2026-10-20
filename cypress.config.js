@@ -40,6 +40,109 @@ module.exports = defineConfig({
       }
 
       on('task', {
+        'trocas:consultar'(id) {
+          const db = banco();
+
+          try {
+            const pedidoId = Number(id);
+
+            if (!Number.isSafeInteger(pedidoId) || pedidoId <= 0) {
+              throw new Error('Identificador de pedido inválido.');
+            }
+
+            const pedido = db.prepare(`
+              SELECT id, cliente_id, status
+              FROM pedido
+              WHERE id = ? AND cliente_id = 1
+            `).get(pedidoId);
+
+            if (!pedido) {
+              throw new Error('Pedido do cenário não encontrado.');
+            }
+
+            return {
+              pedido,
+
+              itens: db.prepare(`
+                SELECT id, livro_id, titulo, quantidade
+                FROM item_pedido
+                WHERE pedido_id = ?
+                ORDER BY id
+              `).all(pedidoId),
+
+              trocas: db.prepare(`
+                SELECT id, pedido_id, status, data_autorizacao
+                FROM troca
+                WHERE pedido_id = ?
+                ORDER BY id
+              `).all(pedidoId),
+
+              itensTroca: db.prepare(`
+                SELECT it.*
+                FROM item_troca it
+                JOIN troca t ON t.id = it.troca_id
+                WHERE t.pedido_id = ?
+                ORDER BY it.id
+              `).all(pedidoId),
+
+              notificacoes: db.prepare(`
+                SELECT id, cliente_id, mensagem, lida
+                FROM notificacao
+                WHERE cliente_id = ?
+                ORDER BY id
+              `).all(pedido.cliente_id),
+
+              logsTroca: db.prepare(`
+                SELECT operacao, registro_id, dados
+                FROM log_transacao
+                WHERE tabela = 'troca'
+                  AND registro_id IN (
+                    SELECT id FROM troca WHERE pedido_id = ?
+                  )
+                ORDER BY id
+              `).all(pedidoId),
+
+              logsItensTroca: db.prepare(`
+                SELECT operacao, registro_id, dados
+                FROM log_transacao
+                WHERE tabela = 'item_troca'
+                  AND registro_id IN (
+                    SELECT it.id
+                    FROM item_troca it
+                    JOIN troca t ON t.id = it.troca_id
+                    WHERE t.pedido_id = ?
+                  )
+                ORDER BY id
+              `).all(pedidoId),
+
+              logsNotificacao: db.prepare(`
+                SELECT operacao, registro_id, dados
+                FROM log_transacao
+                WHERE tabela = 'notificacao'
+                  AND registro_id IN (
+                    SELECT id FROM notificacao WHERE cliente_id = ?
+                  )
+                ORDER BY id
+              `).all(pedido.cliente_id),
+
+              estoque: db.prepare(`
+                SELECT livro_id, SUM(quantidade) AS quantidade
+                FROM item_estoque
+                GROUP BY livro_id
+                ORDER BY livro_id
+              `).all(),
+
+              cupons: db.prepare(`
+                SELECT id, valor_centavos, ativo
+                FROM cupom
+                ORDER BY id
+              `).all()
+            };
+          } finally {
+            db.close();
+          }
+        },
+
         'vendas:preparar'(tipo) {
           const tipos = [
             'padrao',

@@ -652,4 +652,31 @@ public int transicionarStatus(
         origem
     );
 }
+public List<Pedido> listarDoCliente(Long clienteId) {
+    return jdbc.query(
+        CONSULTA_ADMIN
+            + " AND p.cliente_id = ?"
+            + " ORDER BY p.data_pedido DESC, p.id DESC",
+        this::mapearAdministrativo,
+        clienteId
+    );
+}
+
+public Pedido buscarDoCliente(Long id, Long clienteId) {
+    var encontrados = jdbc.query(
+        """
+        SELECT id
+        FROM pedido
+        WHERE id = ?
+          AND cliente_id = ?
+        """,
+        (rs, linha) -> rs.getLong("id"),
+        id,
+        clienteId
+    );
+
+    return encontrados.isEmpty()
+        ? null
+        : buscarAdministrativo(encontrados.get(0));
+}
 }

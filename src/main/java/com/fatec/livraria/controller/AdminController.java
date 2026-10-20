@@ -9,6 +9,7 @@ import com.fatec.livraria.service.ProcessamentoPedidoService;
 import org.springframework.dao.DataAccessException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.fatec.livraria.service.EntregaPedidoService;
+import com.fatec.livraria.service.AutorizacaoTrocaService;
 
 import java.util.List;
 
@@ -31,20 +32,23 @@ public class AdminController {
     private final AdministracaoService administracao;
     private final ProcessamentoPedidoService processamento;
     private final EntregaPedidoService entrega;
+    private final AutorizacaoTrocaService autorizacaoTroca;
 
     public AdminController(
         ClienteService clienteService,
         LogRepository logRepository,
         AdministracaoService administracao,
         ProcessamentoPedidoService processamento,
-        EntregaPedidoService entrega) {
+        EntregaPedidoService entrega,
+        AutorizacaoTrocaService autorizacaoTroca) {
 
     this.clienteService = clienteService;
     this.logRepository = logRepository;
     this.administracao = administracao;
     this.processamento = processamento;
     this.entrega = entrega;
-    }
+    this.autorizacaoTroca = autorizacaoTroca;
+}
 
     // Painel principal
     @GetMapping
@@ -219,18 +223,39 @@ public String alterarStatusPedido(
         return "admin-troca-detalhe";
     }
 
-    // A autorização será implementada na próxima etapa.
-    // O DRS não define um estado de troca negada.
-    @PostMapping("/trocas/{id}/analisar")
-    public String analisarTroca(
-            @PathVariable Long id,
-            @RequestParam String decisao) {
+@PostMapping("/trocas/{id}/analisar")
+public String analisarTroca(
+        @PathVariable Long id,
+        @RequestParam String decisao,
+        RedirectAttributes redirect) {
 
-        throw new ResponseStatusException(
-            HttpStatus.NOT_IMPLEMENTED,
-            "Operação prevista para a próxima etapa."
+    try {
+        autorizacaoTroca.autorizar(id, decisao);
+
+        redirect.addFlashAttribute(
+            "sucessoAutorizacao",
+            "Troca autorizada. A notificação "
+            + "foi disponibilizada ao cliente."
+        );
+
+    } catch (ValidacaoException e) {
+        redirect.addFlashAttribute(
+            "errosAutorizacao",
+            e.getErros()
+        );
+
+    } catch (DataAccessException e) {
+        redirect.addFlashAttribute(
+            "errosAutorizacao",
+            List.of(
+                "Não foi possível autorizar a troca. "
+                + "Nenhuma alteração foi confirmada."
+            )
         );
     }
+
+    return "redirect:/admin/trocas/" + id;
+}
 
     // Recebimento e decisão sobre retorno ao estoque
     @PostMapping("/trocas/{id}/receber")

@@ -11,6 +11,27 @@
     <main class="container my-4">
         <h1 class="mb-4">Meus Pedidos</h1>
 
+        <section class="mb-4"
+         th:if="${notificacoes != null
+                  and !#lists.isEmpty(notificacoes)}">
+
+    <h2 class="h5">Notificações</h2>
+
+    <div class="alert alert-info mb-2"
+         th:each="notificacao : ${notificacoes}"
+         data-cy="notificacao">
+
+        <small class="d-block text-muted"
+               th:text="${#temporals.format(
+                   notificacao.dataHora,
+                   'dd/MM/yyyy HH:mm'
+               )}">
+        </small>
+
+        <span th:text="${notificacao.mensagem}"></span>
+    </div>
+</section>
+
         <table class="table table-striped table-hover">
             <thead>
                 <tr>
