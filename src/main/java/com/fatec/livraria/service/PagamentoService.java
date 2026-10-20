@@ -12,6 +12,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class PagamentoService {
 
+    // RN0034 - mensagem unica: a regra e uma so, a redacao tambem.
+    private static final String MINIMO_POR_CARTAO =
+        "O valor mínimo por cartão é R$ 10,00.";
+
     private final ClienteService clientes;
     private final CheckoutService checkout;
     private final UsuarioAtual usuario;
@@ -185,9 +189,7 @@ public class PagamentoService {
                 );
 
                 if (valor.signum() <= 0) {
-                    throw erro(
-                        "O valor mínimo por cartão é R$ 10,00."
-                    );
+                    throw erro(MINIMO_POR_CARTAO);
                 }
 
                 somaCartoes = somaCartoes.add(valor);
@@ -216,9 +218,7 @@ public class PagamentoService {
                     .compareTo(new BigDecimal("10.00")) < 0
                     && !excecao) {
 
-                throw erro(
-                    "O valor mínimo de pagamento por cartão é de R$ 10,00."
-                );
+                throw erro(MINIMO_POR_CARTAO);
             }
         }
 

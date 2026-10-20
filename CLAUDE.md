@@ -62,12 +62,21 @@ fixo — lacuna registrada no CDU02.
 ## Comandos
 
 ```bash
-./mvnw spring-boot:run      # Git Bash   (PowerShell: .\mvnw.cmd spring-boot:run)
-npx cypress open            # com a aplicação rodando
+npm run app        # desenvolvimento: porta 8080, banco livraria.db
+npm run app:test   # ambiente de teste: porta 8081, banco e2e.db
+npm run e2e        # Cypress interativo (com a aplicação de teste no ar)
+npm run e2e:run    # Cypress sem interface
 ```
 
-Banco: `livraria.db` na raiz, recriado por `src/main/resources/schema.sql`. Para
-recomeçar limpo: apagar o arquivo e subir a aplicação.
+**Dois ambientes, nunca misturados.** Desenvolvimento em 8080/`livraria.db`; testes em
+8081/`e2e.db`, que é o padrão do `cypress.config.js`. A task `vendas:preparar` apaga
+todas as tabelas antes de montar o cenário, por isso recusa rodar fora do 8081.
+
+Os testes de cliente (`cypress/e2e/*.cy.js`) preparam o cenário por HTTP e não usam
+task; os de vendas (`cypress/e2e/vendas/`) escrevem direto no SQLite.
+
+Bancos recriados por `src/main/resources/schema.sql`. Ao mudar o schema, apagar **os
+dois** arquivos `.db` — o Spring não altera tabela existente.
 
 ## Documentação
 

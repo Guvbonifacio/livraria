@@ -9,15 +9,16 @@ Livraria Estante do Saber · Gustavo Vinícius Bonifácio · 19/10/2026
 - [ ] Apagar `e2e.db`
 - [ ] Subir a aplicação **no ambiente de testes**:
   ```
-  .\mvnw.cmd spring-boot:run -Dspring-boot.run.arguments="--server.port=8081 --spring.datasource.url=jdbc:sqlite:e2e.db"
+  npm run app:test
   ```
 - [ ] Conferir `Started LivrariaApplication` e abrir <http://localhost:8081>
-- [ ] Abrir o Cypress: `npx cypress open` → E2E → Chrome
+- [ ] Abrir o Cypress: `npm run e2e` → E2E → Chrome
 - [ ] Abrir o DB Browser no `e2e.db`
 - [ ] Abrir o VSCode em `PagamentoService.java` — é o arquivo da arguição
 - [ ] Abrir este roteiro e o Plano de Testes
 
-> ⚠️ Se subir na porta 8080, **todos os testes falham de propósito**. A rotina de
+> ⚠️ A porta 8081 é o padrão do `cypress.config.js` — não passar flag `--config`.
+> Se a aplicação subir na 8080, os testes de vendas falham de propósito: a rotina de
 > preparação recusa qualquer base que não seja a de testes.
 
 ## 2. Sequência da apresentação

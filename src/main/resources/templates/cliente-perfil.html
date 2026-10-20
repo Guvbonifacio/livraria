@@ -94,6 +94,10 @@
             <li class="list-group-item" th:each="end : ${cliente.enderecos}" data-cy="endereco-item" th:attr="data-id=${end.id}">
               <div class="d-flex justify-content-between align-items-start gap-3">
                 <div>
+                  <div class="d-flex align-items-center gap-2">
+                    <strong data-cy="endereco-nome" th:text="${end.nomeCurto}"></strong>
+                    <span class="badge text-bg-secondary" th:text="${end.tipo}"></span>
+                  </div>
                   <div class="fw-semibold" th:text="${end.tipoLogradouro} + ' ' + ${end.logradouro} + ', ' + ${end.numero} + ' - ' + ${end.bairro}"></div>
                   <div class="text-muted small" th:text="${end.cidade} + '/' + ${end.estado} + ' - ' + ${end.pais} + ' - CEP ' + ${end.cep}"></div>
                   <div class="fst-italic text-secondary small" th:if="${!#strings.isEmpty(end.observacoes)}" th:text="${end.observacoes}"></div>

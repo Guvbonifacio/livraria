@@ -7,7 +7,10 @@
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "app": ".\\mvnw.cmd spring-boot:run",
+    "app:test": ".\\mvnw.cmd spring-boot:run -Dspring-boot.run.arguments=\"--server.port=8081 --spring.datasource.url=jdbc:sqlite:e2e.db\"",
+    "e2e": "cypress open",
+    "e2e:run": "cypress run"
   },
   "repository": {
     "type": "git",

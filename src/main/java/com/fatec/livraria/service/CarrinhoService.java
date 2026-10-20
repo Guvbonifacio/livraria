@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.annotation.SessionScope;
@@ -19,13 +20,24 @@ public class CarrinhoService {
 
     private final LivroRepository livroRepository;
 
-    private final Map<Long, ItemCarrinho> itens = new LinkedHashMap<>();
+    // Identifica este carrinho durante toda a sessão.
+    private final String sessaoId = UUID.randomUUID().toString();
+
+    private final Map<Long, ItemCarrinho> itens =
+        new LinkedHashMap<>();
 
     public CarrinhoService(LivroRepository livroRepository) {
         this.livroRepository = livroRepository;
     }
 
-    public synchronized void adicionar(Long livroId, int quantidade) {
+    public String getSessaoId() {
+        return sessaoId;
+    }
+
+    public synchronized void adicionar(
+            Long livroId,
+            int quantidade) {
+
         validarQuantidade(quantidade);
 
         Livro livro = buscarLivroDisponivel(livroId);
@@ -38,7 +50,7 @@ public class CarrinhoService {
 
         validarEstoque(livro, quantidadeFinal);
 
-        // Só modifica o carrinho depois de todas as validações.
+        // Só modifica o carrinho depois das validações.
         itens.put(
             livroId,
             new ItemCarrinho(livro, (int) quantidadeFinal)
@@ -46,7 +58,9 @@ public class CarrinhoService {
     }
 
     public synchronized void alterarQuantidade(
-            Long livroId, int quantidade) {
+            Long livroId,
+            int quantidade) {
+
         validarQuantidade(quantidade);
 
         if (!itens.containsKey(livroId)) {
@@ -74,35 +88,45 @@ public class CarrinhoService {
 
         for (ItemCarrinho item : itens.values()) {
             Livro atual = livroRepository.buscarPorId(
-                item.getLivro().getId()
+                item.getLivro().getId(),
+                sessaoId
             );
 
             if (atual == null) {
                 atual = indisponivel(item.getLivro());
             }
 
-            // Devolve uma cópia, sem expor o item guardado na sessão.
+            // Devolve cópias, preservando os itens da sessão.
             resultado.add(
-                new ItemCarrinho(atual, item.getQuantidade())
+                new ItemCarrinho(
+                    atual,
+                    item.getQuantidade()
+                )
             );
         }
 
         return List.copyOf(resultado);
     }
 
-    public BigDecimal calcularTotal(List<ItemCarrinho> itensExibidos) {
+    public BigDecimal calcularTotal(
+            List<ItemCarrinho> itensExibidos) {
+
         return itensExibidos.stream()
             .map(item -> item.getSubtotalExato())
             .reduce(
                 BigDecimal.ZERO,
-            (acumulado, valor) -> acumulado.add(valor)
+                (acumulado, valor) -> acumulado.add(valor)
             );
+    }
+
+    public synchronized void limpar() {
+        itens.clear();
     }
 
     private Livro buscarLivroDisponivel(Long id) {
         Livro livro = id == null
             ? null
-            : livroRepository.buscarPorId(id);
+            : livroRepository.buscarPorId(id, sessaoId);
 
         if (livro == null) {
             throw erro(
@@ -119,11 +143,16 @@ public class CarrinhoService {
 
     private void validarQuantidade(int quantidade) {
         if (quantidade <= 0) {
-            throw erro("A quantidade deve ser maior que zero.");
+            throw erro(
+                "A quantidade deve ser maior que zero."
+            );
         }
     }
 
-    private void validarEstoque(Livro livro, long quantidade) {
+    private void validarEstoque(
+            Livro livro,
+            long quantidade) {
+
         if (quantidade > livro.getEstoque()) {
             throw erro(
                 "Quantidade solicitada acima do estoque disponível. "
@@ -134,8 +163,8 @@ public class CarrinhoService {
         }
     }
 
-    // Se o livro desaparecer ou for inativado, mantém o item
-    // visível no carrinho para que o usuário possa removê-lo.
+    // Mantém o item visível para remoção caso o livro
+    // seja excluído ou inativado.
     private Livro indisponivel(Livro livro) {
         return new Livro(
             livro.getId(),
@@ -156,10 +185,8 @@ public class CarrinhoService {
     }
 
     private ValidacaoException erro(String mensagem) {
-        return new ValidacaoException(List.of(mensagem));
+        return new ValidacaoException(
+            List.of(mensagem)
+        );
     }
-
-    public synchronized void limpar() {
-    itens.clear();
-}
 }

@@ -1,14 +1,26 @@
 package com.fatec.livraria.service;
 
-import com.fatec.livraria.model.*;
-import com.fatec.livraria.repository.*;
+import com.fatec.livraria.model.Endereco;
+import com.fatec.livraria.model.FormularioPagamento;
+import com.fatec.livraria.model.ItemCarrinho;
+import com.fatec.livraria.model.LogTransacao;
+import com.fatec.livraria.repository.LivroRepository;
+import com.fatec.livraria.repository.LogRepository;
+import com.fatec.livraria.repository.PedidoRepository;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import tools.jackson.databind.ObjectMapper;
 
 @Service
@@ -47,11 +59,29 @@ public class PedidoService {
         this.validadeDias = validadeDias;
     }
 
+    // Mantém compatibilidade com chamadas anteriores e testes.
+    // Sem identidade, a consulta desconta todas as reservas ativas.
     @Transactional
     public Long finalizar(
             List<ItemCarrinho> solicitados,
             Endereco endereco,
             FormularioPagamento formulario) {
+
+        return finalizar(
+            solicitados,
+            endereco,
+            formulario,
+            null
+        );
+    }
+
+    // O checkout utiliza esta versão para reconhecer suas reservas.
+    @Transactional
+    public Long finalizar(
+            List<ItemCarrinho> solicitados,
+            Endereco endereco,
+            FormularioPagamento formulario,
+            String sessaoId) {
 
         Long clienteId = usuario.getClienteId();
 
@@ -67,6 +97,7 @@ public class PedidoService {
 
         var itens = new ArrayList<ItemCarrinho>();
         var ids = new HashSet<Long>();
+
         BigDecimal subtotal = BigDecimal.ZERO;
 
         for (var item : solicitados) {
@@ -74,15 +105,20 @@ public class PedidoService {
                     || item.getLivro() == null
                     || item.getQuantidade() <= 0
                     || !ids.add(item.getLivro().getId())) {
+
                 throw erro("Item do carrinho inválido.");
             }
 
+            // Reconsulta preço e disponibilidade.
+            // A reserva do próprio carrinho não é descontada.
             var livro = livros.buscarPorId(
-                item.getLivro().getId()
+                item.getLivro().getId(),
+                sessaoId
             );
 
             if (livro == null
                     || item.getQuantidade() > livro.getEstoque()) {
+
                 throw erro(
                     "Livro indisponível ou quantidade "
                     + "acima do estoque."
@@ -95,16 +131,28 @@ public class PedidoService {
             );
 
             itens.add(atual);
-            subtotal = subtotal.add(atual.getSubtotalExato());
+
+            subtotal = subtotal.add(
+                atual.getSubtotalExato()
+            );
         }
 
-        BigDecimal valorFrete = frete.calcular(itens, endereco);
+        BigDecimal valorFrete = frete.calcular(
+            itens,
+            endereco
+        );
+
         BigDecimal total = subtotal.add(valorFrete);
 
-        var plano = pagamentos.preparar(formulario, total);
+        // Valida novamente dentro da transação.
+        var plano = pagamentos.preparar(
+            formulario,
+            total
+        );
 
         if (plano.excedente().signum() > 0
                 && validadeDias <= 0) {
+
             throw erro(
                 "Configure a validade do cupom de troca "
                 + "antes de emitir o excedente."
@@ -118,10 +166,15 @@ public class PedidoService {
             centavos(valorFrete)
         );
 
-        log("INSERT", "pedido", pedidoId, Map.of(
-            "status", "EM PROCESSAMENTO",
-            "totalCentavos", centavos(total)
-        ));
+        log(
+            "INSERT",
+            "pedido",
+            pedidoId,
+            Map.of(
+                "status", "EM PROCESSAMENTO",
+                "totalCentavos", centavos(total)
+            )
+        );
 
         for (var item : itens) {
             Long itemId = pedidos.salvarItem(
@@ -129,16 +182,23 @@ public class PedidoService {
                 item.getLivro().getId(),
                 item.getLivro().getTitulo(),
                 item.getQuantidade(),
-                centavos(BigDecimal.valueOf(
-                    item.getLivro().getPreco()
-                ))
+                centavos(
+                    BigDecimal.valueOf(
+                        item.getLivro().getPreco()
+                    )
+                )
             );
 
-            log("INSERT", "item_pedido", itemId, Map.of(
-                "pedidoId", pedidoId,
-                "livroId", item.getLivro().getId(),
-                "quantidade", item.getQuantidade()
-            ));
+            log(
+                "INSERT",
+                "item_pedido",
+                itemId,
+                Map.of(
+                    "pedidoId", pedidoId,
+                    "livroId", item.getLivro().getId(),
+                    "quantidade", item.getQuantidade()
+                )
+            );
         }
 
         for (var parcela : plano.parcelas()) {
@@ -156,10 +216,15 @@ public class PedidoService {
                     );
                 }
 
-                log("UPDATE", "cupom", parcela.cupomId(), Map.of(
-                    "ativo", false,
-                    "pedidoId", pedidoId
-                ));
+                log(
+                    "UPDATE",
+                    "cupom",
+                    parcela.cupomId(),
+                    Map.of(
+                        "ativo", false,
+                        "pedidoId", pedidoId
+                    )
+                );
             }
 
             // Promoções respeitam ativo e validade.
@@ -169,12 +234,17 @@ public class PedidoService {
                 parcela
             );
 
-            log("INSERT", "pagamento", pagamentoId, Map.of(
-                "pedidoId", pedidoId,
-                "forma", parcela.forma(),
-                "valorCentavos", centavos(parcela.valor()),
-                "status", "PENDENTE"
-            ));
+            log(
+                "INSERT",
+                "pagamento",
+                pagamentoId,
+                Map.of(
+                    "pedidoId", pedidoId,
+                    "forma", parcela.forma(),
+                    "valorCentavos", centavos(parcela.valor()),
+                    "status", "PENDENTE"
+                )
+            );
         }
 
         if (plano.excedente().signum() > 0) {
@@ -186,17 +256,24 @@ public class PedidoService {
                 LocalDate.now().plusDays(validadeDias)
             );
 
-            log("INSERT", "cupom", cupomId, Map.of(
-                "pedidoId", pedidoId,
-                "tipo", "TROCA",
-                "valorCentavos", centavos(plano.excedente())
-            ));
+            log(
+                "INSERT",
+                "cupom",
+                cupomId,
+                Map.of(
+                    "pedidoId", pedidoId,
+                    "tipo", "TROCA",
+                    "valorCentavos", centavos(plano.excedente())
+                )
+            );
         }
 
         return pedidoId;
     }
 
-    public PedidoRepository.Confirmacao buscarConfirmacao(Long id) {
+    public PedidoRepository.Confirmacao buscarConfirmacao(
+            Long id) {
+
         return pedidos.buscarConfirmacao(
             id,
             usuario.getClienteId()
@@ -209,15 +286,17 @@ public class PedidoService {
             Long id,
             Map<String, Object> dados) {
 
-        logs.registrar(new LogTransacao(
-            null,
-            LocalDateTime.now(),
-            usuario.getIdentificador(),
-            operacao,
-            tabela,
-            id,
-            json.writeValueAsString(dados)
-        ));
+        logs.registrar(
+            new LogTransacao(
+                null,
+                LocalDateTime.now(),
+                usuario.getIdentificador(),
+                operacao,
+                tabela,
+                id,
+                json.writeValueAsString(dados)
+            )
+        );
     }
 
     private long centavos(BigDecimal valor) {
@@ -225,6 +304,8 @@ public class PedidoService {
     }
 
     private ValidacaoException erro(String mensagem) {
-        return new ValidacaoException(List.of(mensagem));
+        return new ValidacaoException(
+            List.of(mensagem)
+        );
     }
 }

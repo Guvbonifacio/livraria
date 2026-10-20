@@ -2,6 +2,7 @@ package com.fatec.livraria.controller;
 
 import com.fatec.livraria.model.Livro;
 import com.fatec.livraria.repository.LivroRepository;
+import com.fatec.livraria.service.CarrinhoService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -15,10 +16,13 @@ import org.springframework.web.server.ResponseStatusException;
 public class CatalogoController {
 
     private final LivroRepository repository;
+    private final CarrinhoService carrinho;
 
-    public CatalogoController(LivroRepository repository) {
+    public CatalogoController(LivroRepository repository, CarrinhoService carrinho) {
         this.repository = repository;
+        this.carrinho = carrinho;
     }
+
 
     @GetMapping("/")
     public String catalogo(
@@ -28,7 +32,7 @@ public class CatalogoController {
 
         model.addAttribute(
             "livros",
-            repository.consultar(busca, categoria)
+            repository.consultar(busca, categoria, carrinho.getSessaoId())
         );
 
         model.addAttribute(
@@ -47,7 +51,7 @@ public class CatalogoController {
             @PathVariable Long id,
             Model model) {
 
-        Livro livro = repository.buscarPorId(id);
+        Livro livro = repository.buscarPorId(id, carrinho.getSessaoId());
 
         if (livro == null) {
             throw new ResponseStatusException(

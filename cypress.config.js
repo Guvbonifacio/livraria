@@ -5,14 +5,16 @@ const path = require('node:path');
 
 module.exports = defineConfig({
   e2e: {
-    baseUrl: 'http://localhost:8080',
+    // Padrao do projeto: ambiente de teste (porta 8081, banco e2e.db).
+    // A porta 8080 com livraria.db e so para navegacao manual.
+    baseUrl: 'http://localhost:8081',
 
     setupNodeEvents(on, config) {
       function banco() {
         if (config.baseUrl !== 'http://localhost:8081') {
           throw new Error(
-            'Os testes de vendas exigem ' +
-            'baseUrl=http://localhost:8081 e banco e2e.db.'
+            'Os testes de vendas exigem baseUrl=http://localhost:8081 ' +
+            'e banco e2e.db. Suba a aplicacao com: npm run app:test'
           );
         }
 
@@ -23,7 +25,7 @@ module.exports = defineConfig({
 
         if (!existsSync(arquivo)) {
           throw new Error(
-            'Inicie primeiro a aplicação com SQLite e2e.db.'
+            'Banco e2e.db ausente. Suba a aplicacao com: npm run app:test'
           );
         }
 
@@ -59,6 +61,10 @@ module.exports = defineConfig({
 
             // Limpeza exclusiva do banco e2e.db.
             for (const tabela of [
+              'item_troca',
+              'troca',
+              'notificacao',
+              'reserva_estoque',
               'log_transacao',
               'pagamento',
               'item_pedido',
@@ -88,6 +94,10 @@ module.exports = defineConfig({
 
             // Remove eventual cliente de demonstração do data.sql.
             for (const tabela of [
+              'item_troca',
+              'troca',
+              'notificacao',
+              'reserva_estoque',
               'log_transacao',
               'pagamento',
               'item_pedido',

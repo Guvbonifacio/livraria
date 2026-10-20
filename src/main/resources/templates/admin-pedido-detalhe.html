@@ -1,206 +1,189 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-
 <head th:replace="~{fragmentos/layout :: cabeca}"></head>
 
 <body class="bg-light d-flex flex-column min-vh-100">
 
-    <nav th:replace="~{fragmentos/layout :: menu}"></nav>
+  <nav th:replace="~{fragmentos/layout :: menu}"></nav>
 
-    <main class="container my-5">
+  <main class="container my-5 flex-grow-1">
 
-        <!-- CABEÇALHO DA PÁGINA -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h1 class="d-inline">
-                    Pedido #<span th:text="${pedido.id}">1001</span>
-                </h1>
-                <span class="badge bg-warning text-dark ms-2">Administração</span>
-            </div>
-            <a th:href="@{/admin/pedidos}" class="btn btn-outline-secondary">
-                Voltar para Pedidos
-            </a>
+    <!-- Cabeçalho da Página -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h1 class="d-inline">
+          Pedido #<span th:text="${pedido.id}">1001</span>
+        </h1>
+        <span class="badge bg-warning text-dark ms-2">Administração</span>
+      </div>
+      <a th:href="@{/admin/pedidos}" class="btn btn-outline-secondary">
+        Voltar para Pedidos
+      </a>
+    </div>
+
+    <!-- Informações Resumidas do Pedido -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-white py-3">
+        <strong class="fs-5">Informações do Pedido</strong>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <strong class="text-muted d-block">Número</strong>
+            <span class="fs-5 fw-bold" th:text="'#' + ${pedido.id}">#1001</span>
+          </div>
+          <div class="col-md-3">
+            <strong class="text-muted d-block">Data</strong>
+            <span class="fs-5" th:text="${#temporals.format(pedido.dataPedido, 'dd/MM/yyyy HH:mm')}">20/08/2026 14:30</span>
+          </div>
+          <div class="col-md-3">
+            <strong class="text-muted d-block">Cliente</strong>
+            <span class="fs-5" th:text="${pedido.cliente.nome}">Ana Maria</span>
+          </div>
+          <div class="col-md-3">
+            <strong class="text-muted d-block">Valor Total</strong>
+            <span class="fs-5 fw-bold text-success" th:text="'R$ ' + ${#numbers.formatDecimal(pedido.valorTotal, 1, 'POINT', 2, 'COMMA')}">R$ 171,80</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gerenciamento de Status do Pedido -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-white py-3">
+        <strong class="fs-5">Status do Pedido</strong>
+      </div>
+
+      <div class="card-body">
+        <p class="mb-3">
+          <strong class="me-2">Status atual:</strong>
+          <span th:switch="${pedido.status}">
+            <span th:case="'EM PROCESSAMENTO'" class="badge bg-warning text-dark fs-6">Em processamento</span>
+            <span th:case="'APROVADA'" class="badge bg-info text-dark fs-6">Aprovada</span>
+            <span th:case="'REPROVADA'" class="badge bg-danger fs-6">Reprovada</span>
+            <span th:case="'EM TRANSPORTE'" class="badge bg-primary fs-6">Em transporte</span>
+            <span th:case="'ENTREGUE'" class="badge bg-success fs-6">Entregue</span>
+            <span th:case="*" class="badge bg-dark fs-6" th:text="${pedido.status}">Status</span>
+          </span>
+        </p>
+
+        <!-- Formulário de Transição de Status -->
+        <form th:action="@{/admin/pedidos/{id}/status(id=${pedido.id})}" method="POST" class="d-inline"
+              th:if="${pedido.status == 'EM PROCESSAMENTO' or pedido.status == 'APROVADA' or pedido.status == 'EM TRANSPORTE'}">
+
+          <button th:if="${pedido.status == 'EM PROCESSAMENTO'}" type="submit" name="novoStatus" value="APROVADA" class="btn btn-success">
+            Aprovar pagamento
+          </button>
+
+          <button th:if="${pedido.status == 'EM PROCESSAMENTO'}" type="submit" name="novoStatus" value="REPROVADA" class="btn btn-danger">
+            Reprovar pagamento
+          </button>
+
+          <button th:if="${pedido.status == 'APROVADA'}" type="submit" name="novoStatus" value="EM TRANSPORTE" class="btn btn-primary">
+            Despachar
+          </button>
+
+          <button th:if="${pedido.status == 'EM TRANSPORTE'}" type="submit" name="novoStatus" value="ENTREGUE" class="btn btn-success">
+            Confirmar entrega
+          </button>
+        </form>
+
+        <div th:if="${pedido.status == 'REPROVADA'}" class="alert alert-danger mb-0 p-2">
+          Pagamento reprovado. O pedido não pode ser despachado.
         </div>
 
-        <!-- INFORMAÇÕES RESUMIDAS DO PEDIDO -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white py-3">
-                <strong class="fs-5">Informações do Pedido</strong>
-            </div>
+        <div th:if="${pedido.status == 'ENTREGUE'}" class="alert alert-success mb-0 p-2">
+          Pedido entregue ao cliente. O ciclo deste pedido foi concluído.
+        </div>
+      </div>
+    </div>
 
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <strong class="text-muted d-block">Número</strong>
-                        <span class="fs-5 fw-bold" th:text="'#' + ${pedido.id}">#1001</span>
-                    </div>
+    <!-- Itens Comprados -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-white py-3">
+        <strong class="fs-5">Itens do Pedido</strong>
+      </div>
 
-                    <div class="col-md-3">
-                        <strong class="text-muted d-block">Data</strong>
-                        <span class="fs-5" th:text="${#temporals.format(pedido.dataPedido, 'dd/MM/yyyy HH:mm')}">
-                            20/08/2026 14:30
-                        </span>
-                    </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped align-middle mb-0">
+            <thead class="table-dark">
+              <tr>
+                <th>Livro</th>
+                <th>Quantidade</th>
+                <th>Preço unitário</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
 
-                    <div class="col-md-3">
-                        <strong class="text-muted d-block">Cliente</strong>
-                        <span class="fs-5" th:text="${pedido.cliente.nome}">Ana Maria</span>
-                    </div>
-
-                    <div class="col-md-3">
-                        <strong class="text-muted d-block">Valor Total</strong>
-                        <span class="fs-5 fw-bold text-success" th:text="'R$ ' + ${#numbers.formatDecimal(pedido.valorTotal, 1, 'POINT', 2, 'COMMA')}">
-                            R$ 171,80
-                        </span>
-                    </div>
-                </div>
-            </div>
+            <tbody>
+              <tr th:each="item : ${pedido.itens}">
+                <td th:text="${item.livro.titulo}">O Hobbit</td>
+                <td th:text="${item.quantidade}">2</td>
+                <td th:text="'R$ ' + ${#numbers.formatDecimal(item.livro.preco, 1, 'POINT', 2, 'COMMA')}">R$ 49,90</td>
+                <td th:text="'R$ ' + ${#numbers.formatDecimal(item.subtotal, 1, 'POINT', 2, 'COMMA')}">R$ 99,80</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        <!-- GERENCIAMENTO DE STATUS DO PEDIDO -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white py-3">
-                <strong class="fs-5">Status do Pedido</strong>
-            </div>
-
-            <div class="card-body">
-                <p class="mb-3">
-                    <strong class="me-2">Status atual:</strong>
-                    <span th:switch="${pedido.status}">
-                        <span th:case="'EM PROCESSAMENTO'" class="badge bg-warning text-dark fs-6">Em processamento</span>
-                        <span th:case="'APROVADA'" class="badge bg-info text-dark fs-6">Aprovada</span>
-                        <span th:case="'REPROVADA'" class="badge bg-danger fs-6">Reprovada</span>
-                        <span th:case="'EM TRANSPORTE'" class="badge bg-primary fs-6">Em transporte</span>
-                        <span th:case="'ENTREGUE'" class="badge bg-success fs-6">Entregue</span>
-                        <span th:case="*" class="badge bg-dark fs-6" th:text="${pedido.status}">Status</span>
-                    </span>
-                </p>
-
-                <!-- FORMULÁRIO DE TRANSIÇÃO DE STATUS -->
-                <form th:action="@{/admin/pedidos/{id}/status(id=${pedido.id})}" method="POST" class="d-inline"
-                      th:if="${pedido.status == 'EM PROCESSAMENTO' or pedido.status == 'APROVADA' or pedido.status == 'EM TRANSPORTE'}">
-
-                    <!-- RN0037: Simulação da resposta da operadora -->
-                    <button th:if="${pedido.status == 'EM PROCESSAMENTO'}" type="submit" name="novoStatus" value="APROVADA" class="btn btn-success">
-                        Aprovar pagamento
-                    </button>
-
-                    <button th:if="${pedido.status == 'EM PROCESSAMENTO'}" type="submit" name="novoStatus" value="REPROVADA" class="btn btn-danger">
-                        Reprovar pagamento
-                    </button>
-
-                    <!-- RF0039: Despacho do pedido -->
-                    <button th:if="${pedido.status == 'APROVADA'}" type="submit" name="novoStatus" value="EM TRANSPORTE" class="btn btn-primary">
-                        Despachar
-                    </button>
-
-                    <!-- RF0040: Confirmação da entrega -->
-                    <button th:if="${pedido.status == 'EM TRANSPORTE'}" type="submit" name="novoStatus" value="ENTREGUE" class="btn btn-success">
-                        Confirmar entrega
-                    </button>
-                </form>
-
-                <div th:if="${pedido.status == 'REPROVADA'}" class="alert alert-danger mb-0 p-2">
-                    Pagamento reprovado. O pedido não pode ser despachado.
-                </div>
-
-                <div th:if="${pedido.status == 'ENTREGUE'}" class="alert alert-success mb-0 p-2">
-                    Pedido entregue ao cliente. O ciclo deste pedido foi concluído.
-                </div>
-            </div>
+        <div class="text-end p-3 bg-light border-top">
+          <p class="mb-1">
+            <strong>Frete:</strong>
+            <span th:text="'R$ ' + ${#numbers.formatDecimal(pedido.valorFrete, 1, 'POINT', 2, 'COMMA')}">R$ 10,00</span>
+          </p>
+          <h4 class="m-0 text-success">
+            Total:
+            <span th:text="'R$ ' + ${#numbers.formatDecimal(pedido.valorTotal, 1, 'POINT', 2, 'COMMA')}">R$ 171,80</span>
+          </h4>
         </div>
+      </div>
+    </div>
 
-        <!-- ITENS COMPRADOS -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white py-3">
-                <strong class="fs-5">Itens do Pedido</strong>
-            </div>
+    <!-- Endereço de Entrega -->
+    <div class="card shadow-sm mb-4" th:if="${pedido.enderecoEntrega != null}">
+      <div class="card-header bg-white py-3">
+        <strong class="fs-5">Endereço de Entrega</strong>
+      </div>
+      <div class="card-body">
+        <h5 class="fw-bold" th:text="${pedido.enderecoEntrega.tipoLogradouro} + ' ' + ${pedido.enderecoEntrega.logradouro} + ', ' + ${pedido.enderecoEntrega.numero}"></h5>
+        <p class="mb-1 text-muted" th:text="${pedido.enderecoEntrega.bairro}"></p>
+        <p class="mb-1 text-muted" th:text="${pedido.enderecoEntrega.cidade} + '/' + ${pedido.enderecoEntrega.estado}"></p>
+        <p class="mb-1" th:text="${pedido.enderecoEntrega.pais}"></p>
+        <p class="mb-1" th:if="${!#strings.isEmpty(pedido.enderecoEntrega.observacoes)}" th:text="${pedido.enderecoEntrega.observacoes}"></p>
+        <p class="mb-0">
+          <strong>CEP:</strong>
+          <span th:text="${pedido.enderecoEntrega.cep}"></span>
+        </p>
+      </div>
+    </div>
 
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-striped align-middle mb-0">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Livro</th>
-                                <th>Quantidade</th>
-                                <th>Preço unitário</th>
-                                <th>Subtotal</th>
-                            </tr>
-                        </thead>
+    <!-- Dados de Pagamento -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-white py-3">
+        <strong class="fs-5">Dados de Pagamento</strong>
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-0" th:if="${#lists.isEmpty(pedido.pagamentos)}">
+          Nenhum pagamento registrado.
+        </p>
 
-                        <tbody>
-                            <tr th:each="item : ${pedido.itens}">
-                                <td th:text="${item.livro.titulo}">O Hobbit</td>
-                                <td th:text="${item.quantidade}">2</td>
-                                <td th:text="'R$ ' + ${#numbers.formatDecimal(item.livro.preco, 1, 'POINT', 2, 'COMMA')}">R$ 49,90</td>
-                                <td th:text="'R$ ' + ${#numbers.formatDecimal(item.subtotal, 1, 'POINT', 2, 'COMMA')}">R$ 99,80</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+        <div class="border rounded p-3 mb-2" th:each="pagamento : ${pedido.pagamentos}">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <strong th:text="${pagamento.forma}"></strong>
+            <span class="badge bg-secondary" th:text="${pagamento.status}"></span>
+          </div>
 
-                <div class="text-end p-3 bg-light border-top">
-                    <p class="mb-1">
-                        <strong>Frete:</strong>
-                        <span th:text="'R$ ' + ${#numbers.formatDecimal(pedido.valorFrete, 1, 'POINT', 2, 'COMMA')}">R$ 10,00</span>
-                    </p>
-                    <h4 class="m-0 text-success">
-                        Total:
-                        <span th:text="'R$ ' + ${#numbers.formatDecimal(pedido.valorTotal, 1, 'POINT', 2, 'COMMA')}">R$ 171,80</span>
-                    </h4>
-                </div>
-            </div>
+          <p class="mb-1 fw-bold text-success" th:text="'R$ ' + ${#numbers.formatDecimal(pagamento.valor, 1, 'POINT', 2, 'COMMA')}"></p>
+          <p class="mb-0 text-muted small" th:if="${pagamento.forma == 'CARTAO'}" th:text="${pagamento.bandeira} + ' — ' + ${pagamento.numeroMascarado}"></p>
+          <p class="mb-0 text-muted small" th:if="${pagamento.codigoCupom != null}" th:text="'Cupom: ' + ${pagamento.codigoCupom}"></p>
         </div>
+      </div>
+    </div>
 
-        <!-- ENDEREÇO DE ENTREGA -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white py-3">
-                <strong class="fs-5">Endereço de Entrega</strong>
-            </div>
+  </main>
 
-            <div class="card-body" th:if="${not #lists.isEmpty(pedido.cliente.enderecos)}">
-                <h5 class="fw-bold" th:text="${pedido.cliente.enderecos[0].logradouro} + ', ' + ${pedido.cliente.enderecos[0].numero}">
-                    Rua das Flores, 100
-                </h5>
-                <p class="mb-1 text-muted" th:text="${pedido.cliente.enderecos[0].bairro}">Centro</p>
-                <p class="mb-1 text-muted" th:text="${pedido.cliente.enderecos[0].cidade} + '/' + ${pedido.cliente.enderecos[0].estado}">
-                    Mogi das Cruzes/SP
-                </p>
-                <p class="mb-0">
-                    <strong>CEP:</strong>
-                    <span th:text="${pedido.cliente.enderecos[0].cep}">08700-000</span>
-                </p>
-            </div>
-        </div>
-
-        <!-- DADOS DE PAGAMENTO -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white py-3">
-                <strong class="fs-5">Dados do Pagamento</strong>
-            </div>
-
-            <div class="card-body" th:if="${not #lists.isEmpty(pedido.cliente.cartoes)}">
-                <p class="mb-1">
-                    <strong>Forma:</strong> Cartão de Crédito
-                </p>
-                <p class="mb-1">
-                    <strong>Número do Cartão:</strong>
-                    <span th:text="${pedido.cliente.cartoes[0].numero}">**** **** **** 1234</span>
-                </p>
-                <p class="mb-1">
-                    <strong>Titular:</strong>
-                    <span th:text="${pedido.cliente.cartoes[0].nomeImpresso}">ANA MARIA SILVA</span>
-                </p>
-                <p class="mb-0">
-                    <strong>Bandeira:</strong>
-                    <span th:text="${pedido.cliente.cartoes[0].bandeira}">Mastercard</span>
-                </p>
-            </div>
-        </div>
-
-    </main>
-
-    <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
+  <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
 
 </body>
 </html>

@@ -114,23 +114,26 @@ pagamentos = new PagamentoService(
         );
     }
 
-    @Test
-    void recusaParcelaDeNoveENoventaENoveMesmoComSomaCorreta() {
-        var erro = assertThrows(
-            ValidacaoException.class,
-            () -> pagamentos.validarCartoes(Map.of(
-                primeiro, "9.99",
-                segundo,
-                total()
-                    .subtract(new BigDecimal("9.99"))
-                    .toPlainString()
-            ))
-        );
+@Test
+void recusaParcelaDeNoveENoventaENoveMesmoComSomaCorreta() {
+    var erro = assertThrows(
+        ValidacaoException.class,
+        () -> pagamentos.validarCartoes(Map.of(
+            primeiro, "9.99",
+            segundo,
+            total()
+                .subtract(new BigDecimal("9.99"))
+                .toPlainString()
+        ))
+    );
 
-        assertTrue(erro.getErros().contains(
-            "O valor mínimo por cartão é R$ 10,00."
-        ));
-    }
+    assertTrue(
+        erro.getErros().contains(
+            "O valor m\u00ednimo por cart\u00e3o \u00e9 R$ 10,00."
+        ),
+        () -> "Mensagens recebidas do Service: " + erro.getErros()
+    );
+}
 
     @Test
     void recusaSomaMenorOuMaiorQueTotal() {

@@ -30,50 +30,63 @@ npm install
 
 O `npm install` baixa o Cypress (~200 MB) — leva alguns minutos.
 
-## Executar a aplicação (desenvolvimento)
+## Os dois ambientes
 
-**PowerShell / Prompt do Windows:**
-```powershell
-.\mvnw.cmd spring-boot:run
+O projeto tem dois ambientes, e eles nunca se misturam:
+
+| Ambiente | Porta | Banco | Para quê |
+|---|---|---|---|
+| Desenvolvimento | 8080 | `livraria.db` | navegar na aplicação manualmente |
+| **Teste** | **8081** | **`e2e.db`** | **rodar o Cypress — é o padrão do projeto** |
+
+A separação é obrigatória porque a rotina de preparação dos testes de vendas **apaga
+todas as tabelas** antes de montar o cenário. Se apontasse para `livraria.db`, cada
+execução destruiria os dados de desenvolvimento.
+
+Por isso `cypress.config.js` tem `baseUrl: http://localhost:8081` como padrão, e a
+rotina recusa rodar contra qualquer outro endereço.
+
+## Executar a aplicação
+
+**Desenvolvimento** (porta 8080, `livraria.db`):
+```bash
+npm run app
 ```
 
-**Git Bash / Linux / macOS:**
+**Ambiente de teste** (porta 8081, `e2e.db`):
 ```bash
-./mvnw spring-boot:run
+npm run app:test
 ```
 
 Na primeira execução o Maven baixa as dependências do Spring (alguns minutos).
 A aplicação está no ar quando o terminal mostrar `Started LivrariaApplication`.
 
-Acesse: <http://localhost:8080>
+Os dois scripts chamam o Maven Wrapper — Maven **não** precisa estar instalado. Quem
+preferir o comando completo pode usar `.\mvnw.cmd spring-boot:run` (PowerShell) ou
+`./mvnw spring-boot:run` (Git Bash), acrescentando
+`-Dspring-boot.run.arguments="--server.port=8081 --spring.datasource.url=jdbc:sqlite:e2e.db"`
+para o ambiente de teste.
 
-O banco `livraria.db` é criado automaticamente na primeira execução a partir de
+Cada banco é criado automaticamente na primeira execução a partir de
 `src/main/resources/schema.sql`, e `src/main/resources/data.sql` carrega a massa de
 demonstração (categorias, livros, estoque, bandeiras e cupons promocionais). Para
-recomeçar com o banco vazio, pare a aplicação, apague o `livraria.db` e suba novamente.
+recomeçar com o banco vazio, pare a aplicação, apague o arquivo `.db` e suba novamente.
+
+> Sempre que o `schema.sql` mudar, apague **os dois** bancos. O Spring não altera
+> tabelas que já existem.
 
 ## Executar os testes automatizados (Cypress)
 
-⚠️ **Os testes exigem o ambiente dedicado: porta 8081 e banco `e2e.db`.** Rodando contra
-a porta 8080, os testes de vendas falham de propósito — a rotina de preparação recusa
-qualquer base que não seja a de testes, para não sujar os dados de desenvolvimento.
+**1. Suba a aplicação no ambiente de teste** (em um terminal):
 
-**1. Suba a aplicação no ambiente de testes** (em um terminal):
-
-**PowerShell:**
-```powershell
-.\mvnw.cmd spring-boot:run -Dspring-boot.run.arguments="--server.port=8081 --spring.datasource.url=jdbc:sqlite:e2e.db"
-```
-
-**Git Bash:**
 ```bash
-./mvnw spring-boot:run -Dspring-boot.run.arguments="--server.port=8081 --spring.datasource.url=jdbc:sqlite:e2e.db"
+npm run app:test
 ```
 
 **2. Abra o Cypress** (em outro terminal):
 
 ```bash
-npx cypress open --config baseUrl=http://localhost:8081
+npm run e2e
 ```
 
 Escolha **E2E Testing** → **Chrome** → clique em um arquivo de teste.
@@ -81,10 +94,16 @@ Escolha **E2E Testing** → **Chrome** → clique em um arquivo de teste.
 Para rodar todos de uma vez, sem interface:
 
 ```bash
-npx cypress run --config baseUrl=http://localhost:8081
+npm run e2e:run
 ```
 
+Nenhum dos dois precisa de flag: a `baseUrl` já aponta para o ambiente de teste.
+
 Para recomeçar do zero, apague o `e2e.db` antes de subir a aplicação.
+
+> ⚠️ Se aparecer *"Os testes de vendas exigem baseUrl=http://localhost:8081"*, o Cypress
+> está apontando para outro endereço — provavelmente por uma flag `--config baseUrl=...`
+> na linha de comando. Rode sem ela.
 
 ### Testes de cadastro de cliente — `cypress/e2e/`
 

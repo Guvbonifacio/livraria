@@ -7,15 +7,26 @@ import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import com.fatec.livraria.model.DadosAdministrativos.*;
+import com.fatec.livraria.model.Endereco;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import tools.jackson.databind.ObjectMapper;
 
 @Repository
 public class PedidoRepository {
 
-    private final JdbcTemplate jdbc;
+private final JdbcTemplate jdbc;
+private final ObjectMapper json;
 
-    public PedidoRepository(JdbcTemplate jdbc) {
-        this.jdbc = jdbc;
-    }
+public PedidoRepository(
+        JdbcTemplate jdbc,
+        ObjectMapper json) {
+
+    this.jdbc = jdbc;
+    this.json = json;
+}
 
     public record CupomDisponivel(
         Long id,
@@ -248,4 +259,154 @@ public class PedidoRepository {
     private long centavos(BigDecimal valor) {
         return valor.movePointRight(2).longValueExact();
     }
+
+    private static final String CONSULTA_ADMIN = """
+    SELECT
+        p.*,
+        c.nome AS cliente_nome
+    FROM pedido p
+    JOIN cliente c ON c.id = p.cliente_id
+    WHERE 1 = 1
+    """;
+
+public List<Pedido> listarAdministrativo(
+        String status,
+        LocalDate inicio,
+        LocalDate fim) {
+
+    var sql = new StringBuilder(CONSULTA_ADMIN);
+    var parametros = new ArrayList<Object>();
+
+    if (status != null && !status.isBlank()) {
+        sql.append(" AND p.status = ?");
+        parametros.add(status);
+    }
+
+    if (inicio != null) {
+        sql.append(" AND p.data_pedido >= ?");
+        parametros.add(inicio.atStartOfDay().toString());
+    }
+
+    if (fim != null) {
+        // Inclui todo o último dia solicitado.
+        sql.append(" AND p.data_pedido < ?");
+        parametros.add(
+            fim.plusDays(1).atStartOfDay().toString()
+        );
+    }
+
+    sql.append(" ORDER BY p.data_pedido DESC, p.id DESC");
+
+    return jdbc.query(
+        sql.toString(),
+        this::mapearAdministrativo,
+        parametros.toArray()
+    );
+}
+
+public Pedido buscarAdministrativo(Long id) {
+    var encontrados = jdbc.query(
+        CONSULTA_ADMIN + " AND p.id = ?",
+        this::mapearAdministrativo,
+        id
+    );
+
+    if (encontrados.isEmpty()) {
+        return null;
+    }
+
+    Pedido pedido = encontrados.get(0);
+
+    var itens = jdbc.query("""
+        SELECT
+            id,
+            livro_id,
+            titulo,
+            quantidade,
+            preco_unitario_centavos
+        FROM item_pedido
+        WHERE pedido_id = ?
+        ORDER BY id
+        """,
+        (rs, linha) -> new Item(
+            rs.getLong("id"),
+            new Livro(
+                rs.getLong("livro_id"),
+                rs.getString("titulo"),
+                BigDecimal.valueOf(
+                    rs.getLong("preco_unitario_centavos"), 2
+                )
+            ),
+            rs.getInt("quantidade")
+        ),
+        id
+    );
+
+    var pagamentos = jdbc.query("""
+        SELECT
+            pg.*,
+            c.codigo AS codigo_cupom
+        FROM pagamento pg
+        LEFT JOIN cupom c ON c.id = pg.cupom_id
+        WHERE pg.pedido_id = ?
+        ORDER BY pg.id
+        """,
+        (rs, linha) -> new Pagamento(
+            rs.getLong("id"),
+            rs.getString("forma"),
+            BigDecimal.valueOf(
+                rs.getLong("valor_centavos"), 2
+            ),
+            rs.getString("status"),
+            rs.getString("numero_mascarado"),
+            rs.getString("bandeira"),
+            rs.getString("codigo_cupom")
+        ),
+        id
+    );
+
+    return new Pedido(
+        pedido.id(),
+        pedido.dataPedido(),
+        pedido.status(),
+        pedido.cliente(),
+        pedido.enderecoEntrega(),
+        pedido.valorFrete(),
+        pedido.valorTotal(),
+        itens,
+        pagamentos
+    );
+}
+
+private Pedido mapearAdministrativo(
+        ResultSet rs,
+        int linha) throws SQLException {
+
+    return new Pedido(
+        rs.getLong("id"),
+        LocalDateTime.parse(rs.getString("data_pedido")),
+        rs.getString("status"),
+
+        new Cliente(
+            rs.getLong("cliente_id"),
+            rs.getString("cliente_nome")
+        ),
+
+        json.readValue(
+            rs.getString("endereco_entrega_json"),
+            Endereco.class
+        ),
+
+        BigDecimal.valueOf(
+            rs.getLong("frete_centavos"), 2
+        ),
+
+        BigDecimal.valueOf(
+            rs.getLong("total_centavos"), 2
+        ),
+
+        List.of(),
+        List.of()
+    );
+}
 }

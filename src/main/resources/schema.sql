@@ -280,3 +280,74 @@ ON item_pedido(pedido_id);
 
 CREATE INDEX IF NOT EXISTS ix_pagamento_pedido
 ON pagamento(pedido_id);
+
+CREATE TABLE IF NOT EXISTS troca (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pedido_id INTEGER NOT NULL REFERENCES pedido(id),
+
+    status TEXT NOT NULL DEFAULT 'EM TROCA'
+        CHECK (
+            status IN (
+                'EM TROCA',
+                'TROCA AUTORIZADA',
+                'TROCADO'
+            )
+        ),
+
+    motivo TEXT NOT NULL,
+    data_solicitacao TEXT NOT NULL,
+    data_autorizacao TEXT,
+    data_recebimento TEXT,
+
+    -- NULL: decisão ainda não tomada; 0: não; 1: sim.
+    retorna_estoque INTEGER
+        CHECK (retorna_estoque IN (0, 1)),
+
+    cupom_id INTEGER REFERENCES cupom(id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_troca_pedido
+ON troca(pedido_id);
+
+
+CREATE TABLE IF NOT EXISTS item_troca (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    troca_id INTEGER NOT NULL REFERENCES troca(id),
+    item_pedido_id INTEGER NOT NULL REFERENCES item_pedido(id),
+    quantidade INTEGER NOT NULL CHECK (quantidade > 0),
+
+    UNIQUE (troca_id, item_pedido_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_item_troca_item_pedido
+ON item_troca(item_pedido_id);
+
+
+CREATE TABLE IF NOT EXISTS reserva_estoque (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    livro_id INTEGER NOT NULL REFERENCES livro(id),
+    quantidade INTEGER NOT NULL CHECK (quantidade > 0),
+
+    sessao_id TEXT NOT NULL
+        CHECK (length(trim(sessao_id)) > 0),
+
+    -- Instante ISO UTC, exemplo: 2026-10-26T15:30:00Z.
+    expira_em TEXT NOT NULL,
+
+    UNIQUE (sessao_id, livro_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_reserva_livro_expira
+ON reserva_estoque(livro_id, expira_em);
+
+
+CREATE TABLE IF NOT EXISTS notificacao (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cliente_id INTEGER NOT NULL REFERENCES cliente(id),
+    mensagem TEXT NOT NULL,
+    data_hora TEXT NOT NULL,
+    lida INTEGER NOT NULL DEFAULT 0 CHECK (lida IN (0, 1))
+);
+
+CREATE INDEX IF NOT EXISTS ix_notificacao_cliente
+ON notificacao(cliente_id, lida, data_hora);

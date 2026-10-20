@@ -46,7 +46,7 @@ public class FinalizacaoCheckoutService {
         Long id = pedidos.finalizar(
             itens,
             entrega.getEndereco(),
-            formulario
+            formulario,carrinho.getSessaoId()
         );
 
         // Executa somente após o COMMIT.
