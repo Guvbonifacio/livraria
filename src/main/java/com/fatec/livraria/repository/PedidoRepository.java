@@ -248,6 +248,231 @@ public PedidoRepository(
             : encontrados.get(0);
     }
 
+    public record PagamentoPendente(
+    Long id,
+    String forma,
+    BigDecimal valor,
+    String status,
+    Long cupomId
+) {}
+
+public record PedidoPendente(
+    Long id,
+    Long clienteId,
+    String status,
+    BigDecimal total
+) {}
+
+public PedidoPendente buscarParaProcessar(Long id) {
+    var encontrados = jdbc.query("""
+        SELECT
+            id,
+            cliente_id,
+            status,
+            total_centavos
+        FROM pedido
+        WHERE id = ?
+        """,
+        (rs, linha) -> new PedidoPendente(
+            rs.getLong("id"),
+            rs.getLong("cliente_id"),
+            rs.getString("status"),
+            BigDecimal.valueOf(
+                rs.getLong("total_centavos"), 2
+            )
+        ),
+        id
+    );
+
+    return encontrados.isEmpty()
+        ? null
+        : encontrados.get(0);
+}
+
+public List<PagamentoPendente> listarPagamentosParaProcessar(
+        Long pedidoId) {
+
+    return jdbc.query("""
+        SELECT *
+        FROM pagamento
+        WHERE pedido_id = ?
+        ORDER BY id
+        """,
+        (rs, linha) -> new PagamentoPendente(
+            rs.getLong("id"),
+            rs.getString("forma"),
+            BigDecimal.valueOf(
+                rs.getLong("valor_centavos"), 2
+            ),
+            rs.getString("status"),
+            rs.getObject("cupom_id") == null
+                ? null
+                : rs.getLong("cupom_id")
+        ),
+        pedidoId
+    );
+}
+
+public boolean origemCupomAprovada(Long cupomId) {
+    Integer quantidade = jdbc.queryForObject("""
+        SELECT COUNT(*)
+        FROM cupom c
+        LEFT JOIN pedido p ON p.id = c.pedido_origem_id
+        WHERE c.id = ?
+          AND (
+              c.pedido_origem_id IS NULL
+              OR p.status IN (
+                  'APROVADA',
+                  'EM TRANSPORTE',
+                  'ENTREGUE',
+                  'EM TROCA',
+                  'TROCA AUTORIZADA',
+                  'TROCADO'
+              )
+          )
+        """,
+        Integer.class,
+        cupomId
+    );
+
+    return quantidade != null && quantidade == 1;
+}
+
+public boolean trocaComprometidaEmOutroPedido(
+        Long cupomId,
+        Long pedidoId) {
+
+    Integer quantidade = jdbc.queryForObject("""
+        SELECT COUNT(*)
+        FROM pagamento
+        WHERE cupom_id = ?
+          AND pedido_id <> ?
+          AND status IN ('PENDENTE', 'APROVADO')
+        """,
+        Integer.class,
+        cupomId,
+        pedidoId
+    );
+
+    return quantidade != null && quantidade > 0;
+}
+
+public BigDecimal totalExcedente(Long pedidoId) {
+    Long valor = jdbc.queryForObject("""
+        SELECT COALESCE(SUM(valor_centavos), 0)
+        FROM cupom
+        WHERE pedido_origem_id = ?
+          AND tipo = 'TROCA'
+        """,
+        Long.class,
+        pedidoId
+    );
+
+    return BigDecimal.valueOf(
+        valor == null ? 0 : valor,
+        2
+    );
+}
+    public int atualizarStatusPedido(
+        Long id,
+        String status) {
+
+    return jdbc.update("""
+        UPDATE pedido
+        SET status = ?
+        WHERE id = ?
+          AND status = 'EM PROCESSAMENTO'
+        """,
+        status,
+        id
+    );
+}
+
+public int atualizarStatusPagamento(
+        Long id,
+        String status) {
+
+    return jdbc.update("""
+        UPDATE pagamento
+        SET status = ?
+        WHERE id = ?
+          AND status = 'PENDENTE'
+        """,
+        status,
+        id
+    );
+}
+
+public int restaurarTroca(
+        Long cupomId,
+        Long clienteId,
+        BigDecimal valor,
+        Long pedidoId) {
+
+    return jdbc.update("""
+        UPDATE cupom
+        SET ativo = 1
+        WHERE id = ?
+          AND tipo = 'TROCA'
+          AND cliente_id = ?
+          AND valor_centavos = ?
+          AND ativo = 0
+          AND NOT EXISTS (
+              SELECT 1
+              FROM pagamento
+              WHERE cupom_id = ?
+                AND pedido_id <> ?
+                AND status IN ('PENDENTE', 'APROVADO')
+          )
+        """,
+        cupomId,
+        clienteId,
+        centavos(valor),
+        cupomId,
+        pedidoId
+    );
+}
+
+public List<Long> listarExcedentes(Long pedidoId) {
+    return jdbc.query("""
+        SELECT id
+        FROM cupom
+        WHERE pedido_origem_id = ?
+          AND tipo = 'TROCA'
+        ORDER BY id
+        """,
+        (rs, linha) -> rs.getLong("id"),
+        pedidoId
+    );
+}
+
+public int ativarExcedente(
+        Long id,
+        LocalDate validade) {
+
+    return jdbc.update("""
+        UPDATE cupom
+        SET ativo = 1,
+            validade = ?
+        WHERE id = ?
+          AND ativo = 0
+        """,
+        validade.toString(),
+        id
+    );
+}
+
+public int desativarExcedente(Long id) {
+    return jdbc.update("""
+        UPDATE cupom
+        SET ativo = 0
+        WHERE id = ?
+          AND ativo = 1
+        """,
+        id
+    );
+}
+
     private Long ultimoId() {
         // Usa a conexão vinculada à transação do Service.
         return jdbc.queryForObject(

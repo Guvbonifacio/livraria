@@ -5,6 +5,10 @@ import com.fatec.livraria.repository.LogRepository;
 import com.fatec.livraria.service.AdministracaoService;
 import com.fatec.livraria.service.ClienteService;
 import com.fatec.livraria.service.ValidacaoException;
+import com.fatec.livraria.service.ProcessamentoPedidoService;
+import com.fatec.livraria.service.ValidacaoException;
+import org.springframework.dao.DataAccessException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
@@ -25,15 +29,18 @@ public class AdminController {
     private final ClienteService clienteService;
     private final LogRepository logRepository;
     private final AdministracaoService administracao;
+    private final ProcessamentoPedidoService processamento;
 
     public AdminController(
-            ClienteService clienteService,
-            LogRepository logRepository,
-            AdministracaoService administracao) {
+        ClienteService clienteService,
+        LogRepository logRepository,
+        AdministracaoService administracao,
+        ProcessamentoPedidoService processamento) {
 
-        this.clienteService = clienteService;
-        this.logRepository = logRepository;
-        this.administracao = administracao;
+    this.clienteService = clienteService;
+    this.logRepository = logRepository;
+    this.administracao = administracao;
+    this.processamento = processamento;
     }
 
     // Painel principal
@@ -135,17 +142,39 @@ public class AdminController {
         return "admin-pedido-detalhe";
     }
 
-    // A transição de status será implementada na próxima etapa.
+// Processa o pagamento e atualiza o status do pedido.
     @PostMapping("/pedidos/{id}/status")
-    public String alterarStatusPedido(
-            @PathVariable Long id,
-            @RequestParam String novoStatus) {
+public String alterarStatusPedido(
+        @PathVariable Long id,
+        @RequestParam String novoStatus,
+        RedirectAttributes redirect) {
 
-        throw new ResponseStatusException(
-            HttpStatus.NOT_IMPLEMENTED,
-            "Operação prevista para a próxima etapa."
+    try {
+        String status = processamento.processar(id, novoStatus);
+
+        redirect.addFlashAttribute(
+            "sucessoProcessamento",
+            "Resultado do pagamento: " + status + "."
+        );
+
+    } catch (ValidacaoException e) {
+        redirect.addFlashAttribute(
+            "errosProcessamento",
+            e.getErros()
+        );
+
+    } catch (DataAccessException e) {
+        redirect.addFlashAttribute(
+            "errosProcessamento",
+            List.of(
+                "Não foi possível processar o pedido. "
+                + "Nenhuma alteração foi confirmada."
+            )
         );
     }
+
+    return "redirect:/admin/pedidos/" + id;
+}
 
     // Consulta das solicitações reais de troca
     @GetMapping("/trocas")

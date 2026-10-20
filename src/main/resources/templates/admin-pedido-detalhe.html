@@ -21,6 +21,23 @@
       </a>
     </div>
 
+    <!-- Mensagens de Sucesso / Erro -->
+    <div class="alert alert-success"
+         role="status"
+         th:if="${sucessoProcessamento != null}"
+         th:text="${sucessoProcessamento}">
+    </div>
+
+    <div class="alert alert-danger"
+         role="alert"
+         th:if="${errosProcessamento != null}">
+      <ul class="mb-0">
+        <li th:each="erro : ${errosProcessamento}"
+            th:text="${erro}">
+        </li>
+      </ul>
+    </div>
+
     <!-- Informações Resumidas do Pedido -->
     <div class="card shadow-sm mb-4">
       <div class="card-header bg-white py-3">
@@ -68,22 +85,47 @@
         </p>
 
         <!-- Formulário de Transição de Status -->
-        <form th:action="@{/admin/pedidos/{id}/status(id=${pedido.id})}" method="POST" class="d-inline"
-              th:if="${pedido.status == 'EM PROCESSAMENTO' or pedido.status == 'APROVADA' or pedido.status == 'EM TRANSPORTE'}">
+        <form th:action="@{/admin/pedidos/{id}/status(id=${pedido.id})}"
+              method="POST"
+              class="d-inline"
+              th:if="${pedido.status == 'EM PROCESSAMENTO'
+                     or pedido.status == 'APROVADA'
+                     or pedido.status == 'EM TRANSPORTE'}">
 
-          <button th:if="${pedido.status == 'EM PROCESSAMENTO'}" type="submit" name="novoStatus" value="APROVADA" class="btn btn-success">
-            Aprovar pagamento
+          <!-- A simulação de aceite ainda depende da validação dos cupons. -->
+          <button th:if="${pedido.status == 'EM PROCESSAMENTO'}"
+                  type="submit"
+                  name="novoStatus"
+                  value="APROVADA"
+                  class="btn btn-success">
+            Simular aceite da operadora e validar
           </button>
 
-          <button th:if="${pedido.status == 'EM PROCESSAMENTO'}" type="submit" name="novoStatus" value="REPROVADA" class="btn btn-danger">
-            Reprovar pagamento
+          <!-- Só existe recusa da operadora quando há pagamento por cartão. -->
+          <button th:if="${pedido.status == 'EM PROCESSAMENTO'
+                           and !#lists.isEmpty(
+                               pedido.pagamentos.?[forma == 'CARTAO']
+                           )}"
+                  type="submit"
+                  name="novoStatus"
+                  value="REPROVADA"
+                  class="btn btn-danger">
+            Simular recusa da operadora
           </button>
 
-          <button th:if="${pedido.status == 'APROVADA'}" type="submit" name="novoStatus" value="EM TRANSPORTE" class="btn btn-primary">
+          <!-- Será implementado na etapa de despacho. -->
+          <button th:if="${pedido.status == 'APROVADA'}"
+                  type="button"
+                  class="btn btn-primary"
+                  disabled>
             Despachar
           </button>
 
-          <button th:if="${pedido.status == 'EM TRANSPORTE'}" type="submit" name="novoStatus" value="ENTREGUE" class="btn btn-success">
+          <!-- Será implementado na etapa de entrega. -->
+          <button th:if="${pedido.status == 'EM TRANSPORTE'}"
+                  type="button"
+                  class="btn btn-success"
+                  disabled>
             Confirmar entrega
           </button>
         </form>
