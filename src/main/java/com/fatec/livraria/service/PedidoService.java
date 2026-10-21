@@ -7,6 +7,8 @@ import com.fatec.livraria.model.LogTransacao;
 import com.fatec.livraria.repository.LivroRepository;
 import com.fatec.livraria.repository.LogRepository;
 import com.fatec.livraria.repository.PedidoRepository;
+import com.fatec.livraria.model.CartaoCredito;
+import com.fatec.livraria.model.PlanoPagamento.Parcela;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -159,6 +161,30 @@ public class PedidoService {
             );
         }
 
+        Long novoCartaoId = null;
+
+        if (formulario.isUsarNovoCartao()
+        && formulario.isSalvarCartaoPerfil()) {
+
+        var recebido = formulario.getNovoCartao();
+
+         // adicionarCartao mascara o objeto recebido.
+         // A cópia preserva o formulário se houver rollback.
+         var copia = new CartaoCredito(
+        null,
+        recebido.getNumero(),
+        recebido.getNomeImpresso(),
+        recebido.getBandeira(),
+        recebido.getCodigoSeguranca(),
+        false
+        );
+
+         novoCartaoId = clientes.adicionarCartao(
+        clienteId,
+        copia
+        );
+        }   
+
         Long pedidoId = pedidos.salvarPedido(
             clienteId,
             json.writeValueAsString(endereco),
@@ -202,6 +228,19 @@ public class PedidoService {
         }
 
         for (var parcela : plano.parcelas()) {
+    if ("CARTAO".equals(parcela.forma())
+            && parcela.cartaoId() == null
+            && novoCartaoId != null) {
+
+        parcela = new Parcela(
+            parcela.forma(),
+            parcela.valor(),
+            novoCartaoId,
+            parcela.numeroMascarado(),
+            parcela.bandeira(),
+            parcela.cupomId()
+        );
+    }
             if ("CUPOM_TROCA".equals(parcela.forma())) {
                 int alterados = pedidos.consumirTroca(
                     parcela.cupomId(),

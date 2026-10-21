@@ -205,7 +205,54 @@ public class PagamentoService {
             }
         }
 
-        // RN0035é a excessão que admite um cartão com o saldo inferior a R$ 10
+        if (formulario.isUsarNovoCartao()) {
+            var novo = formulario.getNovoCartao();
+
+            // RN0024 e RN0025, reutilizando a mesma validação do perfil.
+            clientes.validarCartao(novo);
+
+            String texto = formulario.getValorNovoCartao();
+
+            if (texto == null
+                    || !texto.trim().matches(
+                        "[0-9]+(?:[.,][0-9]{1,2})?"
+                    )) {
+
+                throw erro(
+                    "Informe um valor monetário válido para o novo "
+                    + "cartão, com até duas casas decimais."
+                );
+            }
+
+            BigDecimal valor = new BigDecimal(
+                texto.trim().replace(',', '.')
+            );
+
+            if (valor.signum() <= 0) {
+                throw erro(MINIMO_POR_CARTAO);
+            }
+
+            String numero = novo.getNumero()
+                .replaceAll("[ -]", "");
+
+            String mascarado = "**** **** **** "
+                + numero.substring(numero.length() - 4);
+
+            cartoes.add(
+                new Parcela(
+                    "CARTAO",
+                    valor,
+                    null,
+                    mascarado,
+                    novo.getBandeira(),
+                    null
+                )
+            );
+
+            somaCartoes = somaCartoes.add(valor);
+        }
+
+        // RN0035 é a exceção que admite um cartão com o saldo inferior a R$ 10
         // somente depois do uso integral dos cupons selecionados.
         boolean excecao =
             somaCupons.signum() > 0

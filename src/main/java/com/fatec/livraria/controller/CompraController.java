@@ -9,6 +9,7 @@ import com.fatec.livraria.service.ValidacaoException;
 import com.fatec.livraria.model.FormularioPagamento;
 import com.fatec.livraria.service.PagamentoService;
 import com.fatec.livraria.service.FinalizacaoCheckoutService;
+import com.fatec.livraria.repository.BandeiraRepository;
 
 import java.util.List;
 
@@ -30,18 +31,21 @@ public class CompraController {
     private final CheckoutService checkout;
     private final PagamentoService pagamentos;
     private final FinalizacaoCheckoutService finalizacao;
+    private final BandeiraRepository bandeiras;
 
     public CompraController(
         CarrinhoService carrinho,
         CheckoutService checkout,
         PagamentoService pagamentos,
-        FinalizacaoCheckoutService finalizacao) {
+        FinalizacaoCheckoutService finalizacao,
+        BandeiraRepository bandeiras) {
 
     this.carrinho = carrinho;
     this.checkout = checkout;
     this.pagamentos = pagamentos;
     this.finalizacao = finalizacao;
-}
+    this.bandeiras = bandeiras;
+    }
 
     @GetMapping("/checkout/endereco")
     public String checkoutEndereco(
@@ -247,6 +251,7 @@ private void preencherPagamento(
     model.addAttribute("frete", entrega.getFrete());
     model.addAttribute("totalGeral", entrega.getTotal());
     model.addAttribute("cupons", pagamentos.listarCupons());
+    model.addAttribute("bandeiras", bandeiras.listar());
 }
 
     private void preencher(

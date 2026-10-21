@@ -444,7 +444,7 @@ public void alterar(Cliente cliente) {
         if (vazio(e.getPais())) erros.add("País é obrigatório.");
     }
 
-    private void validarCartao(CartaoCredito c) {
+    public void validarCartao(CartaoCredito c) {
         List<String> erros = new ArrayList<>();
         coletarErrosCartao(c, erros);
         rejeitarErros(erros);

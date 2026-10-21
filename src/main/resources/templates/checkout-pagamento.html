@@ -104,6 +104,114 @@
             </div>
           </div>
 
+          <!-- Card de Novo Cartão -->
+          <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+              <h5 class="m-0 fw-bold">Novo cartão</h5>
+            </div>
+
+            <div class="card-body">
+              <div class="form-check mb-3">
+                <input type="checkbox"
+                       class="form-check-input"
+                       th:field="*{usarNovoCartao}"
+                       data-cy="usar-novo-cartao">
+
+                <label class="form-check-label"
+                       for="usarNovoCartao">
+                  Usar um novo cartão nesta compra
+                </label>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-md-8">
+                  <label for="novo-cartao-numero"
+                         class="form-label">
+                    Número do cartão
+                  </label>
+
+                  <input type="text"
+                         class="form-control"
+                         id="novo-cartao-numero"
+                         name="novoCartao.numero"
+                         autocomplete="cc-number"
+                         inputmode="numeric">
+                </div>
+
+                <div class="col-md-4">
+                  <label for="novo-cartao-bandeira"
+                         class="form-label">
+                    Bandeira
+                  </label>
+
+                  <select class="form-select"
+                          id="novo-cartao-bandeira"
+                          th:field="*{novoCartao.bandeira}">
+                    <option value="">Selecione</option>
+                    <option th:each="bandeira : ${bandeiras}"
+                            th:value="${bandeira}"
+                            th:text="${bandeira}">
+                    </option>
+                  </select>
+                </div>
+
+                <div class="col-md-8">
+                  <label for="novo-cartao-nome"
+                         class="form-label">
+                    Nome impresso
+                  </label>
+
+                  <input type="text"
+                         class="form-control"
+                         id="novo-cartao-nome"
+                         th:field="*{novoCartao.nomeImpresso}"
+                         autocomplete="cc-name">
+                </div>
+
+                <div class="col-md-4">
+                  <label for="novo-cartao-cvv"
+                         class="form-label">
+                    Código de segurança
+                  </label>
+
+                  <input type="password"
+                         class="form-control"
+                         id="novo-cartao-cvv"
+                         name="novoCartao.codigoSeguranca"
+                         autocomplete="off"
+                         inputmode="numeric">
+                </div>
+
+                <div class="col-md-6">
+                  <label for="valor-novo-cartao"
+                         class="form-label">
+                    Valor neste cartão (R$)
+                  </label>
+
+                  <input type="number"
+                         class="form-control"
+                         id="valor-novo-cartao"
+                         th:field="*{valorNovoCartao}"
+                         step="0.01"
+                         min="0.01">
+                </div>
+
+                <div class="col-12">
+                  <div class="form-check">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           th:field="*{salvarCartaoPerfil}">
+
+                    <label class="form-check-label"
+                           for="salvarCartaoPerfil">
+                      Incorporar este cartão ao meu perfil
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- Resumo do Pedido -->
