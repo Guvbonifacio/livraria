@@ -49,6 +49,9 @@ class ProcessamentoPedidoTest {
     @Autowired
     JdbcTemplate jdbc;
 
+    @Autowired
+    NotificacaoEstoqueService notificacoesEstoque;
+
     CarrinhoService carrinho;
     CheckoutService checkout;
     FormularioPagamento formulario;
@@ -67,7 +70,7 @@ class ProcessamentoPedidoTest {
             .get(0)
             .getId();
 
-        carrinho = new CarrinhoService(livros);
+        carrinho = new CarrinhoService(livros, notificacoesEstoque);
         carrinho.adicionar(livroId, 1);
 
         checkout = new CheckoutService(

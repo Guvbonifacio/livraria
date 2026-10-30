@@ -40,6 +40,95 @@ module.exports = defineConfig({
       }
 
       on('task', {
+        'vendas:alterarEstoqueRN0032'({ livroId, quantidade }) {
+          if (
+            !Number.isSafeInteger(livroId) ||
+            livroId <= 0 ||
+            !Number.isSafeInteger(quantidade) ||
+            quantidade < 0
+          ) {
+            throw new Error('Livro ou quantidade inválidos.');
+          }
+
+          const db = banco();
+
+          try {
+            db.exec('BEGIN IMMEDIATE');
+
+            const entrada = db.prepare(`
+              SELECT MIN(id) AS id
+              FROM item_estoque
+              WHERE livro_id = ?
+            `).get(livroId);
+
+            if (!entrada?.id) {
+              throw new Error('Livro sem entrada de estoque.');
+            }
+
+            // Define o saldo total sem depender da quantidade de lotes.
+            db.prepare(`
+              UPDATE item_estoque
+              SET quantidade = 0
+              WHERE livro_id = ?
+            `).run(livroId);
+
+            db.prepare(`
+              UPDATE item_estoque
+              SET quantidade = ?
+              WHERE id = ?
+            `).run(quantidade, entrada.id);
+
+            db.exec('COMMIT');
+
+            return null;
+
+          } catch (erro) {
+            try {
+              db.exec('ROLLBACK');
+            } catch {}
+
+            throw erro;
+
+          } finally {
+            db.close();
+          }
+        },
+
+        'vendas:estadoRN0032'() {
+          const db = banco();
+
+          try {
+            return {
+              pedidos: db.prepare(`
+                SELECT COUNT(*) AS total
+                FROM pedido
+              `).get().total,
+
+              pagamentos: db.prepare(`
+                SELECT COUNT(*) AS total
+                FROM pagamento
+              `).get().total,
+
+              notificacoes: db.prepare(`
+                SELECT *
+                FROM notificacao
+                WHERE cliente_id = 1
+                ORDER BY id
+              `).all(),
+
+              logs: db.prepare(`
+                SELECT *
+                FROM log_transacao
+                WHERE tabela = 'notificacao'
+                ORDER BY id
+              `).all()
+            };
+
+          } finally {
+            db.close();
+          }
+        },
+
         'trocas:consultar'(id) {
           const db = banco();
 
@@ -71,7 +160,14 @@ module.exports = defineConfig({
               `).all(pedidoId),
 
               trocas: db.prepare(`
-                SELECT id, pedido_id, status, data_autorizacao
+                SELECT
+                  id,
+                  pedido_id,
+                  status,
+                  data_autorizacao,
+                  data_recebimento,
+                  retorna_estoque,
+                  cupom_id
                 FROM troca
                 WHERE pedido_id = ?
                 ORDER BY id
@@ -133,7 +229,15 @@ module.exports = defineConfig({
               `).all(),
 
               cupons: db.prepare(`
-                SELECT id, valor_centavos, ativo
+                SELECT
+                  id,
+                  codigo,
+                  tipo,
+                  cliente_id,
+                  pedido_origem_id,
+                  validade,
+                  valor_centavos,
+                  ativo
                 FROM cupom
                 ORDER BY id
               `).all()
@@ -325,14 +429,18 @@ module.exports = defineConfig({
                   : [];
 
             for (let i = 0; i < valores.length; i++) {
+              const promocional = tipo === 'cupomCartao';
+
               const resultado = db.prepare(`
                 INSERT INTO cupom (
                   codigo, tipo, cliente_id,
                   valor_centavos, validade, ativo
                 )
-                VALUES (?, 'TROCA', 1, ?, '2099-12-31', 1)
+                VALUES (?, ?, ?, ?, '2099-12-31', 1)
               `).run(
                 `E2E-${n}-${i}`,
+                promocional ? 'PROMOCIONAL' : 'TROCA',
+                promocional ? null : 1,
                 valores[i]
               );
 

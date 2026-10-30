@@ -49,6 +49,7 @@ class SolicitacaoTrocaTest {
     @Autowired EntregaPedidoService entrega;
     @Autowired JdbcTemplate jdbc;
     @Autowired WebApplicationContext contexto;
+    @Autowired NotificacaoEstoqueService notificacoesEstoque;
 
     @MockitoSpyBean
     LogRepository logs;
@@ -76,7 +77,7 @@ class SolicitacaoTrocaTest {
             .filter(livro -> livro.getEstoque() >= 4)
             .toList();
 
-        var carrinho = new CarrinhoService(livros);
+        var carrinho = new CarrinhoService(livros, notificacoesEstoque);
         carrinho.adicionar(lista.get(0).getId(), 2);
         carrinho.adicionar(lista.get(1).getId(), 1);
 

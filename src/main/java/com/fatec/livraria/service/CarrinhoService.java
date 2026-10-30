@@ -19,6 +19,7 @@ import org.springframework.web.context.annotation.SessionScope;
 public class CarrinhoService {
 
     private final LivroRepository livroRepository;
+    private final NotificacaoEstoqueService notificacoesEstoque;
 
     // Identifica este carrinho durante toda a sessão.
     private final String sessaoId = UUID.randomUUID().toString();
@@ -26,8 +27,12 @@ public class CarrinhoService {
     private final Map<Long, ItemCarrinho> itens =
         new LinkedHashMap<>();
 
-    public CarrinhoService(LivroRepository livroRepository) {
+    public CarrinhoService(
+        LivroRepository livroRepository,
+        NotificacaoEstoqueService notificacoesEstoque) {
+
         this.livroRepository = livroRepository;
+        this.notificacoesEstoque = notificacoesEstoque;
     }
 
     public String getSessaoId() {
@@ -106,6 +111,84 @@ public class CarrinhoService {
         }
 
         return List.copyOf(resultado);
+    }
+
+    // RN0032: listar() apenas exibe.
+    // Este método efetiva a correção dos itens guardados na sessão.
+    public synchronized List<String> revalidarEstoque() {
+        Map<Long, ItemCarrinho> revisados = new LinkedHashMap<>();
+        List<String> mensagens = new ArrayList<>();
+
+        for (var entrada : itens.entrySet()) {
+            Long livroId = entrada.getKey();
+            ItemCarrinho anterior = entrada.getValue();
+
+            // Desconta reservas de outros carrinhos,
+            // preservando a identidade deste carrinho.
+            Livro atual = livroRepository.buscarPorId(
+                livroId,
+                sessaoId
+            );
+
+            String titulo = anterior.getLivro().getTitulo();
+
+            if (atual == null || atual.getEstoque() <= 0) {
+                mensagens.add(
+                    "O livro '" + titulo
+                    + "' foi removido do carrinho "
+                    + "porque ficou indisponível."
+                );
+
+                continue;
+            }
+
+            // Nunca aumenta a quantidade escolhida pelo cliente.
+            int quantidade = Math.min(
+                anterior.getQuantidade(),
+                atual.getEstoque()
+            );
+
+            revisados.put(
+                livroId,
+                new ItemCarrinho(atual, quantidade)
+            );
+
+            if (quantidade != anterior.getQuantidade()) {
+                mensagens.add(
+                    "A quantidade do livro '" + titulo
+                    + "' foi ajustada de "
+                    + anterior.getQuantidade()
+                    + " para " + quantidade
+                    + " devido à disponibilidade atual."
+                );
+
+            } else if (
+                    atual.getEstoque()
+                    != anterior.getLivro().getEstoque()) {
+
+                mensagens.add(
+                    "A disponibilidade do livro '" + titulo
+                    + "' mudou de "
+                    + anterior.getLivro().getEstoque()
+                    + " para " + atual.getEstoque()
+                    + " unidade(s). "
+                    + "A quantidade escolhida foi mantida."
+                );
+            }
+        }
+
+        // Confirma notificações e logs antes de alterar a sessão.
+        // Se a gravação falhar, o carrinho original permanece intacto.
+        if (!mensagens.isEmpty()) {
+            notificacoesEstoque.registrar(
+                List.copyOf(mensagens)
+            );
+        }
+
+        itens.clear();
+        itens.putAll(revisados);
+
+        return List.copyOf(mensagens);
     }
 
     public BigDecimal calcularTotal(

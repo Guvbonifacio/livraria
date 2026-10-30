@@ -11,6 +11,21 @@
     <main class="container my-4 flex-grow-1">
 
         <h2 class="mb-4">Carrinho de Compras</h2>
+        <div th:if="${avisosEstoque != null}"
+     class="alert alert-warning"
+     role="alert"
+     data-cy="avisos-estoque">
+
+    <p class="fw-semibold mb-2">
+        A disponibilidade mudou. Revise seu carrinho.
+    </p>
+
+    <ul class="mb-0">
+        <li th:each="aviso : ${avisosEstoque}"
+            th:text="${aviso}">
+        </li>
+    </ul>
+</div>
 
         <!-- MENSAGEM DE SUCESSO -->
         <div th:if="${sucessoCarrinho != null}"

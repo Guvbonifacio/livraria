@@ -26,7 +26,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="cupom : ${cupons}">
+                            <tr th:each="cupom : ${cupons}" data-cy="cupom-cliente">
                                 <td><strong th:text="${cupom.codigo}">TROCA25</strong></td>
                                 <td th:text="${cupom.tipo}">Troca</td>
                                 <td th:text="|R$ ${#numbers.formatDecimal(cupom.valor, 1, 'POINT', 2, 'COMMA')}|">R$ 25,00</td>

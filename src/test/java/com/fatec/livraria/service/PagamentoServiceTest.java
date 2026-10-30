@@ -35,6 +35,7 @@ class PagamentoServiceTest {
     @Autowired UsuarioAtual usuario;
     @Autowired JdbcTemplate jdbc;
     @Autowired PedidoRepository pedidos;
+    @Autowired NotificacaoEstoqueService notificacoesEstoque;
 
     CarrinhoService carrinho;
     CheckoutService checkout;
@@ -51,7 +52,7 @@ class PagamentoServiceTest {
     usuario,
     pedidos
 );
-        carrinho = new CarrinhoService(livros);
+        carrinho = new CarrinhoService(livros, notificacoesEstoque);
 
         carrinho.adicionar(
             livros.consultar("O Hobbit", null).get(0).getId(),

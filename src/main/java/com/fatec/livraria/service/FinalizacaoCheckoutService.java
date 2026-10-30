@@ -1,7 +1,9 @@
 package com.fatec.livraria.service;
 
 import com.fatec.livraria.model.FormularioPagamento;
+
 import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.annotation.SessionScope;
 
@@ -27,6 +29,13 @@ public class FinalizacaoCheckoutService {
     public synchronized Long finalizar(
             FormularioPagamento formulario) {
 
+        // RN0032: corrige o carrinho antes de gravar o pedido.
+        var avisos = carrinho.revalidarEstoque();
+
+        if (!avisos.isEmpty()) {
+            throw new CarrinhoAtualizadoException(avisos);
+        }
+
         var itens = carrinho.listar();
 
         if (itens.isEmpty()) {
@@ -35,21 +44,25 @@ public class FinalizacaoCheckoutService {
             );
         }
 
+        // Só calcula a entrega depois da revalidação.
         var entrega = checkout.obterEntrega();
 
         if (entrega == null) {
             throw new ValidacaoException(
-                List.of("Selecione o endereço antes de continuar.")
+                List.of(
+                    "Selecione o endereço antes de continuar."
+                )
             );
         }
 
         Long id = pedidos.finalizar(
             itens,
             entrega.getEndereco(),
-            formulario,carrinho.getSessaoId()
+            formulario,
+            carrinho.getSessaoId()
         );
 
-        // Executa somente após o COMMIT.
+        // Executa somente após o COMMIT do pedido.
         carrinho.limpar();
         checkout.limparEntrega();
 

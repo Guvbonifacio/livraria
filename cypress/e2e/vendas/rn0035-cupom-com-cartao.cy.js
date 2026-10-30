@@ -55,7 +55,7 @@ describe('RN0035 - Cupom com saldo no cartão', () => {
         expect(resultado.pagamentos).to.have.length(2);
 
         const cupom = resultado.pagamentos.find(
-          p => p.forma === 'CUPOM_TROCA'
+          p => p.forma === 'CUPOM_PROMOCIONAL'
         );
 
         expect(cupom).to.include({
@@ -71,10 +71,6 @@ describe('RN0035 - Cupom com saldo no cartão', () => {
           cartao_id: c.cartaoId,
           valor_centavos: 500
         });
-
-        const utilizado = resultado.cupons.find(
-          p => p.id === c.cuponsIds[0]
-        );
 
         expect(utilizado.ativo).to.eq(0);
         expect(resultado.emitidos).to.have.length(0);

@@ -10,6 +10,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.fatec.livraria.service.EntregaPedidoService;
 import com.fatec.livraria.service.AutorizacaoTrocaService;
+import com.fatec.livraria.service.ConclusaoTrocaService;
 
 import java.util.List;
 
@@ -33,6 +34,7 @@ public class AdminController {
     private final ProcessamentoPedidoService processamento;
     private final EntregaPedidoService entrega;
     private final AutorizacaoTrocaService autorizacaoTroca;
+    private final ConclusaoTrocaService conclusaoTroca;
 
     public AdminController(
         ClienteService clienteService,
@@ -40,7 +42,8 @@ public class AdminController {
         AdministracaoService administracao,
         ProcessamentoPedidoService processamento,
         EntregaPedidoService entrega,
-        AutorizacaoTrocaService autorizacaoTroca) {
+        AutorizacaoTrocaService autorizacaoTroca,
+        ConclusaoTrocaService conclusaoTroca) {
 
     this.clienteService = clienteService;
     this.logRepository = logRepository;
@@ -48,6 +51,7 @@ public class AdminController {
     this.processamento = processamento;
     this.entrega = entrega;
     this.autorizacaoTroca = autorizacaoTroca;
+    this.conclusaoTroca = conclusaoTroca;
 }
 
     // Painel principal
@@ -258,27 +262,73 @@ public String analisarTroca(
 }
 
     // Recebimento e decisão sobre retorno ao estoque
-    @PostMapping("/trocas/{id}/receber")
-    public String receberItemTroca(
-            @PathVariable Long id,
-            @RequestParam Boolean retornaEstoque) {
+@PostMapping("/trocas/{id}/receber")
+public String receberItemTroca(
+        @PathVariable Long id,
+        @RequestParam Boolean retornaEstoque,
+        RedirectAttributes redirect) {
 
-        throw new ResponseStatusException(
-            HttpStatus.NOT_IMPLEMENTED,
-            "Operação prevista para a próxima etapa."
+    try {
+        conclusaoTroca.receber(
+            id,
+            Boolean.TRUE.equals(retornaEstoque)
+        );
+
+        redirect.addFlashAttribute(
+            "sucessoConclusao",
+            "Recebimento confirmado e cupom emitido."
+        );
+
+    } catch (ValidacaoException e) {
+        redirect.addFlashAttribute(
+            "errosConclusao",
+            e.getErros()
+        );
+
+    } catch (DataAccessException e) {
+        redirect.addFlashAttribute(
+            "errosConclusao",
+            List.of(
+                "Não foi possível receber a troca. "
+                + "Nenhuma alteração foi confirmada."
+            )
         );
     }
 
-    // Conclusão da troca e emissão de cupom
-    @PostMapping("/trocas/{id}/finalizar")
-    public String finalizarTroca(
-            @PathVariable Long id) {
+    return "redirect:/admin/trocas/" + id;
+}
 
-        throw new ResponseStatusException(
-            HttpStatus.NOT_IMPLEMENTED,
-            "Operação prevista para a próxima etapa."
+@PostMapping("/trocas/{id}/finalizar")
+public String finalizarTroca(
+        @PathVariable Long id,
+        RedirectAttributes redirect) {
+
+    try {
+        conclusaoTroca.finalizar(id);
+
+        redirect.addFlashAttribute(
+            "sucessoConclusao",
+            "Cupom de troca emitido."
+        );
+
+    } catch (ValidacaoException e) {
+        redirect.addFlashAttribute(
+            "errosConclusao",
+            e.getErros()
+        );
+
+    } catch (DataAccessException e) {
+        redirect.addFlashAttribute(
+            "errosConclusao",
+            List.of(
+                "Não foi possível emitir o cupom. "
+                + "Nenhuma alteração foi confirmada."
+            )
         );
     }
+
+    return "redirect:/admin/trocas/" + id;
+}
 
     // As séries serão implementadas na etapa de análise.
     @GetMapping("/analise")

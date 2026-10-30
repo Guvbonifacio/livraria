@@ -51,13 +51,16 @@ class ValidacaoPagamentoPedidoTest {
     @Autowired
     ValidacaoPagamentoPedidoService validacao;
 
+    @Autowired
+    NotificacaoEstoqueService notificacoesEstoque;
+
     CarrinhoService carrinho;
     CheckoutService checkout;
     FormularioPagamento formulario;
 
     @BeforeEach
     void preparar() {
-        carrinho = new CarrinhoService(livros);
+        carrinho = new CarrinhoService(livros, notificacoesEstoque);
 
         carrinho.adicionar(
             livros.consultar("O Hobbit", null)

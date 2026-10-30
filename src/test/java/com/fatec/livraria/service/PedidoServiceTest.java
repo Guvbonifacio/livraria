@@ -29,6 +29,7 @@ class PedidoServiceTest {
     @Autowired FreteService frete;
     @Autowired UsuarioAtual usuario;
     @Autowired JdbcTemplate jdbc;
+    @Autowired NotificacaoEstoqueService notificacoesEstoque;
 
     @MockitoSpyBean
     LogRepository logs;
@@ -42,7 +43,7 @@ class PedidoServiceTest {
     void preparar() {
         reset(logs);
 
-        carrinho = new CarrinhoService(livros);
+        carrinho = new CarrinhoService(livros, notificacoesEstoque);
         carrinho.adicionar(
             livros.consultar("O Hobbit", null).get(0).getId(),
             1
@@ -263,21 +264,27 @@ class PedidoServiceTest {
 
     @Test
     void revalidaEstoqueEValoresAntesDeGravar() {
-        Long livro = carrinho.listar()
-            .get(0).getLivro().getId();
+    Long livro = carrinho.listar()
+        .get(0)
+        .getLivro()
+        .getId();
 
-        jdbc.update(
-            "UPDATE item_estoque SET quantidade = 0 WHERE livro_id = ?",
-            livro
-        );
+    jdbc.update(
+        "UPDATE item_estoque SET quantidade = 0 WHERE livro_id = ?",
+        livro
+    );
 
-        assertThrows(
-            ValidacaoException.class,
-            () -> finalizacao.finalizar(formulario)
-        );
+    assertThrows(
+        CarrinhoAtualizadoException.class,
+        () -> finalizacao.finalizar(formulario)
+    );
 
-        assertEquals(0, contar("pedido"));
-        assertFalse(carrinho.listar().isEmpty());
+    assertEquals(0, contar("pedido"));
+
+    // RN0032: agora o item esgotado é removido automaticamente.
+    assertTrue(carrinho.listar().isEmpty());
+
+    assertEquals(1, contar("notificacao"));
     }
 
     @Test

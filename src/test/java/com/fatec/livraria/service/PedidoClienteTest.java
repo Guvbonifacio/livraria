@@ -37,7 +37,7 @@ class PedidoClienteTest {
     @Autowired PedidoClienteService consulta;
     @Autowired JdbcTemplate jdbc;
     @Autowired WebApplicationContext contexto;
-
+    @Autowired NotificacaoEstoqueService notificacoesEstoque;
     private MockMvc mvc;
     private Long pedidoId;
 
@@ -51,7 +51,7 @@ class PedidoClienteTest {
         Long cartaoId = clientes.exigirCliente(1L)
             .getCartoes().get(0).getId();
 
-        var carrinho = new CarrinhoService(livros);
+        var carrinho = new CarrinhoService(livros, notificacoesEstoque);
         carrinho.adicionar(livroId, 1);
 
         var checkout = new CheckoutService(

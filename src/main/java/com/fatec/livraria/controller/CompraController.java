@@ -9,6 +9,7 @@ import com.fatec.livraria.service.ValidacaoException;
 import com.fatec.livraria.model.FormularioPagamento;
 import com.fatec.livraria.service.PagamentoService;
 import com.fatec.livraria.service.FinalizacaoCheckoutService;
+import com.fatec.livraria.service.CarrinhoAtualizadoException;
 import com.fatec.livraria.repository.BandeiraRepository;
 
 import java.util.List;
@@ -216,8 +217,15 @@ public String validarPagamento(
             );
 
             model.addAttribute("pagamentoValido", true);
+            } catch (CarrinhoAtualizadoException e) {
+             redirect.addFlashAttribute(
+            "avisosEstoque",
+            e.getErros()
+            );
 
-        } catch (ValidacaoException e) {
+        return "redirect:/carrinho";
+
+            } catch (ValidacaoException e) {
             model.addAttribute(
                 "errosPagamento",
                 e.getErros()

@@ -216,4 +216,85 @@ public int autorizar(
         id
     );
 }
+public int receber(
+        Long id,
+        boolean retornaEstoque,
+        LocalDateTime agora) {
+
+    return jdbc.update("""
+        UPDATE troca
+        SET status = 'TROCADO',
+            data_recebimento = ?,
+            retorna_estoque = ?
+        WHERE id = ?
+          AND status = 'TROCA AUTORIZADA'
+          AND data_recebimento IS NULL
+        """,
+        agora.toString(),
+        retornaEstoque ? 1 : 0,
+        id
+    );
+}
+
+public Long buscarCustoEntrada(Long livroId) {
+    var custos = jdbc.query("""
+        SELECT valor_custo_centavos
+        FROM item_estoque
+        WHERE livro_id = ?
+        ORDER BY data_entrada DESC, id DESC
+        LIMIT 1
+        """,
+        (rs, linha) -> rs.getLong("valor_custo_centavos"),
+        livroId
+    );
+
+    return custos.isEmpty() ? null : custos.get(0);
+}
+
+public Long registrarReentrada(
+        Long trocaId,
+        Long itemTrocaId,
+        Long livroId,
+        int quantidade,
+        long custoCentavos,
+        LocalDateTime agora) {
+
+    jdbc.update("""
+        INSERT INTO item_estoque (
+            livro_id,
+            quantidade,
+            valor_custo_centavos,
+            fornecedor,
+            data_entrada,
+            referencia_entrada
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        livroId,
+        quantidade,
+        custoCentavos,
+        "Devolução da troca #" + trocaId,
+        agora.toString(),
+        "TROCA-" + trocaId + "-ITEM-" + itemTrocaId
+    );
+
+    return jdbc.queryForObject(
+        "SELECT last_insert_rowid()",
+        Long.class
+    );
+}
+
+public int vincularCupom(Long trocaId, Long cupomId) {
+    return jdbc.update("""
+        UPDATE troca
+        SET cupom_id = ?
+        WHERE id = ?
+          AND status = 'TROCADO'
+          AND data_recebimento IS NOT NULL
+          AND cupom_id IS NULL
+        """,
+        cupomId,
+        trocaId
+    );
+}
 }
