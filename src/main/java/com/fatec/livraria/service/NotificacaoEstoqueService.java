@@ -16,21 +16,29 @@ public class NotificacaoEstoqueService {
     private final NotificacaoRepository notificacoes;
     private final UsuarioAtual usuario;
     private final AuditoriaService auditoria;
+    private final ReservaCarrinhoService reservas;
 
     public NotificacaoEstoqueService(
             NotificacaoRepository notificacoes,
             UsuarioAtual usuario,
-            AuditoriaService auditoria) {
+            AuditoriaService auditoria,
+            ReservaCarrinhoService reservas) {
 
         this.notificacoes = notificacoes;
         this.usuario = usuario;
         this.auditoria = auditoria;
+        this.reservas = reservas;
     }
 
     // O aviso deve permanecer registrado quando a finalização
     // for interrompida para o cliente revisar o carrinho.
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void registrar(List<String> mensagens) {
+    public void registrar(
+            List<String> mensagens,
+            String sessao,
+            Map<Long, Integer> quantidades) {
+
+        reservas.reconciliar(sessao, quantidades);
         Long clienteId = usuario.getClienteId();
         LocalDateTime agora = LocalDateTime.now();
 

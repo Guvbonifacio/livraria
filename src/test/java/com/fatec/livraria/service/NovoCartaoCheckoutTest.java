@@ -43,6 +43,7 @@ class NovoCartaoCheckoutTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper json;
     @Autowired NotificacaoEstoqueService notificacoesEstoque;
+    @Autowired ReservaCarrinhoService reservas;
 
     @MockitoSpyBean
     PedidoRepository repository;
@@ -62,7 +63,11 @@ class NovoCartaoCheckoutTest {
         cartaoId = clientes.exigirCliente(1L)
             .getCartoes().get(0).getId();
 
-        carrinho = new CarrinhoService(livros, notificacoesEstoque);
+        carrinho = new CarrinhoService(
+            livros,
+            notificacoesEstoque,
+            reservas
+        );
         carrinho.adicionar(livroId, 1);
 
         checkout = new CheckoutService(
@@ -95,7 +100,8 @@ class NovoCartaoCheckoutTest {
         return pedidos.finalizar(
             carrinho.listar(),
             checkout.obterEntrega().getEndereco(),
-            formulario
+            formulario,
+            carrinho.getSessaoId()
         );
     }
 
@@ -313,6 +319,8 @@ class NovoCartaoCheckoutTest {
 
     @Test
     void falhaNoPedidoDesfazCartaoEPreservaFormulario() {
+        int logsAntes = contar("log_transacao");
+
         doThrow(
             new DataAccessResourceFailureException(
                 "Falha simulada"
@@ -331,7 +339,7 @@ class NovoCartaoCheckoutTest {
 
         assertEquals(1, contar("cartao_credito"));
         assertEquals(0, contar("pedido"));
-        assertEquals(0, contar("log_transacao"));
+        assertEquals(logsAntes, contar("log_transacao"));
 
         assertEquals(
             "5555555555554444",

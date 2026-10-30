@@ -6,12 +6,14 @@ import com.fatec.livraria.service.ValidacaoException;
 
 import java.util.List;
 
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -32,6 +34,22 @@ public class CarrinhoController {
         model.addAttribute(
             "totalGeral",
             service.calcularTotal(itens)
+        );
+        model.addAttribute(
+            "retirados",
+            service.listarRetirados()
+        );
+
+        service.confirmarLeituraExpiracao();
+
+        model.addAttribute(
+            "estadoReserva",
+            service.estadoReserva()
+        );
+
+        model.addAttribute(
+            "prazoMinutos",
+            service.getPrazoMinutos()
         );
 
         return "carrinho";
@@ -86,6 +104,14 @@ public class CarrinhoController {
                 "sucessoCarrinho",
                 sucesso
             );
+        } catch (DataAccessException e) {
+            redirect.addFlashAttribute(
+                "errosCarrinho",
+                List.of(
+                    "Não foi possível atualizar a reserva. "
+                    + "Tente novamente."
+                )
+            );
         } catch (ValidacaoException e) {
             redirect.addFlashAttribute(
                 "errosCarrinho",
@@ -94,5 +120,11 @@ public class CarrinhoController {
         }
 
         return "redirect:/carrinho";
+    }
+
+    @GetMapping("/validade")
+    @ResponseBody
+    public CarrinhoService.EstadoReserva validade() {
+        return service.estadoReserva();
     }
 }

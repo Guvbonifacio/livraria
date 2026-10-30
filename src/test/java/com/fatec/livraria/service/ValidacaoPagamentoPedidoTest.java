@@ -27,32 +27,16 @@ import static org.junit.jupiter.api.Assertions.*;
 @Sql("/cenario-checkout.sql")
 class ValidacaoPagamentoPedidoTest {
 
-    @Autowired
-    PedidoRepository repository;
-
-    @Autowired
-    PedidoService pedidos;
-
-    @Autowired
-    LivroRepository livros;
-
-    @Autowired
-    ClienteService clientes;
-
-    @Autowired
-    FreteService frete;
-
-    @Autowired
-    UsuarioAtual usuario;
-
-    @Autowired
-    JdbcTemplate jdbc;
-
-    @Autowired
-    ValidacaoPagamentoPedidoService validacao;
-
-    @Autowired
-    NotificacaoEstoqueService notificacoesEstoque;
+    @Autowired PedidoRepository repository;
+    @Autowired PedidoService pedidos;
+    @Autowired LivroRepository livros;
+    @Autowired ClienteService clientes;
+    @Autowired FreteService frete;
+    @Autowired UsuarioAtual usuario;
+    @Autowired JdbcTemplate jdbc;
+    @Autowired ValidacaoPagamentoPedidoService validacao;
+    @Autowired NotificacaoEstoqueService notificacoesEstoque;
+    @Autowired ReservaCarrinhoService reservas;
 
     CarrinhoService carrinho;
     CheckoutService checkout;
@@ -60,7 +44,7 @@ class ValidacaoPagamentoPedidoTest {
 
     @BeforeEach
     void preparar() {
-        carrinho = new CarrinhoService(livros, notificacoesEstoque);
+        carrinho = new CarrinhoService(livros, notificacoesEstoque, reservas);
 
         carrinho.adicionar(
             livros.consultar("O Hobbit", null)

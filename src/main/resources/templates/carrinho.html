@@ -10,22 +10,29 @@
 
     <main class="container my-4 flex-grow-1">
 
+        <div id="aviso-reserva"
+             class="alert alert-warning"
+             role="alert"
+             hidden>
+        </div>
+
         <h2 class="mb-4">Carrinho de Compras</h2>
+
         <div th:if="${avisosEstoque != null}"
-     class="alert alert-warning"
-     role="alert"
-     data-cy="avisos-estoque">
+             class="alert alert-warning"
+             role="alert"
+             data-cy="avisos-estoque">
 
-    <p class="fw-semibold mb-2">
-        A disponibilidade mudou. Revise seu carrinho.
-    </p>
+            <p class="fw-semibold mb-2">
+                A disponibilidade mudou. Revise seu carrinho.
+            </p>
 
-    <ul class="mb-0">
-        <li th:each="aviso : ${avisosEstoque}"
-            th:text="${aviso}">
-        </li>
-    </ul>
-</div>
+            <ul class="mb-0">
+                <li th:each="aviso : ${avisosEstoque}"
+                    th:text="${aviso}">
+                </li>
+            </ul>
+        </div>
 
         <!-- MENSAGEM DE SUCESSO -->
         <div th:if="${sucessoCarrinho != null}"
@@ -45,6 +52,55 @@
                 <li th:each="erro : ${errosCarrinho}"
                     th:text="${erro}"></li>
             </ul>
+        </div>
+
+        <p class="text-muted"
+           th:text="|Prazo de reserva: ${prazoMinutos} minutos após a última adição.|">
+        </p>
+
+        <div class="card border-warning mb-4"
+             th:if="${!#lists.isEmpty(retirados)}"
+             data-cy="produtos-expirados">
+
+            <div class="card-header">
+                Produtos removidos por prazo expirado
+            </div>
+
+            <div class="card-body"
+                 th:each="item : ${retirados}"
+                 data-cy="produto-expirado"
+                 th:attr="data-livro-id=${item.livro.id}">
+
+                <strong th:text="${item.livro.titulo}"></strong>
+
+                <p class="mb-2"
+                   th:text="|${item.quantidade} unidade(s) removida(s). Prazo: ${item.minutos} minutos. Expirou em ${item.horario}.|">
+                </p>
+
+                <button class="btn btn-secondary"
+                        disabled
+                        data-cy="comprar-expirado">
+                    Comprar
+                </button>
+
+                <form class="d-inline"
+                      th:action="@{/carrinho/adicionar}"
+                      method="post">
+
+                    <input type="hidden"
+                           name="livroId"
+                           th:value="${item.livro.id}">
+
+                    <input type="hidden"
+                           name="quantidade"
+                           th:value="${item.quantidade}">
+
+                    <button class="btn btn-outline-primary"
+                            data-cy="readicionar-expirado">
+                        Adicionar novamente
+                    </button>
+                </form>
+            </div>
         </div>
 
         <!-- CARRINHO COM ITENS -->
@@ -221,5 +277,6 @@
 
     <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
 
+    <script th:src="@{/js/carrinho-reserva.js}" defer></script>
 </body>
 </html>

@@ -334,6 +334,14 @@ CREATE TABLE IF NOT EXISTS reserva_estoque (
     -- Instante ISO UTC, exemplo: 2026-10-26T15:30:00Z.
     expira_em TEXT NOT NULL,
 
+    cliente_id INTEGER REFERENCES cliente(id),
+
+    aviso_enviado INTEGER NOT NULL DEFAULT 0
+    CHECK (aviso_enviado IN (0, 1)),
+
+    expirado INTEGER NOT NULL DEFAULT 0
+    CHECK (expirado IN (0, 1)),
+
     UNIQUE (sessao_id, livro_id)
 );
 

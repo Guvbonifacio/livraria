@@ -52,6 +52,9 @@ class ProcessamentoPedidoTest {
     @Autowired
     NotificacaoEstoqueService notificacoesEstoque;
 
+    @Autowired
+    ReservaCarrinhoService reservas;
+
     CarrinhoService carrinho;
     CheckoutService checkout;
     FormularioPagamento formulario;
@@ -70,7 +73,11 @@ class ProcessamentoPedidoTest {
             .get(0)
             .getId();
 
-        carrinho = new CarrinhoService(livros, notificacoesEstoque);
+        carrinho = new CarrinhoService(
+            livros,
+            notificacoesEstoque,
+            reservas
+        );
         carrinho.adicionar(livroId, 1);
 
         checkout = new CheckoutService(
@@ -99,7 +106,8 @@ class ProcessamentoPedidoTest {
         return pedidos.finalizar(
             carrinho.listar(),
             checkout.obterEntrega().getEndereco(),
-            formulario
+            formulario,
+            carrinho.getSessaoId()
         );
     }
 

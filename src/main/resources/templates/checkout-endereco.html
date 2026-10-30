@@ -10,6 +10,12 @@
 
     <main class="container my-4 flex-grow-1">
 
+        <div id="aviso-reserva"
+             class="alert alert-warning"
+             role="alert"
+             hidden>
+        </div>
+
         <div class="text-center mb-4">
             <span class="badge bg-primary fs-6 p-2">
                 1. Endereço
@@ -410,5 +416,6 @@
 
     <footer th:replace="~{fragmentos/layout :: rodape}"></footer>
 
+    <script th:src="@{/js/carrinho-reserva.js}" defer></script>
 </body>
 </html>

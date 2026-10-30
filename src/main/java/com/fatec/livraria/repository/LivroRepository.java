@@ -6,7 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.time.Instant;
+import java.time.Clock;
 import java.util.Arrays;
 
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -16,6 +16,7 @@ import org.springframework.stereotype.Repository;
 public class LivroRepository {
 
     private final JdbcTemplate jdbc;
+    private final Clock relogio;
 
     private static final String CONSULTA = """
     WITH reservadas AS (
@@ -23,7 +24,7 @@ public class LivroRepository {
             livro_id,
             SUM(quantidade) AS quantidade
         FROM reserva_estoque
-        WHERE julianday(expira_em) > julianday(?)
+        WHERE expirado = 0 AND julianday(expira_em) > julianday(?)
           AND (? IS NULL OR sessao_id <> ?)
         GROUP BY livro_id
     )
@@ -58,8 +59,12 @@ public class LivroRepository {
     WHERE l.ativo = 1
     """;
 
-    public LivroRepository(JdbcTemplate jdbc) {
-        this.jdbc = jdbc;
+    public LivroRepository(
+        JdbcTemplate jdbc,
+        Clock relogio) {
+
+    this.jdbc = jdbc;
+    this.relogio = relogio;
     }
 
 public List<Livro> consultar(String busca, String categoria) {
@@ -149,7 +154,7 @@ private List<Object> parametrosReserva(String sessaoId) {
     // Sem identidade, desconta todas as reservas ativas.
     return new ArrayList<>(
         Arrays.asList(
-            Instant.now().toString(),
+            relogio.instant().toString(),
             sessaoId,
             sessaoId
         )

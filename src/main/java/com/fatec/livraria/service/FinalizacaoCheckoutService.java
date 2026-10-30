@@ -29,7 +29,7 @@ public class FinalizacaoCheckoutService {
     public synchronized Long finalizar(
             FormularioPagamento formulario) {
 
-        // RN0032: corrige o carrinho antes de gravar o pedido.
+        // RN0032: revalida o estoque e verifica a expiração.
         var avisos = carrinho.revalidarEstoque();
 
         if (!avisos.isEmpty()) {
@@ -44,7 +44,6 @@ public class FinalizacaoCheckoutService {
             );
         }
 
-        // Só calcula a entrega depois da revalidação.
         var entrega = checkout.obterEntrega();
 
         if (entrega == null) {
@@ -62,7 +61,7 @@ public class FinalizacaoCheckoutService {
             carrinho.getSessaoId()
         );
 
-        // Executa somente após o COMMIT do pedido.
+        // Limpa a sessão após o retorno da transação do pedido.
         carrinho.limpar();
         checkout.limparEntrega();
 

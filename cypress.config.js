@@ -40,55 +40,119 @@ module.exports = defineConfig({
       }
 
       on('task', {
-        'vendas:alterarEstoqueRN0032'({ livroId, quantidade }) {
-          if (
-            !Number.isSafeInteger(livroId) ||
-            livroId <= 0 ||
-            !Number.isSafeInteger(quantidade) ||
-            quantidade < 0
-          ) {
-            throw new Error('Livro ou quantidade inválidos.');
+        'reserva:estado'() {
+          const db = banco();
+
+          try {
+            return {
+              reservas: db.prepare(`
+                SELECT *
+                FROM reserva_estoque
+                ORDER BY id
+              `).all(),
+
+              notificacoes: db.prepare(`
+                SELECT *
+                FROM notificacao
+                ORDER BY id
+              `).all(),
+
+              pedidos: db.prepare(`
+                SELECT COUNT(*) AS n
+                FROM pedido
+              `).get().n
+            };
+
+          } finally {
+            db.close();
+          }
+        },
+
+        'reserva:tempo'(segundos) {
+          if (![300, -1].includes(segundos)) {
+            throw new Error('Tempo de teste inválido.');
           }
 
           const db = banco();
 
           try {
-            db.exec('BEGIN IMMEDIATE');
-
-            const entrada = db.prepare(`
-              SELECT MIN(id) AS id
-              FROM item_estoque
-              WHERE livro_id = ?
-            `).get(livroId);
-
-            if (!entrada?.id) {
-              throw new Error('Livro sem entrada de estoque.');
-            }
-
-            // Define o saldo total sem depender da quantidade de lotes.
             db.prepare(`
-              UPDATE item_estoque
-              SET quantidade = 0
-              WHERE livro_id = ?
-            `).run(livroId);
-
-            db.prepare(`
-              UPDATE item_estoque
-              SET quantidade = ?
-              WHERE id = ?
-            `).run(quantidade, entrada.id);
-
-            db.exec('COMMIT');
+              UPDATE reserva_estoque
+              SET expira_em = ?
+              WHERE cliente_id = 1
+                AND expirado = 0
+                AND sessao_id NOT LIKE 'pedido:%'
+            `).run(
+              new Date(Date.now() + segundos * 1000).toISOString()
+            );
 
             return null;
 
-          } catch (erro) {
+          } finally {
+            db.close();
+          }
+        },
+
+        async 'reserva:aguardar'(estado) {
+          if (!['aviso', 'expiracao'].includes(estado)) {
+            throw new Error('Estado inválido.');
+          }
+
+          const limite = Date.now() + 10000;
+
+          while (Date.now() < limite) {
+            const db = banco();
+
             try {
-              db.exec('ROLLBACK');
-            } catch {}
+              const linhas = db.prepare(`
+                SELECT *
+                FROM reserva_estoque
+                WHERE cliente_id = 1
+                  AND sessao_id NOT LIKE 'pedido:%'
+              `).all();
 
+              const concluido = linhas.length > 0 &&
+                linhas.every(r =>
+                  estado === 'aviso'
+                    ? r.aviso_enviado === 1
+                    : r.expirado === 1
+                );
+
+              if (concluido) return null;
+
+            } finally {
+              db.close();
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+
+          throw new Error(
+            'O agendador não confirmou ' + estado + ' em dez segundos.'
+          );
+        },
+
+        'vendas:alterarEstoqueRN0032'({ livroId, quantidade }) {
+          if (!Number.isSafeInteger(livroId) || livroId <= 0
+              || !Number.isSafeInteger(quantidade) || quantidade < 0) {
+            throw new Error('Livro ou quantidade inválidos.');
+          }
+          const db = banco();
+          try {
+            db.exec('BEGIN IMMEDIATE');
+            const entrada = db.prepare(
+              'SELECT MIN(id) AS id FROM item_estoque WHERE livro_id = ?'
+            ).get(livroId);
+            if (!entrada?.id) throw new Error('Livro sem entrada de estoque.');
+            db.prepare('UPDATE item_estoque SET quantidade = 0 WHERE livro_id = ?')
+              .run(livroId);
+            db.prepare('UPDATE item_estoque SET quantidade = ? WHERE id = ?')
+              .run(quantidade, entrada.id);
+            db.exec('COMMIT');
+            return null;
+          } catch (erro) {
+            try { db.exec('ROLLBACK'); } catch {}
             throw erro;
-
           } finally {
             db.close();
           }
@@ -96,34 +160,17 @@ module.exports = defineConfig({
 
         'vendas:estadoRN0032'() {
           const db = banco();
-
           try {
             return {
-              pedidos: db.prepare(`
-                SELECT COUNT(*) AS total
-                FROM pedido
-              `).get().total,
-
-              pagamentos: db.prepare(`
-                SELECT COUNT(*) AS total
-                FROM pagamento
-              `).get().total,
-
-              notificacoes: db.prepare(`
-                SELECT *
-                FROM notificacao
-                WHERE cliente_id = 1
-                ORDER BY id
-              `).all(),
-
-              logs: db.prepare(`
-                SELECT *
-                FROM log_transacao
-                WHERE tabela = 'notificacao'
-                ORDER BY id
-              `).all()
+              pedidos: db.prepare('SELECT COUNT(*) AS total FROM pedido').get().total,
+              pagamentos: db.prepare('SELECT COUNT(*) AS total FROM pagamento').get().total,
+              notificacoes: db.prepare(
+                'SELECT * FROM notificacao WHERE cliente_id = 1 ORDER BY id'
+              ).all(),
+              logs: db.prepare(
+                "SELECT * FROM log_transacao WHERE tabela = 'notificacao' ORDER BY id"
+              ).all()
             };
-
           } finally {
             db.close();
           }
@@ -160,14 +207,8 @@ module.exports = defineConfig({
               `).all(pedidoId),
 
               trocas: db.prepare(`
-                SELECT
-                  id,
-                  pedido_id,
-                  status,
-                  data_autorizacao,
-                  data_recebimento,
-                  retorna_estoque,
-                  cupom_id
+                SELECT id, pedido_id, status, data_autorizacao,
+                       data_recebimento, retorna_estoque, cupom_id
                 FROM troca
                 WHERE pedido_id = ?
                 ORDER BY id
@@ -229,15 +270,7 @@ module.exports = defineConfig({
               `).all(),
 
               cupons: db.prepare(`
-                SELECT
-                  id,
-                  codigo,
-                  tipo,
-                  cliente_id,
-                  pedido_origem_id,
-                  validade,
-                  valor_centavos,
-                  ativo
+                SELECT id, codigo, tipo, cliente_id, pedido_origem_id, validade, valor_centavos, ativo
                 FROM cupom
                 ORDER BY id
               `).all()

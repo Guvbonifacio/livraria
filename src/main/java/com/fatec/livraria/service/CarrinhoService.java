@@ -3,13 +3,17 @@ package com.fatec.livraria.service;
 import com.fatec.livraria.model.ItemCarrinho;
 import com.fatec.livraria.model.Livro;
 import com.fatec.livraria.repository.LivroRepository;
+import com.fatec.livraria.repository.ReservaCarrinhoRepository.Reserva;
 
 import java.math.BigDecimal;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.annotation.SessionScope;
@@ -20,42 +24,156 @@ public class CarrinhoService {
 
     private final LivroRepository livroRepository;
     private final NotificacaoEstoqueService notificacoesEstoque;
+    private final ReservaCarrinhoService reservas;
 
-    // Identifica este carrinho durante toda a sessão.
     private final String sessaoId = UUID.randomUUID().toString();
 
     private final Map<Long, ItemCarrinho> itens =
         new LinkedHashMap<>();
 
+    private final Map<Long, ItemExpirado> retirados =
+        new LinkedHashMap<>();
+
+    private boolean expiracaoPendente;
+
+    public record ItemExpirado(
+        Livro livro,
+        int quantidade,
+        String horario,
+        int minutos
+    ) {}
+
+    public record EstadoReserva(
+        String versao,
+        boolean expirou,
+        String aviso
+    ) {}
+
     public CarrinhoService(
-        LivroRepository livroRepository,
-        NotificacaoEstoqueService notificacoesEstoque) {
+            LivroRepository livroRepository,
+            NotificacaoEstoqueService notificacoesEstoque,
+            ReservaCarrinhoService reservas) {
 
         this.livroRepository = livroRepository;
         this.notificacoesEstoque = notificacoesEstoque;
+        this.reservas = reservas;
     }
 
     public String getSessaoId() {
         return sessaoId;
     }
 
+    public int getPrazoMinutos() {
+        return reservas.getMinutos();
+    }
+
+    private List<Reserva> sincronizar() {
+        var linhas = reservas.processar(sessaoId);
+
+        for (var reserva : linhas) {
+            if (!reserva.expirado()) {
+                continue;
+            }
+
+            // Remove todas as unidades do produto da sessão.
+            ItemCarrinho item = itens.remove(reserva.livroId());
+
+            if (item != null) {
+                String horario = DateTimeFormatter
+                    .ofPattern("dd/MM/yyyy HH:mm:ss")
+                    .withZone(ZoneId.of("America/Sao_Paulo"))
+                    .format(reserva.expiraEm());
+
+                retirados.put(
+                    reserva.livroId(),
+                    new ItemExpirado(
+                        item.getLivro(),
+                        item.getQuantidade(),
+                        horario,
+                        reservas.getMinutos()
+                    )
+                );
+
+                expiracaoPendente = true;
+            }
+        }
+
+        return linhas;
+    }
+
+    public synchronized List<ItemExpirado> listarRetirados() {
+        sincronizar();
+
+        return List.copyOf(retirados.values());
+    }
+
+    public synchronized void confirmarLeituraExpiracao() {
+        expiracaoPendente = false;
+    }
+
+    public synchronized void exigirPrazoValido() {
+        sincronizar();
+
+        if (expiracaoPendente) {
+            throw new CarrinhoAtualizadoException(
+                List.of(
+                    "O prazo de reserva expirou. "
+                    + "Revise os produtos removidos do carrinho."
+                )
+            );
+        }
+    }
+
+    public synchronized EstadoReserva estadoReserva() {
+        var ativas = sincronizar().stream()
+            .filter(r -> !r.expirado())
+            .toList();
+
+        String aviso = ativas.stream().anyMatch(r -> r.avisado())
+            ? "A reserva do seu carrinho está nos últimos "
+                + "cinco minutos. Finalize antes do prazo."
+            : "";
+
+        String versao = ativas.stream()
+            .map(r ->
+                r.id() + ":" + r.expiraEm() + ":" + r.avisado()
+            )
+            .toList()
+            + ":" + retirados.keySet();
+
+        return new EstadoReserva(
+            versao,
+            expiracaoPendente,
+            aviso
+        );
+    }
+
     public synchronized void adicionar(
             Long livroId,
             int quantidade) {
 
+        sincronizar();
         validarQuantidade(quantidade);
 
         Livro livro = buscarLivroDisponivel(livroId);
         ItemCarrinho existente = itens.get(livroId);
 
-        // Usa long para evitar estouro ao somar quantidades.
         long quantidadeFinal =
             (existente == null ? 0L : existente.getQuantidade())
             + quantidade;
 
         validarEstoque(livro, quantidadeFinal);
 
-        // Só modifica o carrinho depois das validações.
+        reservas.reservar(
+            sessaoId,
+            livroId,
+            (int) quantidadeFinal,
+            existente == null ? 0 : existente.getQuantidade(),
+            true
+        );
+
+        retirados.remove(livroId);
+
         itens.put(
             livroId,
             new ItemCarrinho(livro, (int) quantidadeFinal)
@@ -66,6 +184,7 @@ public class CarrinhoService {
             Long livroId,
             int quantidade) {
 
+        sincronizar();
         validarQuantidade(quantidade);
 
         if (!itens.containsKey(livroId)) {
@@ -76,6 +195,15 @@ public class CarrinhoService {
 
         validarEstoque(livro, quantidade);
 
+        // Alterar quantidade não reinicia o prazo.
+        reservas.reservar(
+            sessaoId,
+            livroId,
+            quantidade,
+            itens.get(livroId).getQuantidade(),
+            false
+        );
+
         itens.put(
             livroId,
             new ItemCarrinho(livro, quantidade)
@@ -83,12 +211,19 @@ public class CarrinhoService {
     }
 
     public synchronized void remover(Long livroId) {
-        if (itens.remove(livroId) == null) {
+        sincronizar();
+
+        if (!itens.containsKey(livroId)) {
             throw erro("O livro não está no carrinho.");
         }
+
+        reservas.remover(sessaoId, livroId);
+        itens.remove(livroId);
     }
 
     public synchronized List<ItemCarrinho> listar() {
+        sincronizar();
+
         List<ItemCarrinho> resultado = new ArrayList<>();
 
         for (ItemCarrinho item : itens.values()) {
@@ -101,7 +236,6 @@ public class CarrinhoService {
                 atual = indisponivel(item.getLivro());
             }
 
-            // Devolve cópias, preservando os itens da sessão.
             resultado.add(
                 new ItemCarrinho(
                     atual,
@@ -113,9 +247,9 @@ public class CarrinhoService {
         return List.copyOf(resultado);
     }
 
-    // RN0032: listar() apenas exibe.
-    // Este método efetiva a correção dos itens guardados na sessão.
     public synchronized List<String> revalidarEstoque() {
+        exigirPrazoValido();
+
         Map<Long, ItemCarrinho> revisados = new LinkedHashMap<>();
         List<String> mensagens = new ArrayList<>();
 
@@ -123,8 +257,6 @@ public class CarrinhoService {
             Long livroId = entrada.getKey();
             ItemCarrinho anterior = entrada.getValue();
 
-            // Desconta reservas de outros carrinhos,
-            // preservando a identidade deste carrinho.
             Livro atual = livroRepository.buscarPorId(
                 livroId,
                 sessaoId
@@ -142,7 +274,6 @@ public class CarrinhoService {
                 continue;
             }
 
-            // Nunca aumenta a quantidade escolhida pelo cliente.
             int quantidade = Math.min(
                 anterior.getQuantidade(),
                 atual.getEstoque()
@@ -177,11 +308,19 @@ public class CarrinhoService {
             }
         }
 
-        // Confirma notificações e logs antes de alterar a sessão.
-        // Se a gravação falhar, o carrinho original permanece intacto.
         if (!mensagens.isEmpty()) {
+            Map<Long, Integer> quantidades = revisados
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(
+                entrada -> entrada.getKey(),
+                entrada -> entrada.getValue().getQuantidade()
+            ));
+
             notificacoesEstoque.registrar(
-                List.copyOf(mensagens)
+                List.copyOf(mensagens),
+                sessaoId,
+                quantidades
             );
         }
 
@@ -202,8 +341,12 @@ public class CarrinhoService {
             );
     }
 
+    // Após a compra, a reserva já pertence ao pedido.
+    // Limpa somente o estado do carrinho na sessão.
     public synchronized void limpar() {
         itens.clear();
+        retirados.clear();
+        expiracaoPendente = false;
     }
 
     private Livro buscarLivroDisponivel(Long id) {
@@ -226,28 +369,20 @@ public class CarrinhoService {
 
     private void validarQuantidade(int quantidade) {
         if (quantidade <= 0) {
-            throw erro(
-                "A quantidade deve ser maior que zero."
-            );
+            throw erro("A quantidade deve ser maior que zero.");
         }
     }
 
-    private void validarEstoque(
-            Livro livro,
-            long quantidade) {
-
+    private void validarEstoque(Livro livro, long quantidade) {
         if (quantidade > livro.getEstoque()) {
             throw erro(
                 "Quantidade solicitada acima do estoque disponível. "
-                + "Disponível: "
-                + livro.getEstoque()
+                + "Disponível: " + livro.getEstoque()
                 + " unidade(s)."
             );
         }
     }
 
-    // Mantém o item visível para remoção caso o livro
-    // seja excluído ou inativado.
     private Livro indisponivel(Livro livro) {
         return new Livro(
             livro.getId(),
@@ -268,8 +403,6 @@ public class CarrinhoService {
     }
 
     private ValidacaoException erro(String mensagem) {
-        return new ValidacaoException(
-            List.of(mensagem)
-        );
+        return new ValidacaoException(List.of(mensagem));
     }
 }

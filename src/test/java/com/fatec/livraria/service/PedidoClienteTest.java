@@ -29,6 +29,8 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppC
 @Sql("/cenario-checkout.sql")
 class PedidoClienteTest {
 
+    @Autowired ReservaCarrinhoService reservas;
+    @Autowired NotificacaoEstoqueService notificacoesEstoque;
     @Autowired LivroRepository livros;
     @Autowired PedidoService pedidos;
     @Autowired ClienteService clientes;
@@ -37,7 +39,7 @@ class PedidoClienteTest {
     @Autowired PedidoClienteService consulta;
     @Autowired JdbcTemplate jdbc;
     @Autowired WebApplicationContext contexto;
-    @Autowired NotificacaoEstoqueService notificacoesEstoque;
+
     private MockMvc mvc;
     private Long pedidoId;
 
@@ -51,11 +53,19 @@ class PedidoClienteTest {
         Long cartaoId = clientes.exigirCliente(1L)
             .getCartoes().get(0).getId();
 
-        var carrinho = new CarrinhoService(livros, notificacoesEstoque);
+        var carrinho = new CarrinhoService(
+            livros,
+            notificacoesEstoque,
+            reservas
+        );
+
         carrinho.adicionar(livroId, 1);
 
         var checkout = new CheckoutService(
-            clientes, carrinho, frete, usuario
+            clientes,
+            carrinho,
+            frete,
+            usuario
         );
 
         var endereco = new FormularioEnderecoCheckout();
@@ -67,6 +77,7 @@ class PedidoClienteTest {
         checkout.confirmarEndereco(endereco);
 
         var formulario = new FormularioPagamento();
+
         formulario.setValoresCartoes(
             Map.of(cartaoId, "47.00")
         );
@@ -74,7 +85,8 @@ class PedidoClienteTest {
         pedidoId = pedidos.finalizar(
             carrinho.listar(),
             checkout.obterEntrega().getEndereco(),
-            formulario
+            formulario,
+            carrinho.getSessaoId()
         );
     }
 
@@ -107,7 +119,9 @@ class PedidoClienteTest {
                 frete_centavos, desconto_centavos, total_centavos
             FROM pedido
             WHERE id = ?
-            """, pedidoId);
+            """,
+            pedidoId
+        );
 
         Long outroId = jdbc.queryForObject(
             "SELECT MAX(id) FROM pedido",
@@ -151,7 +165,9 @@ class PedidoClienteTest {
     void bloqueiaFormularioAntesDaEntrega()
             throws Exception {
 
-        mvc.perform(get("/pedidos/" + pedidoId + "/troca"))
+        mvc.perform(
+                get("/pedidos/" + pedidoId + "/troca")
+            )
             .andExpect(status().is3xxRedirection())
             .andExpect(redirectedUrl(
                 "/pedidos/" + pedidoId
@@ -162,7 +178,9 @@ class PedidoClienteTest {
             pedidoId
         );
 
-        mvc.perform(get("/pedidos/" + pedidoId + "/troca"))
+        mvc.perform(
+                get("/pedidos/" + pedidoId + "/troca")
+            )
             .andExpect(status().isOk());
     }
 }

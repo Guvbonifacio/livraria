@@ -37,6 +37,7 @@ public class PedidoService {
     private final UsuarioAtual usuario;
     private final ObjectMapper json;
     private final int validadeDias;
+    private final ReservaCarrinhoService reservas;
 
     public PedidoService(
             PedidoRepository pedidos,
@@ -48,7 +49,7 @@ public class PedidoService {
             UsuarioAtual usuario,
             ObjectMapper json,
             @Value("${livraria.cupom-troca.validade-dias:0}")
-            int validadeDias) {
+            int validadeDias, ReservaCarrinhoService reservas) {
 
         this.pedidos = pedidos;
         this.livros = livros;
@@ -59,6 +60,7 @@ public class PedidoService {
         this.usuario = usuario;
         this.json = json;
         this.validadeDias = validadeDias;
+        this.reservas = reservas;
     }
 
     // Mantém compatibilidade com chamadas anteriores e testes.
@@ -306,6 +308,8 @@ public class PedidoService {
                 )
             );
         }
+
+        reservas.vincular(sessaoId, pedidoId, itens);
 
         return pedidoId;
     }

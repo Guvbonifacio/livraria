@@ -165,13 +165,25 @@ public String checkoutPagamento(
 }
 
     @PostMapping("/checkout/pagamento")
-public String validarPagamento(
+    public String validarPagamento(
         @ModelAttribute("pagamento")
         FormularioPagamento formulario,
         BindingResult binding,
         @RequestParam(defaultValue = "validar") String acao,
         Model model,
         RedirectAttributes redirect) {
+
+            try {
+    carrinho.exigirPrazoValido();
+
+} catch (CarrinhoAtualizadoException e) {
+    redirect.addFlashAttribute(
+        "avisosEstoque",
+        e.getErros()
+    );
+
+    return "redirect:/carrinho";
+}
 
     if (carrinho.listar().isEmpty()) {
         return carrinhoVazio(redirect);

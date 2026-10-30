@@ -50,6 +50,7 @@ class AutorizacaoTrocaTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired WebApplicationContext contexto;
     @Autowired NotificacaoEstoqueService notificacoesEstoque;
+    @Autowired ReservaCarrinhoService reservas;
 
     @MockitoSpyBean
     LogRepository logs;
@@ -67,7 +68,7 @@ class AutorizacaoTrocaTest {
             .filter(livro -> livro.getEstoque() >= 4)
             .toList();
 
-        var carrinho = new CarrinhoService(livros, notificacoesEstoque);
+        var carrinho = new CarrinhoService(livros, notificacoesEstoque, reservas);
         carrinho.adicionar(lista.get(0).getId(), 2);
         carrinho.adicionar(lista.get(1).getId(), 1);
 
@@ -95,7 +96,8 @@ class AutorizacaoTrocaTest {
         pedidoId = pedidos.finalizar(
             carrinho.listar(),
             checkout.obterEntrega().getEndereco(),
-            pagamento
+            pagamento,
+            carrinho.getSessaoId()
         );
 
         var itens = repository

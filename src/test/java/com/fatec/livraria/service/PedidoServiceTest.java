@@ -30,7 +30,7 @@ class PedidoServiceTest {
     @Autowired UsuarioAtual usuario;
     @Autowired JdbcTemplate jdbc;
     @Autowired NotificacaoEstoqueService notificacoesEstoque;
-
+    @Autowired ReservaCarrinhoService reservas;
     @MockitoSpyBean
     LogRepository logs;
 
@@ -43,7 +43,7 @@ class PedidoServiceTest {
     void preparar() {
         reset(logs);
 
-        carrinho = new CarrinhoService(livros, notificacoesEstoque);
+        carrinho = new CarrinhoService(livros, notificacoesEstoque, reservas);
         carrinho.adicionar(
             livros.consultar("O Hobbit", null).get(0).getId(),
             1
@@ -191,7 +191,7 @@ class PedidoServiceTest {
             novo.get("validade")
         );
 
-        assertEquals(5, contar("log_transacao"));
+        assertEquals(7, contar("log_transacao"));
 
         assertEquals(
             "EM PROCESSAMENTO",
@@ -211,55 +211,62 @@ class PedidoServiceTest {
 
     @Test
     void falhaNoUltimoLogDesfazTudoEConservaSessao() {
-        Long utilizado = cupom(
-            checkout.obterEntrega().getTotal()
-                .add(new BigDecimal("5.00"))
-        );
+    int logsAntes = contar("log_transacao");
 
-        formulario.setCuponsIds(List.of(utilizado));
-        formulario.setValoresCartoes(Map.of());
+    Long utilizado = cupom(
+        checkout.obterEntrega().getTotal()
+            .add(new BigDecimal("5.00"))
+    );
 
-        doAnswer(chamada -> {
-            LogTransacao log = chamada.getArgument(0);
+    formulario.setCuponsIds(List.of(utilizado));
+    formulario.setValoresCartoes(Map.of());
 
-            if ("cupom".equals(log.getTabela())
-                    && "INSERT".equals(log.getOperacao())) {
-                throw new IllegalStateException(
-                    "Falha simulada no último log"
-                );
-            }
+    doAnswer(chamada -> {
+        LogTransacao log = chamada.getArgument(0);
 
-            return chamada.callRealMethod();
+        if ("cupom".equals(log.getTabela())
+                && "INSERT".equals(log.getOperacao())) {
 
-        }).when(logs).registrar(any());
-
-        assertThrows(
-            IllegalStateException.class,
-            () -> finalizacao.finalizar(formulario)
-        );
-
-        for (String tabela : List.of(
-                "pedido",
-                "item_pedido",
-                "pagamento",
-                "log_transacao")) {
-
-            assertEquals(0, contar(tabela), tabela);
+            throw new IllegalStateException(
+                "Falha simulada no último log"
+            );
         }
 
-        assertEquals(1, contar("cupom"));
+        return chamada.callRealMethod();
 
-        assertEquals(
-            1,
-            jdbc.queryForObject(
-                "SELECT ativo FROM cupom WHERE id = ?",
-                Integer.class,
-                utilizado
-            )
-        );
+    }).when(logs).registrar(any());
 
-        assertFalse(carrinho.listar().isEmpty());
-        assertNotNull(checkout.obterEntrega());
+    assertThrows(
+        IllegalStateException.class,
+        () -> finalizacao.finalizar(formulario)
+    );
+
+    for (String tabela : List.of(
+            "pedido",
+            "item_pedido",
+            "pagamento")) {
+
+        assertEquals(0, contar(tabela), tabela);
+    }
+
+    // O log da reserva foi criado antes da tentativa do pedido.
+    // Deve permanecer; os logs da transação desfeita não devem.
+    assertEquals(logsAntes, contar("log_transacao"));
+
+    // O cupom original permanece disponível.
+    assertEquals(1, contar("cupom"));
+
+    assertEquals(
+        1,
+        jdbc.queryForObject(
+            "SELECT ativo FROM cupom WHERE id = ?",
+            Integer.class,
+            utilizado
+        )
+    );
+
+    assertFalse(carrinho.listar().isEmpty());
+    assertNotNull(checkout.obterEntrega());
     }
 
     @Test
