@@ -1,11 +1,9 @@
 describe('RF0023 - Inativar cliente', () => {
-
   it('inativa o cliente sem excluí-lo do sistema', () => {
-
     const n = Date.now();
     const nome = `Inativar ${n}`;
 
-    // Cadastra um novo cliente
+    // Cadastra um novo cliente.
     cy.visit('/clientes/novo');
 
     cy.get('[name="nome"]').type(nome);
@@ -37,27 +35,47 @@ describe('RF0023 - Inativar cliente', () => {
     cy.get('[name="cartoes[0].preferencial"]').check();
 
     cy.contains('Finalizar Cadastro').click();
-    cy.url().should('match', /\/clientes\/\d+$/);
 
-    // Inativa a conta através do modal de confirmação
-    cy.contains('Inativar Conta').click();
-    cy.contains('Sim, inativar cadastro').click();
+    cy.location('pathname')
+      .should('match', /^\/clientes\/\d+$/)
+      .then(caminho => {
+        const clienteId = caminho.split('/')[2];
 
-    // Valida que o perfil exibe a situação Inativo
-    cy.contains('Inativo').should('be.visible');
+        // Assume o perfil administrativo antes de inativar.
+        cy.request({
+          method: 'POST',
+          url: '/sessao/perfil',
+          form: true,
+          body: { perfil: 'ADMIN' }
+        });
 
-    // Acessa a consulta administrativa e verifica a persistência dos dados
-    cy.visit('/admin/clientes');
+        cy.visit(`/admin/clientes/${clienteId}`);
 
-    cy.get('[name="nome"]').type(nome);
-    cy.contains('Filtrar').click();
+        // Inativa pelo formulário administrativo.
+        cy.get(
+          `form[action="/admin/clientes/${clienteId}/inativar"]`
+        ).within(() => {
+          cy.get('button[type="submit"]').click();
+        });
 
-    // Confirma que o cliente não foi excluído
-    cy.contains(nome).should('be.visible');
+        cy.contains('Inativo').should('be.visible');
 
-    // Confirma que permanece cadastrado como inativo
-    cy.contains('Inativo').should('be.visible');
+        // Confirma que os dados continuam na consulta.
+        cy.visit('/admin/clientes');
 
+        cy.get('[name="nome"]').clear().type(nome);
+        cy.contains('button', 'Filtrar').click();
+
+        cy.contains('tr', nome).within(() => {
+          cy.contains('Inativo').should('be.visible');
+        });
+
+        // Confirma a persistência após recarregar.
+        cy.reload();
+
+        cy.contains('tr', nome).within(() => {
+          cy.contains('Inativo').should('be.visible');
+        });
+      });
   });
-
 });

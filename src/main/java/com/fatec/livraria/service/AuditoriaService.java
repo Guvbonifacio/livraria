@@ -36,11 +36,42 @@ public class AuditoriaService {
             Long id,
             Map<String, Object> dados) {
 
+        registrarComo(
+            usuario.getIdentificador(),
+            operacao,
+            tabela,
+            id,
+            dados
+        );
+    }
+
+    public void registrarSistema(
+            String operacao,
+            String tabela,
+            Long id,
+            Map<String, Object> dados) {
+
+        registrarComo(
+            "sistema",
+            operacao,
+            tabela,
+            id,
+            dados
+        );
+    }
+
+    private void registrarComo(
+            String responsavel,
+            String operacao,
+            String tabela,
+            Long id,
+            Map<String, Object> dados) {
+
         logs.registrar(
             new LogTransacao(
                 null,
                 LocalDateTime.now(),
-                usuario.getIdentificador(),
+                responsavel,
                 operacao,
                 tabela,
                 id,

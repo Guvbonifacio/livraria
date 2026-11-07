@@ -20,7 +20,9 @@ describe('RF0041 / RN0041 - Solicitar troca', () => {
           `[name="enderecoId"][value="${cenario.enderecoId}"]`
         ).check();
 
-        cy.get('button[name="acao"][value="continuar"]').click();
+        cy.get(
+          'button[name="acao"][value="continuar"]'
+        ).click();
 
         cy.get('[data-cy="total-checkout"]')
           .invoke('attr', 'data-valor')
@@ -30,12 +32,22 @@ describe('RF0041 / RN0041 - Solicitar troca', () => {
             ).clear().type(total);
           });
 
-        cy.get('button[name="acao"][value="finalizar"]').click();
+        cy.get(
+          'button[name="acao"][value="finalizar"]'
+        ).click();
 
         cy.location('pathname')
           .should('match', /^\/pedidos\/\d+\/confirmacao$/)
           .then(caminho => {
             const id = Number(caminho.split('/')[2]);
+
+            // Assume ADMIN antes das ações administrativas.
+            cy.request({
+              method: 'POST',
+              url: '/sessao/perfil',
+              form: true,
+              body: { perfil: 'ADMIN' }
+            });
 
             cy.visit(`/admin/pedidos/${id}`);
 
@@ -43,24 +55,18 @@ describe('RF0041 / RN0041 - Solicitar troca', () => {
               'button[name="novoStatus"][value="APROVADA"]'
             ).click();
 
-            cy.get('[data-cy="status-pedido"]').should($elemento => {
-              expect($elemento.text().trim().toUpperCase())
-                .to.eq('APROVADA');
-            });
+            cy.get('[data-cy="status-pedido"]')
+              .should('have.attr', 'data-status', 'APROVADA');
 
             cy.get('[data-cy="despachar-pedido"]').click();
 
-            cy.get('[data-cy="status-pedido"]').should($elemento => {
-              expect($elemento.text().trim().toUpperCase())
-                .to.eq('EM TRANSPORTE');
-            });
+            cy.get('[data-cy="status-pedido"]')
+              .should('have.attr', 'data-status', 'EM TRANSPORTE');
 
             cy.get('[data-cy="entregar-pedido"]').click();
 
-            cy.get('[data-cy="status-pedido"]').should($elemento => {
-              expect($elemento.text().trim().toUpperCase())
-                .to.eq('ENTREGUE');
-            });
+            cy.get('[data-cy="status-pedido"]')
+              .should('have.attr', 'data-status', 'ENTREGUE');
 
             cy.task('trocas:consultar', id).then(antes => {
               expect(antes.itens).to.have.length(2);
@@ -69,7 +75,14 @@ describe('RF0041 / RN0041 - Solicitar troca', () => {
                 ? antes.itens
                 : [antes.itens[0]];
 
-              // A solicitação começa na consulta real do cliente.
+              // Volta ao perfil CLIENTE para solicitar a troca.
+              cy.request({
+                method: 'POST',
+                url: '/sessao/perfil',
+                form: true,
+                body: { perfil: 'CLIENTE' }
+              });
+
               cy.visit('/pedidos');
 
               cy.get(`a[href="/pedidos/${id}"]`).click();
@@ -94,11 +107,14 @@ describe('RF0041 / RN0041 - Solicitar troca', () => {
               cy.get('[data-cy="confirmar-troca"]').click();
 
               cy.get('[data-cy="sucesso-troca"]')
-                .should('contain.text', 'EM TROCA');
+                .should('be.visible')
+                .and('contain.text', 'EM TROCA');
 
               cy.task('trocas:consultar', id).then(depois => {
                 expect(depois.trocas).to.have.length(1);
-                expect(depois.trocas[0].status).to.eq('EM TROCA');
+
+                expect(depois.trocas[0].status)
+                  .to.eq('EM TROCA');
 
                 expect(depois.pedido.status).to.eq(
                   caso.integral ? 'EM TROCA' : 'ENTREGUE'
@@ -113,6 +129,7 @@ describe('RF0041 / RN0041 - Solicitar troca', () => {
                   );
 
                   expect(registrado).to.exist;
+
                   expect(registrado.quantidade)
                     .to.eq(item.quantidade);
                 });
@@ -129,14 +146,17 @@ describe('RF0041 / RN0041 - Solicitar troca', () => {
                   )
                 ).to.have.length(escolhidos.length);
 
-                expect(depois.estoque).to.deep.eq(antes.estoque);
-                expect(depois.cupons).to.deep.eq(antes.cupons);
+                expect(depois.estoque)
+                  .to.deep.eq(antes.estoque);
+
+                expect(depois.cupons)
+                  .to.deep.eq(antes.cupons);
               });
 
               if (!caso.integral) {
                 const item = escolhidos[0];
 
-                // Uma segunda solicitação do mesmo item é recusada.
+                // Recusa outra solicitação para o mesmo item.
                 cy.request({
                   method: 'POST',
                   url: `/pedidos/${id}/troca`,

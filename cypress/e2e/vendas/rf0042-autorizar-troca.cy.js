@@ -30,29 +30,39 @@ describe('RF0042 / RF0043 / RN0046 - Autorizar troca', () => {
         .then(caminho => {
           const id = Number(caminho.split('/')[2]);
 
+          // ADMIN aprova, despacha e confirma a entrega.
+          cy.request({
+            method: 'POST',
+            url: '/sessao/perfil',
+            form: true,
+            body: { perfil: 'ADMIN' }
+          });
+
           cy.visit(`/admin/pedidos/${id}`);
 
           cy.get(
             'button[name="novoStatus"][value="APROVADA"]'
           ).click();
 
-          cy.get('[data-cy="status-pedido"]').should($elemento => {
-            expect($elemento.text().trim().toUpperCase())
-              .to.eq('APROVADA');
-          });
+          cy.get('[data-cy="status-pedido"]')
+            .should('have.attr', 'data-status', 'APROVADA');
 
           cy.get('[data-cy="despachar-pedido"]').click();
 
-          cy.get('[data-cy="status-pedido"]').should($elemento => {
-            expect($elemento.text().trim().toUpperCase())
-              .to.eq('EM TRANSPORTE');
-          });
+          cy.get('[data-cy="status-pedido"]')
+            .should('have.attr', 'data-status', 'EM TRANSPORTE');
 
           cy.get('[data-cy="entregar-pedido"]').click();
 
-          cy.get('[data-cy="status-pedido"]').should($elemento => {
-            expect($elemento.text().trim().toUpperCase())
-              .to.eq('ENTREGUE');
+          cy.get('[data-cy="status-pedido"]')
+            .should('have.attr', 'data-status', 'ENTREGUE');
+
+          // CLIENTE solicita a troca.
+          cy.request({
+            method: 'POST',
+            url: '/sessao/perfil',
+            form: true,
+            body: { perfil: 'CLIENTE' }
           });
 
           cy.visit(`/pedidos/${id}`);
@@ -70,6 +80,14 @@ describe('RF0042 / RF0043 / RN0046 - Autorizar troca', () => {
             expect(antes.notificacoes).to.have.length(0);
 
             const trocaId = antes.trocas[0].id;
+
+            // ADMIN consulta e autoriza a solicitação.
+            cy.request({
+              method: 'POST',
+              url: '/sessao/perfil',
+              form: true,
+              body: { perfil: 'ADMIN' }
+            });
 
             cy.visit('/admin/trocas');
 
@@ -126,15 +144,33 @@ describe('RF0042 / RF0043 / RN0046 - Autorizar troca', () => {
                 )
               ).to.have.length(1);
 
-              expect(depois.estoque).to.deep.eq(antes.estoque);
-              expect(depois.cupons).to.deep.eq(antes.cupons);
+              expect(depois.estoque)
+                .to.deep.eq(antes.estoque);
+
+              expect(depois.cupons)
+                .to.deep.eq(antes.cupons);
+
+              // CLIENTE visualiza a notificação.
+              cy.request({
+                method: 'POST',
+                url: '/sessao/perfil',
+                form: true,
+                body: { perfil: 'CLIENTE' }
+              });
 
               cy.visit('/pedidos');
 
               cy.contains('[data-cy="notificacao"]', mensagem)
                 .should('be.visible');
 
-              // Repetir o POST não pode autorizar ou notificar de novo.
+              // ADMIN tenta autorizar novamente.
+              cy.request({
+                method: 'POST',
+                url: '/sessao/perfil',
+                form: true,
+                body: { perfil: 'ADMIN' }
+              });
+
               cy.request({
                 method: 'POST',
                 url: `/admin/trocas/${trocaId}/analisar`,
@@ -152,6 +188,12 @@ describe('RF0042 / RF0043 / RN0046 - Autorizar troca', () => {
                 expect(
                   repetido.logsTroca.filter(
                     log => log.operacao === 'UPDATE'
+                  )
+                ).to.have.length(1);
+
+                expect(
+                  repetido.logsNotificacao.filter(
+                    log => log.operacao === 'INSERT'
                   )
                 ).to.have.length(1);
               });

@@ -18,6 +18,7 @@ public class ProcessamentoPedidoService {
     private final EstoquePedidoService estoque;
     private final AuditoriaService auditoria;
     private final int validadeDias;
+    private final UsuarioAtual usuario;
 
     public ProcessamentoPedidoService(
             PedidoRepository pedidos,
@@ -25,19 +26,22 @@ public class ProcessamentoPedidoService {
             EstoquePedidoService estoque,
             AuditoriaService auditoria,
             @Value("${livraria.cupom-troca.validade-dias:0}")
-            int validadeDias) {
+            int validadeDias, UsuarioAtual usuario) {
 
         this.pedidos = pedidos;
         this.validacao = validacao;
         this.estoque = estoque;
         this.auditoria = auditoria;
         this.validadeDias = validadeDias;
+        this.usuario = usuario;
     }
 
     @Transactional
     public String processar(
             Long pedidoId,
             String retornoSimulado) {
+
+        usuario.exigirAdministrador();
 
         // Representa a resposta simulada da operadora.
         // A aprovação ainda depende da validação dos pagamentos.

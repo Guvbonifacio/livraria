@@ -1,10 +1,9 @@
 describe('RF0024 - Consultar cliente', () => {
-
   it('consulta cliente utilizando filtro por nome', () => {
-
     const n = Date.now();
     const nome = `Filtro${n}`;
 
+    // Cadastra o cliente que será consultado.
     cy.visit('/clientes/novo');
 
     cy.get('[name="nome"]').type(nome);
@@ -37,17 +36,25 @@ describe('RF0024 - Consultar cliente', () => {
 
     cy.contains('Finalizar Cadastro').click();
 
-    cy.url().should('match', /\/clientes\/\d+$/);
+    cy.location('pathname')
+      .should('match', /^\/clientes\/\d+$/);
+
+    // Assume o perfil administrativo antes da consulta.
+    cy.request({
+      method: 'POST',
+      url: '/sessao/perfil',
+      form: true,
+      body: { perfil: 'ADMIN' }
+    });
 
     cy.visit('/admin/clientes');
 
-    cy.get('[name="nome"]').type(nome);
+    cy.get('[name="nome"]').clear().type(nome);
+    cy.contains('button', 'Filtrar').click();
 
-    cy.contains('Filtrar').click();
-
-    cy.contains(nome).should('be.visible');
-
-    cy.contains('Maria Teste').should('not.exist');
+    // Confirma que a tabela apresenta somente o cliente filtrado.
+    cy.get('table tbody tr')
+      .should('have.length', 1)
+      .and('contain.text', nome);
   });
-
 });

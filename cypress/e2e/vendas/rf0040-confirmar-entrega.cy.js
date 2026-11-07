@@ -35,6 +35,14 @@ describe('RF0040 - Confirmar entrega', () => {
         .then(caminho => {
           const id = Number(caminho.split('/')[2]);
 
+          // Assume ADMIN antes das ações administrativas.
+          cy.request({
+            method: 'POST',
+            url: '/sessao/perfil',
+            form: true,
+            body: { perfil: 'ADMIN' }
+          });
+
           cy.visit(`/admin/pedidos/${id}`);
 
           cy.get(
@@ -44,7 +52,7 @@ describe('RF0040 - Confirmar entrega', () => {
           cy.get('[data-cy="status-pedido"]')
             .should('have.attr', 'data-status', 'APROVADA');
 
-          // Antes do despacho, confirmar entrega não está disponível.
+          // A entrega não pode ser confirmada antes do despacho.
           cy.get('[data-cy="entregar-pedido"]')
             .should('not.exist');
 
@@ -92,6 +100,7 @@ describe('RF0040 - Confirmar entrega', () => {
               ]);
             });
 
+            // Confirma que a entrega foi persistida.
             cy.reload();
 
             cy.get('[data-cy="status-pedido"]')

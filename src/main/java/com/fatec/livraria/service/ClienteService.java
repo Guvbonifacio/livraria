@@ -125,6 +125,7 @@ public class ClienteService {
     }
 
     public List<Cliente> consultar(String nome, String cpf, String email) {
+        usuarioAtual.exigirAdministrador();
         return repository.consultar(nome, cpf, email);
     }
 
@@ -212,6 +213,7 @@ public void alterar(Cliente cliente) {
 
     @Transactional
     public void inativar(Long id) {
+        usuarioAtual.exigirAdministrador();
         Cliente anterior = exigirCliente(id);
         repository.inativar(id);
 

@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppC
     "spring.datasource.hikari.maximum-pool-size=1"
 })
 @Sql("/cenario-checkout.sql")
-class AutorizacaoTrocaTest {
+class AutorizacaoTrocaTest extends TesteComSessao {
 
     @Autowired LivroRepository livros;
     @Autowired PedidoRepository repository;
@@ -58,6 +58,11 @@ class AutorizacaoTrocaTest {
     private Long pedidoId;
     private Long primeiro;
     private Long segundo;
+
+    @Override
+    protected String perfilInicial() {
+        return "ADMIN";
+    }
 
     @BeforeEach
     void preparar() {
@@ -149,7 +154,9 @@ class AutorizacaoTrocaTest {
         );
         int cupons = contar("cupom");
 
-        var mvc = webAppContextSetup(contexto).build();
+        var mvc = webAppContextSetup(contexto)
+            .defaultRequest(get("/").session(sessao))
+            .build();
 
         mvc.perform(get("/admin/trocas"))
             .andExpect(status().isOk())
@@ -333,7 +340,9 @@ class AutorizacaoTrocaTest {
 
     @Test
     void trocaInexistenteRetorna404() throws Exception {
-        var mvc = webAppContextSetup(contexto).build();
+        var mvc = webAppContextSetup(contexto)
+            .defaultRequest(get("/").session(sessao))
+            .build();
 
         mvc.perform(
                 post("/admin/trocas/999999/analisar")
@@ -443,7 +452,9 @@ class AutorizacaoTrocaTest {
             consulta.notificacoes().get(0).clienteId()
         );
 
-        var mvc = webAppContextSetup(contexto).build();
+        var mvc = webAppContextSetup(contexto)
+            .defaultRequest(get("/").session(sessao))
+            .build();
 
         mvc.perform(get("/pedidos"))
             .andExpect(status().isOk())

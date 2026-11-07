@@ -21,7 +21,7 @@ import static org.mockito.Mockito.*;
     "spring.datasource.hikari.maximum-pool-size=1"
 })
 @Sql("/cenario-checkout.sql")
-class PedidoServiceTest {
+class PedidoServiceTest extends TesteComSessao {
 
     @Autowired PedidoService pedidos;
     @Autowired ClienteService clientes;

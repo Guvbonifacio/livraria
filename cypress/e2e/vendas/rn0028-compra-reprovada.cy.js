@@ -1,7 +1,5 @@
-// Cenário 5 da entrega: compra recusada pela operadora. O pedido fica
-// REPROVADA, nenhum item sai do estoque e os itens são desbloqueados.
-// Requisitos: RN0037, RN0038 e RN0028 ("todo item que faça parte de uma
-// compra não aprovada deve ser desbloqueado e mantido em estoque").
+// Cenário 5: compra recusada pela operadora.
+// RN0028: preserva o estoque e libera as reservas dos itens.
 
 describe('RN0028 - Compra reprovada mantém o estoque', () => {
   let c;
@@ -21,7 +19,7 @@ describe('RN0028 - Compra reprovada mantém o estoque', () => {
     cy.task('vendas:estoque', livro.id).then(antes => {
       cy.visit('/');
 
-      cy.contains('.card', 'O Hobbit').within(() => {
+      cy.contains('.card', livro.titulo).within(() => {
         cy.contains('button', 'Adicionar').click();
       });
 
@@ -38,55 +36,77 @@ describe('RN0028 - Compra reprovada mantém o estoque', () => {
 
       cy.get(
         `[name="valoresCartoes[${c.cartaoId}]"]`
-      ).type('47.00');
+      ).clear().type('47.00');
 
       cy.get('button[name="acao"][value="finalizar"]').click();
 
       cy.location('pathname')
-        .should('match', /^\/pedidos\/\d+\/confirmacao$/);
+        .should('match', /^\/pedidos\/\d+\/confirmacao$/)
+        .then(caminho => {
+          const id = Number(caminho.split('/')[2]);
 
-      cy.location('pathname').then(caminho => {
-        const id = Number(caminho.split('/')[2]);
+          // Assume ADMIN antes de acessar o pedido administrativo.
+          cy.request({
+            method: 'POST',
+            url: '/sessao/perfil',
+            form: true,
+            body: { perfil: 'ADMIN' }
+          });
 
-        // O administrador simula a recusa da operadora.
-        cy.visit(`/admin/pedidos/${id}`);
+          cy.visit(`/admin/pedidos/${id}`);
 
-        cy.get('[data-cy="status-pedido"]')
-          .should('have.attr', 'data-status', 'EM PROCESSAMENTO');
+          cy.get('[data-cy="status-pedido"]')
+            .should('have.attr', 'data-status', 'EM PROCESSAMENTO');
 
-        cy.get('[data-cy="simular-recusa"]').click();
+          // Confirma que a compra possui reserva antes da recusa.
+          cy.task('vendas:estoque', livro.id).then(pendente => {
+            expect(pendente.reservas).to.be.greaterThan(0);
+          });
 
-        cy.get('[data-cy="sucesso-processamento"]')
-          .should('contain.text', 'REPROVADA');
+          cy.get('[data-cy="simular-recusa"]').click();
 
-        cy.get('[data-cy="erros-processamento"]')
-          .should('not.exist');
+          cy.get('[data-cy="sucesso-processamento"]')
+            .should('contain.text', 'REPROVADA');
 
-        cy.get('[data-cy="status-pedido"]')
-          .should('have.attr', 'data-status', 'REPROVADA');
+          cy.get('[data-cy="erros-processamento"]')
+            .should('not.exist');
 
-        cy.task('vendas:pedido', id).then(resultado => {
-          expect(resultado.pedido.status).to.eq('REPROVADA');
+          cy.get('[data-cy="status-pedido"]')
+            .should('have.attr', 'data-status', 'REPROVADA');
 
-          expect(resultado.pagamentos[0].status)
-            .to.eq('RECUSADO');
+          cy.task('vendas:pedido', id).then(resultado => {
+            expect(resultado.pedido.status).to.eq('REPROVADA');
+
+            expect(resultado.pagamentos).to.have.length(1);
+
+            expect(resultado.pagamentos[0].status)
+              .to.eq('RECUSADO');
+          });
+
+          // Nenhuma unidade sai do estoque e a reserva é liberada.
+          cy.task('vendas:estoque', livro.id).then(depois => {
+            expect(depois.total).to.eq(antes.total);
+
+            expect(depois.lotes.map(lote => lote.quantidade))
+              .to.deep.eq(
+                antes.lotes.map(lote => lote.quantidade)
+              );
+
+            expect(depois.reservas).to.eq(0);
+          });
+
+          // Uma compra processada não pode ser processada novamente.
+          cy.get('[data-cy="simular-aceite"]')
+            .should('not.exist');
+
+          cy.get('[data-cy="simular-recusa"]')
+            .should('not.exist');
+
+          cy.reload();
+
+          cy.get('[data-cy="status-pedido"]')
+            .should('have.attr', 'data-status', 'REPROVADA');
         });
-
-        // RN0028: nenhuma unidade saiu do estoque...
-        cy.task('vendas:estoque', livro.id).then(depois => {
-          expect(depois.total).to.eq(antes.total);
-
-          expect(depois.lotes.map(l => l.quantidade))
-            .to.deep.eq(antes.lotes.map(l => l.quantidade));
-
-          // ...e os itens ficaram livres para outros clientes.
-          expect(depois.reservas).to.eq(0);
-        });
-
-        // Uma compra já processada não volta a ser processada.
-        cy.get('[data-cy="simular-aceite"]').should('not.exist');
-        cy.get('[data-cy="simular-recusa"]').should('not.exist');
-      });
     });
   });
 });

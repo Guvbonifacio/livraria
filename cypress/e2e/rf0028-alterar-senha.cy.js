@@ -21,17 +21,17 @@ describe('RF0028 - Alterar apenas a senha', () => {
         senha: senhaInicial,
         confirmacaoSenha: senhaInicial,
 
-      'enderecos[0].nomeCurto': 'Casa',
-      'enderecos[0].tipo': 'ENTREGA',
-      'enderecos[0].tipoResidencia': 'Casa',
-      'enderecos[0].tipoLogradouro': 'Rua',
-      'enderecos[0].logradouro': 'Rua das Flores',
-      'enderecos[0].numero': '100',
-      'enderecos[0].bairro': 'Centro',
-      'enderecos[0].cep': '08700000',
-      'enderecos[0].cidade': 'Mogi das Cruzes',
-      'enderecos[0].estado': 'SP',
-      'enderecos[0].pais': 'Brasil',
+        'enderecos[0].nomeCurto': 'Casa',
+        'enderecos[0].tipo': 'ENTREGA',
+        'enderecos[0].tipoResidencia': 'Casa',
+        'enderecos[0].tipoLogradouro': 'Rua',
+        'enderecos[0].logradouro': 'Rua das Flores',
+        'enderecos[0].numero': '100',
+        'enderecos[0].bairro': 'Centro',
+        'enderecos[0].cep': '08700000',
+        'enderecos[0].cidade': 'Mogi das Cruzes',
+        'enderecos[0].estado': 'SP',
+        'enderecos[0].pais': 'Brasil',
 
         'cartoes[0].numero': '4111111111111111',
         'cartoes[0].nomeImpresso': 'CLIENTE SENHA',
@@ -39,7 +39,7 @@ describe('RF0028 - Alterar apenas a senha', () => {
         'cartoes[0].codigoSeguranca': '123',
         'cartoes[0].preferencial': 'true'
       }
-    }).then((response) => {
+    }).then(response => {
       expect(response.status).to.equal(200);
       expect(response.redirects).to.have.length(1);
 
@@ -61,17 +61,19 @@ describe('RF0028 - Alterar apenas a senha', () => {
 
     cy.get('#modalSenha')
       .should('be.visible')
-      // Espera a animacao do Bootstrap terminar: digitar durante o
-      // fade perde caracteres de forma intermitente.
+      // Aguarda o término da animação do Bootstrap.
       .and('have.css', 'opacity', '1')
       .within(() => {
         cy.get('[name="senhaAtual"]')
+          .clear({ log: false })
           .type(atual, { log: false });
 
         cy.get('[name="novaSenha"]')
+          .clear({ log: false })
           .type(nova, { log: false });
 
         cy.get('[name="confirmacao"]')
+          .clear({ log: false })
           .type(nova, { log: false });
 
         cy.contains('button', 'Atualizar Senha').click();
@@ -86,35 +88,55 @@ describe('RF0028 - Alterar apenas a senha', () => {
 
       enviarAlteracao(senhaInicial, novaSenha);
 
-      cy.location('pathname').should('equal', `/clientes/${id}`);
+      cy.location('pathname')
+        .should('equal', `/clientes/${id}`);
 
       cy.get('[data-cy="sucesso-senha"]')
         .should('be.visible')
         .and('contain.text', 'Senha alterada com sucesso.');
 
       cy.reload();
+
       cy.get('[name="nome"]').should('have.value', nome);
 
-      // Uma segunda alteração usando a nova senha como senha atual
-      // confirma que a primeira alteração foi persistida.
+      // Confirma que a nova senha foi persistida.
       enviarAlteracao(novaSenha, 'OutraSenha@789');
 
-      cy.get('[data-cy="sucesso-senha"]').should('be.visible');
+      cy.get('[data-cy="sucesso-senha"]')
+        .should('be.visible');
+
       cy.get('[name="nome"]').should('have.value', nome);
+
+      // Assume ADMIN para consultar a auditoria.
+      cy.request({
+        method: 'POST',
+        url: '/sessao/perfil',
+        form: true,
+        body: { perfil: 'ADMIN' }
+      });
 
       cy.visit(`/admin/clientes/${id}`);
 
-      cy.contains('[data-cy="log-dados"]', /^senha alterada$/)
+      cy.contains(
+        '[data-cy="log-dados"]',
+        /^\s*senha alterada\s*$/
+      )
         .closest('[data-cy="log-transacao"]')
         .within(() => {
           cy.get('[data-cy="log-operacao"]')
-            .should('have.text', 'UPDATE');
+            .should($elemento => {
+              expect($elemento.text().trim()).to.eq('UPDATE');
+            });
 
           cy.get('[data-cy="log-tabela"]')
-            .should('have.text', 'cliente');
+            .should($elemento => {
+              expect($elemento.text().trim()).to.eq('cliente');
+            });
 
           cy.get('[data-cy="log-registro-id"]')
-            .should('have.text', id);
+            .should($elemento => {
+              expect($elemento.text().trim()).to.eq(String(id));
+            });
         });
     });
   });
@@ -133,7 +155,9 @@ describe('RF0028 - Alterar apenas a senha', () => {
         .should('be.visible')
         .and('contain.text', 'Senha atual incorreta.');
 
-      cy.get('[data-cy="sucesso-senha"]').should('not.exist');
+      cy.get('[data-cy="sucesso-senha"]')
+        .should('not.exist');
+
       cy.get('[name="nome"]').should('have.value', nome);
 
       cy.get('#modalSenha [name="senhaAtual"]')
@@ -145,12 +169,14 @@ describe('RF0028 - Alterar apenas a senha', () => {
       cy.get('#modalSenha [name="confirmacao"]')
         .should('have.value', '');
 
-      // A senha original ainda deve funcionar após a tentativa recusada.
+      // A senha original continua válida após a tentativa recusada.
       cy.visit(`/clientes/${id}`);
 
       enviarAlteracao(senhaInicial, novaSenha);
 
-      cy.get('[data-cy="sucesso-senha"]').should('be.visible');
+      cy.get('[data-cy="sucesso-senha"]')
+        .should('be.visible');
+
       cy.get('[name="nome"]').should('have.value', nome);
     });
   });

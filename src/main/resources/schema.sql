@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS cliente (
     telefone        TEXT NOT NULL,
     email           TEXT NOT NULL UNIQUE,
     senha_hash      TEXT NOT NULL,
-    ativo           INTEGER NOT NULL DEFAULT 1 CHECK (ativo IN (0, 1))
+    ativo           INTEGER NOT NULL DEFAULT 1 CHECK (ativo IN (0, 1)),
+    perfil          TEXT NOT NULL DEFAULT 'CLIENTE' CHECK (perfil IN ('CLIENTE', 'ADMIN'))
 );
 
 CREATE TABLE IF NOT EXISTS endereco (

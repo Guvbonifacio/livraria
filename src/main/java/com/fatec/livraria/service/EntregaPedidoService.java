@@ -13,17 +13,20 @@ public class EntregaPedidoService {
 
     private final PedidoRepository pedidos;
     private final AuditoriaService auditoria;
+    private final UsuarioAtual usuario;
 
     public EntregaPedidoService(
             PedidoRepository pedidos,
-            AuditoriaService auditoria) {
+            AuditoriaService auditoria, UsuarioAtual usuario) {
 
         this.pedidos = pedidos;
         this.auditoria = auditoria;
+        this.usuario = usuario;
     }
 
     @Transactional
     public String transicionar(Long id, String destino) {
+        usuario.exigirAdministrador();
         String origem;
 
         if ("EM TRANSPORTE".equals(destino)) {

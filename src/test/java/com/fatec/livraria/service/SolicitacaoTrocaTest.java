@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppC
     "spring.datasource.hikari.maximum-pool-size=1"
 })
 @Sql("/cenario-checkout.sql")
-class SolicitacaoTrocaTest {
+class SolicitacaoTrocaTest extends TesteComSessao {
 
     @Autowired LivroRepository livros;
     @Autowired PedidoRepository repository;
@@ -58,6 +58,14 @@ class SolicitacaoTrocaTest {
     private Long pedidoId;
     private Long primeiro;
     private Long segundo;
+
+    @Override
+
+    protected String perfilInicial() {
+
+    return "ADMIN";
+
+    }  
 
     @BeforeEach
     void preparar() {
@@ -166,7 +174,9 @@ class SolicitacaoTrocaTest {
             )
         );
 
-        var mvc = webAppContextSetup(contexto).build();
+        var mvc = webAppContextSetup(contexto)
+    .defaultRequest(get("/").session(sessao))
+    .build();
 
         mvc.perform(
                 post("/pedidos/" + pedidoId + "/troca")
@@ -188,7 +198,9 @@ class SolicitacaoTrocaTest {
 
         entregar();
 
-        var mvc = webAppContextSetup(contexto).build();
+        var mvc = webAppContextSetup(contexto)
+    .defaultRequest(get("/").session(sessao))
+    .build();
 
         // Sem motivo: ele é opcional.
         mvc.perform(

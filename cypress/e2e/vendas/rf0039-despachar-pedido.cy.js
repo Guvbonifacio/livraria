@@ -35,6 +35,14 @@ describe('RF0039 - Despachar pedido', () => {
         .then(caminho => {
           const id = Number(caminho.split('/')[2]);
 
+          // Assume ADMIN antes de acessar o pedido administrativo.
+          cy.request({
+            method: 'POST',
+            url: '/sessao/perfil',
+            form: true,
+            body: { perfil: 'ADMIN' }
+          });
+
           cy.visit(`/admin/pedidos/${id}`);
 
           cy.get('[data-cy="status-pedido"]')

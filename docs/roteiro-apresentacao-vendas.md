@@ -75,12 +75,12 @@ de itens (RN0044) está fora do escopo desta entrega, então não há necessidad
 persistir. Menos duas tabelas, e o comportamento é o que o requisito pede.
 
 ### Valores monetários em centavos
-
+ i
 Todas as colunas de dinheiro são `INTEGER` em centavos: `preco_centavos`,
 `total_centavos`, `valor_centavos`.
 
 **Por quê:** `REAL` acumula erro de arredondamento. Numa compra que soma cupons e
-divide o restante entre cartões, centavos somem. Em centavos inteiros, a conta fecha
+divide o restante entre cartões, centavos somem. Em centavosnteiros, a conta fecha
 exatamente — e o banco ainda verifica com
 `CHECK (total_centavos = subtotal + frete - desconto)`.
 

@@ -181,3 +181,31 @@ VALUES
     ('BEMVINDO10', 'PROMOCIONAL', 1000, '2027-12-31'),
     ('LEITURA15', 'PROMOCIONAL', 1500, '2027-12-31')
 ON CONFLICT (codigo) DO NOTHING;
+
+-- Administrador de demonstração.
+-- Senha pública de demonstração: Demo@123, armazenada como BCrypt.
+INSERT INTO cliente (
+    id,
+    nome,
+    genero,
+    data_nascimento,
+    cpf,
+    telefone,
+    email,
+    senha_hash,
+    ativo,
+    perfil
+)
+VALUES (
+    2,
+    'Administrador Demonstração',
+    'Outro',
+    '1990-01-01',
+    '11144477735',
+    '11999990002',
+    'admin@estantedosaber.local',
+    '$2a$10$q7QLFBZUiaHQySPZvuQjQu.jOR6tDgl4.rusggAkJcYDP1WCRUa6q',
+    1,
+    'ADMIN'
+)
+ON CONFLICT DO NOTHING;

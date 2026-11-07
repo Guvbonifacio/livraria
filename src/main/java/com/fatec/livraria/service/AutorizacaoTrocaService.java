@@ -22,23 +22,27 @@ public class AutorizacaoTrocaService {
     private final PedidoRepository pedidos;
     private final NotificacaoRepository notificacoes;
     private final AuditoriaService auditoria;
+    private final UsuarioAtual usuario;
 
     public AutorizacaoTrocaService(
             TrocaRepository trocas,
             PedidoRepository pedidos,
             NotificacaoRepository notificacoes,
-            AuditoriaService auditoria) {
+            AuditoriaService auditoria, UsuarioAtual usuario) {
 
         this.trocas = trocas;
         this.pedidos = pedidos;
         this.notificacoes = notificacoes;
         this.auditoria = auditoria;
+        this.usuario = usuario;
     }
 
     @Transactional
     public void autorizar(
             Long trocaId,
             String decisao) {
+
+        usuario.exigirAdministrador();
 
         if (!"ACEITAR".equals(decisao)) {
             throw erro(

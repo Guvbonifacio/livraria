@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
     "spring.datasource.hikari.maximum-pool-size=1"
 })
 @Sql("/cenario-checkout.sql")
-class ProcessamentoPedidoTest {
+class ProcessamentoPedidoTest extends TesteComSessao {
 
     @Autowired
     LivroRepository livros;
@@ -61,6 +61,14 @@ class ProcessamentoPedidoTest {
 
     Long livroId;
     Long cartaoId;
+
+    @Override
+
+    protected String perfilInicial() {
+
+    return "ADMIN";
+
+    }
 
     @BeforeEach
     void preparar() {

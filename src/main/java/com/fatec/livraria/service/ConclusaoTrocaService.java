@@ -22,19 +22,22 @@ public class ConclusaoTrocaService {
     private final TrocaRepository trocas;
     private final PedidoRepository pedidos;
     private final AuditoriaService auditoria;
+    private final UsuarioAtual usuario;
 
     public ConclusaoTrocaService(
             TrocaRepository trocas,
             PedidoRepository pedidos,
-            AuditoriaService auditoria) {
+            AuditoriaService auditoria, UsuarioAtual usuario) {
 
         this.trocas = trocas;
         this.pedidos = pedidos;
         this.auditoria = auditoria;
+        this.usuario = usuario;
     }
 
     @Transactional
     public void receber(Long id, boolean retornaEstoque) {
+        usuario.exigirAdministrador();
         Troca troca = exigir(id);
 
         if (!"TROCA AUTORIZADA".equals(troca.status())) {
@@ -141,6 +144,7 @@ public class ConclusaoTrocaService {
 
     @Transactional
     public void finalizar(Long id) {
+        usuario.exigirAdministrador();
         Troca troca = exigir(id);
 
         if (!"TROCADO".equals(troca.status())

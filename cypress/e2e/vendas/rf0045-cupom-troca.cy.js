@@ -30,29 +30,39 @@ describe('RF0045 - Cupom após recebimento', () => {
         .then(caminho => {
           const id = Number(caminho.split('/')[2]);
 
+          // ADMIN aprova, despacha e confirma a entrega.
+          cy.request({
+            method: 'POST',
+            url: '/sessao/perfil',
+            form: true,
+            body: { perfil: 'ADMIN' }
+          });
+
           cy.visit(`/admin/pedidos/${id}`);
 
           cy.get(
             'button[name="novoStatus"][value="APROVADA"]'
           ).click();
 
-          cy.get('[data-cy="status-pedido"]').should($elemento => {
-            expect($elemento.text().trim().toUpperCase())
-              .to.eq('APROVADA');
-          });
+          cy.get('[data-cy="status-pedido"]')
+            .should('have.attr', 'data-status', 'APROVADA');
 
           cy.get('[data-cy="despachar-pedido"]').click();
 
-          cy.get('[data-cy="status-pedido"]').should($elemento => {
-            expect($elemento.text().trim().toUpperCase())
-              .to.eq('EM TRANSPORTE');
-          });
+          cy.get('[data-cy="status-pedido"]')
+            .should('have.attr', 'data-status', 'EM TRANSPORTE');
 
           cy.get('[data-cy="entregar-pedido"]').click();
 
-          cy.get('[data-cy="status-pedido"]').should($elemento => {
-            expect($elemento.text().trim().toUpperCase())
-              .to.eq('ENTREGUE');
+          cy.get('[data-cy="status-pedido"]')
+            .should('have.attr', 'data-status', 'ENTREGUE');
+
+          // CLIENTE solicita a troca.
+          cy.request({
+            method: 'POST',
+            url: '/sessao/perfil',
+            form: true,
+            body: { perfil: 'CLIENTE' }
           });
 
           cy.visit(`/pedidos/${id}`);
@@ -61,12 +71,21 @@ describe('RF0045 - Cupom após recebimento', () => {
           cy.get('[data-cy="selecionar-item-troca"]').check();
           cy.get('[data-cy="confirmar-troca"]').click();
 
-          cy.get('[data-cy="sucesso-troca"]').should('be.visible');
+          cy.get('[data-cy="sucesso-troca"]')
+            .should('be.visible');
 
           cy.task('trocas:consultar', id).then(antes => {
             expect(antes.trocas).to.have.length(1);
 
             const trocaId = antes.trocas[0].id;
+
+            // ADMIN autoriza e recebe sem retorno ao estoque.
+            cy.request({
+              method: 'POST',
+              url: '/sessao/perfil',
+              form: true,
+              body: { perfil: 'ADMIN' }
+            });
 
             cy.visit('/admin/trocas');
 
@@ -77,6 +96,9 @@ describe('RF0045 - Cupom após recebimento', () => {
             });
 
             cy.get('[data-cy="autorizar-troca"]').click();
+
+            cy.get('[data-cy="status-troca"]')
+              .should('contain.text', 'TROCA AUTORIZADA');
 
             cy.get(
               '[name="retornaEstoque"][value="false"]'
@@ -95,11 +117,14 @@ describe('RF0045 - Cupom após recebimento', () => {
 
               expect(troca.status).to.eq('TROCADO');
               expect(troca.retorna_estoque).to.eq(0);
+
               expect(troca.data_recebimento)
                 .to.be.a('string').and.not.be.empty;
 
               expect(depois.pedido.status).to.eq('TROCADO');
-              expect(depois.estoque).to.deep.eq(antes.estoque);
+
+              expect(depois.estoque)
+                .to.deep.eq(antes.estoque);
 
               const cupom = depois.cupons.find(
                 c => c.id === troca.cupom_id
@@ -117,6 +142,14 @@ describe('RF0045 - Cupom após recebimento', () => {
               expect(cupom.validade)
                 .to.match(/^\d{4}-\d{2}-\d{2}$/);
 
+              // CLIENTE consulta o cupom emitido.
+              cy.request({
+                method: 'POST',
+                url: '/sessao/perfil',
+                form: true,
+                body: { perfil: 'CLIENTE' }
+              });
+
               cy.visit('/cupons');
 
               cy.contains(
@@ -125,6 +158,14 @@ describe('RF0045 - Cupom após recebimento', () => {
               ).within(() => {
                 cy.contains('R$ 30,00').should('be.visible');
                 cy.contains('Disponível').should('be.visible');
+              });
+
+              // ADMIN tenta repetir recebimento e emissão.
+              cy.request({
+                method: 'POST',
+                url: '/sessao/perfil',
+                form: true,
+                body: { perfil: 'ADMIN' }
               });
 
               cy.request({

@@ -32,7 +32,7 @@ import static org.mockito.Mockito.*;
     "spring.datasource.hikari.maximum-pool-size=1"
 })
 @Sql("/cenario-checkout.sql")
-class NovoCartaoCheckoutTest {
+class NovoCartaoCheckoutTest extends TesteComSessao {
 
     @Autowired LivroRepository livros;
     @Autowired ClienteService clientes;

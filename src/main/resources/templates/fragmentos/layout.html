@@ -25,8 +25,38 @@
                 <a class="nav-link d-inline text-white me-3" th:href="@{/pedidos}">Meus Pedidos</a>
                 <a class="nav-link d-inline text-white me-3" th:href="@{/cupons}">Meus Cupons</a>
                 <a class="nav-link d-inline text-white me-3" th:href="@{/clientes/1}">Meu Cadastro</a>
-                <a class="nav-link d-inline text-warning me-3" th:href="@{/admin}">Administração</a>
-                <span class="text-white-50">Olá, Maria Silva</span>
+                <a class="nav-link d-inline text-warning me-3" th:href="@{/admin}" th:if="${perfilAtual == 'ADMIN'}"Administração</a>
+                <form th:action="@{/sessao/perfil}"
+      method="post"
+      class="d-inline-flex gap-2 align-items-center">
+
+    <label for="perfilSessao"
+           class="text-white-50 small">
+        Perfil (simulação)
+    </label>
+
+    <select id="perfilSessao"
+            name="perfil"
+            class="form-select form-select-sm"
+            data-cy="perfil-sessao">
+
+        <option value="CLIENTE"
+                th:selected="${perfilAtual == 'CLIENTE'}">
+            Cliente
+        </option>
+
+        <option value="ADMIN"
+                th:selected="${perfilAtual == 'ADMIN'}">
+            Administrador
+        </option>
+    </select>
+
+    <button type="submit"
+            class="btn btn-outline-light btn-sm"
+            data-cy="aplicar-perfil">
+        Aplicar
+    </button>
+</form>
             </div>
         </div>
     </nav>

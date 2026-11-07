@@ -92,6 +92,7 @@ public class ReservaCarrinhoService {
                     r.quantidade(),
                     r.expiraEm(),
                     r.avisado(),
+                    true,
                     true
                 );
             }
@@ -117,7 +118,8 @@ public class ReservaCarrinhoService {
                     r.quantidade(),
                     r.expiraEm(),
                     true,
-                    false
+                    false,
+                    true
                 );
             }
 
@@ -155,7 +157,7 @@ public class ReservaCarrinhoService {
             LocalDateTime.now(relogio)
         );
 
-        auditoria.registrar(
+        auditoria.registrarSistema(
             "INSERT",
             "notificacao",
             id,
@@ -174,6 +176,24 @@ public class ReservaCarrinhoService {
             boolean aviso,
             boolean expirado) {
 
+        atualizar(
+            reserva,
+            quantidade,
+            prazo,
+            aviso,
+            expirado,
+            false
+        );
+    }
+
+    private void atualizar(
+            Reserva reserva,
+            int quantidade,
+            Instant prazo,
+            boolean aviso,
+            boolean expirado,
+            boolean automatico) {
+
         int alterados = reservas.atualizar(
             reserva.id(),
             quantidade,
@@ -186,18 +206,30 @@ public class ReservaCarrinhoService {
             throw erro("A reserva mudou. Tente novamente.");
         }
 
-        auditoria.registrar(
-            "UPDATE",
-            "reserva_estoque",
-            reserva.id(),
-            Map.of(
-                "livroId", reserva.livroId(),
-                "quantidade", quantidade,
-                "expiraEm", prazo.toString(),
-                "avisoEnviado", aviso,
-                "expirado", expirado
-            )
+        Map<String, Object> dados = Map.of(
+            "livroId", reserva.livroId(),
+            "quantidade", quantidade,
+            "expiraEm", prazo.toString(),
+            "avisoEnviado", aviso,
+            "expirado", expirado
         );
+
+        if (automatico) {
+            auditoria.registrarSistema(
+                "UPDATE",
+                "reserva_estoque",
+                reserva.id(),
+                dados
+            );
+
+        } else {
+            auditoria.registrar(
+                "UPDATE",
+                "reserva_estoque",
+                reserva.id(),
+                dados
+            );
+        }
     }
 
     @Transactional

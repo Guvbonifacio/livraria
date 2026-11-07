@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppC
     "spring.datasource.hikari.maximum-pool-size=1"
 })
 @Sql("/cenario-checkout.sql")
-class PedidoClienteTest {
+class PedidoClienteTest extends TesteComSessao {
 
     @Autowired ReservaCarrinhoService reservas;
     @Autowired NotificacaoEstoqueService notificacoesEstoque;
@@ -45,7 +45,9 @@ class PedidoClienteTest {
 
     @BeforeEach
     void preparar() {
-        mvc = webAppContextSetup(contexto).build();
+        mvc = webAppContextSetup(contexto)
+            .defaultRequest(get("/").session(sessao))
+            .build();
 
         Long livroId = livros.consultar("O Hobbit", null)
             .get(0).getId();

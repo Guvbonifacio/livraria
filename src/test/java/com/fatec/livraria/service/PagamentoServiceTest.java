@@ -26,8 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 
 @Transactional
-class PagamentoServiceTest {
-
+class PagamentoServiceTest extends TesteComSessao {
     
     @Autowired ClienteService clientes;
     @Autowired LivroRepository livros;

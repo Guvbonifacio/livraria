@@ -1,19 +1,18 @@
 package com.fatec.livraria.controller;
 
 import com.fatec.livraria.model.Cliente;
-import com.fatec.livraria.repository.LogRepository;
+import com.fatec.livraria.service.AcessoAdministrativoException;
 import com.fatec.livraria.service.AdministracaoService;
-import com.fatec.livraria.service.ClienteService;
-import com.fatec.livraria.service.ValidacaoException;
-import com.fatec.livraria.service.ProcessamentoPedidoService;
-import org.springframework.dao.DataAccessException;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import com.fatec.livraria.service.EntregaPedidoService;
 import com.fatec.livraria.service.AutorizacaoTrocaService;
+import com.fatec.livraria.service.ClienteService;
 import com.fatec.livraria.service.ConclusaoTrocaService;
+import com.fatec.livraria.service.EntregaPedidoService;
+import com.fatec.livraria.service.ProcessamentoPedidoService;
+import com.fatec.livraria.service.ValidacaoException;
 
 import java.util.List;
 
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,13 +22,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
 
     private final ClienteService clienteService;
-    private final LogRepository logRepository;
     private final AdministracaoService administracao;
     private final ProcessamentoPedidoService processamento;
     private final EntregaPedidoService entrega;
@@ -37,26 +36,26 @@ public class AdminController {
     private final ConclusaoTrocaService conclusaoTroca;
 
     public AdminController(
-        ClienteService clienteService,
-        LogRepository logRepository,
-        AdministracaoService administracao,
-        ProcessamentoPedidoService processamento,
-        EntregaPedidoService entrega,
-        AutorizacaoTrocaService autorizacaoTroca,
-        ConclusaoTrocaService conclusaoTroca) {
+            ClienteService clienteService,
+            AdministracaoService administracao,
+            ProcessamentoPedidoService processamento,
+            EntregaPedidoService entrega,
+            AutorizacaoTrocaService autorizacaoTroca,
+            ConclusaoTrocaService conclusaoTroca) {
 
-    this.clienteService = clienteService;
-    this.logRepository = logRepository;
-    this.administracao = administracao;
-    this.processamento = processamento;
-    this.entrega = entrega;
-    this.autorizacaoTroca = autorizacaoTroca;
-    this.conclusaoTroca = conclusaoTroca;
-}
+        this.clienteService = clienteService;
+        this.administracao = administracao;
+        this.processamento = processamento;
+        this.entrega = entrega;
+        this.autorizacaoTroca = autorizacaoTroca;
+        this.conclusaoTroca = conclusaoTroca;
+    }
 
     // Painel principal
     @GetMapping
     public String admin() {
+        administracao.exigirAcesso();
+
         return "admin";
     }
 
@@ -85,13 +84,13 @@ public class AdminController {
             @PathVariable Long id,
             Model model) {
 
-        Cliente cliente = clienteService.exigirCliente(id);
+        Cliente cliente = administracao.buscarCliente(id);
 
         model.addAttribute("cliente", cliente);
 
         model.addAttribute(
             "logs",
-            logRepository.buscarPorRegistro("cliente", id)
+            administracao.historicoCliente(id)
         );
 
         return "admin-cliente-detalhe";
@@ -122,6 +121,9 @@ public class AdminController {
                     dataFinal
                 )
             );
+        } catch (AcessoAdministrativoException e) {
+            throw e;
+
         } catch (ValidacaoException e) {
             model.addAttribute("pedidos", List.of());
             model.addAttribute(
@@ -153,48 +155,51 @@ public class AdminController {
         return "admin-pedido-detalhe";
     }
 
-// Processa pagamento, despacho e confirmação de entrega.
-@PostMapping("/pedidos/{id}/status")
-public String alterarStatusPedido(
-        @PathVariable Long id,
-        @RequestParam String novoStatus,
-        RedirectAttributes redirect) {
+    // Processa pagamento, despacho e confirmação de entrega.
+    @PostMapping("/pedidos/{id}/status")
+    public String alterarStatusPedido(
+            @PathVariable Long id,
+            @RequestParam String novoStatus,
+            RedirectAttributes redirect) {
 
-    try {
-        String status;
+        try {
+            String status;
 
-        if ("EM TRANSPORTE".equals(novoStatus)
-                || "ENTREGUE".equals(novoStatus)) {
+            if ("EM TRANSPORTE".equals(novoStatus)
+                    || "ENTREGUE".equals(novoStatus)) {
 
-            status = entrega.transicionar(id, novoStatus);
+                status = entrega.transicionar(id, novoStatus);
 
-        } else {
-            status = processamento.processar(id, novoStatus);
+            } else {
+                status = processamento.processar(id, novoStatus);
+            }
+
+            redirect.addFlashAttribute(
+                "sucessoProcessamento",
+                "Status do pedido: " + status + "."
+            );
+
+        } catch (AcessoAdministrativoException e) {
+            throw e;
+
+        } catch (ValidacaoException e) {
+            redirect.addFlashAttribute(
+                "errosProcessamento",
+                e.getErros()
+            );
+
+        } catch (DataAccessException e) {
+            redirect.addFlashAttribute(
+                "errosProcessamento",
+                List.of(
+                    "Não foi possível atualizar o pedido. "
+                    + "Nenhuma alteração foi confirmada."
+                )
+            );
         }
 
-        redirect.addFlashAttribute(
-            "sucessoProcessamento",
-            "Status do pedido: " + status + "."
-        );
-
-    } catch (ValidacaoException e) {
-        redirect.addFlashAttribute(
-            "errosProcessamento",
-            e.getErros()
-        );
-
-    } catch (DataAccessException e) {
-        redirect.addFlashAttribute(
-            "errosProcessamento",
-            List.of(
-                "Não foi possível atualizar o pedido. "
-                + "Nenhuma alteração foi confirmada."
-            )
-        );
+        return "redirect:/admin/pedidos/" + id;
     }
-
-    return "redirect:/admin/pedidos/" + id;
-}
 
     // Consulta das solicitações reais de troca
     @GetMapping("/trocas")
@@ -227,108 +232,117 @@ public String alterarStatusPedido(
         return "admin-troca-detalhe";
     }
 
-@PostMapping("/trocas/{id}/analisar")
-public String analisarTroca(
-        @PathVariable Long id,
-        @RequestParam String decisao,
-        RedirectAttributes redirect) {
+    @PostMapping("/trocas/{id}/analisar")
+    public String analisarTroca(
+            @PathVariable Long id,
+            @RequestParam String decisao,
+            RedirectAttributes redirect) {
 
-    try {
-        autorizacaoTroca.autorizar(id, decisao);
+        try {
+            autorizacaoTroca.autorizar(id, decisao);
 
-        redirect.addFlashAttribute(
-            "sucessoAutorizacao",
-            "Troca autorizada. A notificação "
-            + "foi disponibilizada ao cliente."
-        );
+            redirect.addFlashAttribute(
+                "sucessoAutorizacao",
+                "Troca autorizada. A notificação "
+                + "foi disponibilizada ao cliente."
+            );
 
-    } catch (ValidacaoException e) {
-        redirect.addFlashAttribute(
-            "errosAutorizacao",
-            e.getErros()
-        );
+        } catch (AcessoAdministrativoException e) {
+            throw e;
 
-    } catch (DataAccessException e) {
-        redirect.addFlashAttribute(
-            "errosAutorizacao",
-            List.of(
-                "Não foi possível autorizar a troca. "
-                + "Nenhuma alteração foi confirmada."
-            )
-        );
+        } catch (ValidacaoException e) {
+            redirect.addFlashAttribute(
+                "errosAutorizacao",
+                e.getErros()
+            );
+
+        } catch (DataAccessException e) {
+            redirect.addFlashAttribute(
+                "errosAutorizacao",
+                List.of(
+                    "Não foi possível autorizar a troca. "
+                    + "Nenhuma alteração foi confirmada."
+                )
+            );
+        }
+
+        return "redirect:/admin/trocas/" + id;
     }
-
-    return "redirect:/admin/trocas/" + id;
-}
 
     // Recebimento e decisão sobre retorno ao estoque
-@PostMapping("/trocas/{id}/receber")
-public String receberItemTroca(
-        @PathVariable Long id,
-        @RequestParam Boolean retornaEstoque,
-        RedirectAttributes redirect) {
+    @PostMapping("/trocas/{id}/receber")
+    public String receberItemTroca(
+            @PathVariable Long id,
+            @RequestParam Boolean retornaEstoque,
+            RedirectAttributes redirect) {
 
-    try {
-        conclusaoTroca.receber(
-            id,
-            Boolean.TRUE.equals(retornaEstoque)
-        );
+        try {
+            conclusaoTroca.receber(
+                id,
+                Boolean.TRUE.equals(retornaEstoque)
+            );
 
-        redirect.addFlashAttribute(
-            "sucessoConclusao",
-            "Recebimento confirmado e cupom emitido."
-        );
+            redirect.addFlashAttribute(
+                "sucessoConclusao",
+                "Recebimento confirmado e cupom emitido."
+            );
 
-    } catch (ValidacaoException e) {
-        redirect.addFlashAttribute(
-            "errosConclusao",
-            e.getErros()
-        );
+        } catch (AcessoAdministrativoException e) {
+            throw e;
 
-    } catch (DataAccessException e) {
-        redirect.addFlashAttribute(
-            "errosConclusao",
-            List.of(
-                "Não foi possível receber a troca. "
-                + "Nenhuma alteração foi confirmada."
-            )
-        );
+        } catch (ValidacaoException e) {
+            redirect.addFlashAttribute(
+                "errosConclusao",
+                e.getErros()
+            );
+
+        } catch (DataAccessException e) {
+            redirect.addFlashAttribute(
+                "errosConclusao",
+                List.of(
+                    "Não foi possível receber a troca. "
+                    + "Nenhuma alteração foi confirmada."
+                )
+            );
+        }
+
+        return "redirect:/admin/trocas/" + id;
     }
 
-    return "redirect:/admin/trocas/" + id;
-}
+    @PostMapping("/trocas/{id}/finalizar")
+    public String finalizarTroca(
+            @PathVariable Long id,
+            RedirectAttributes redirect) {
 
-@PostMapping("/trocas/{id}/finalizar")
-public String finalizarTroca(
-        @PathVariable Long id,
-        RedirectAttributes redirect) {
+        try {
+            conclusaoTroca.finalizar(id);
 
-    try {
-        conclusaoTroca.finalizar(id);
+            redirect.addFlashAttribute(
+                "sucessoConclusao",
+                "Cupom de troca emitido."
+            );
 
-        redirect.addFlashAttribute(
-            "sucessoConclusao",
-            "Cupom de troca emitido."
-        );
+        } catch (AcessoAdministrativoException e) {
+            throw e;
 
-    } catch (ValidacaoException e) {
-        redirect.addFlashAttribute(
-            "errosConclusao",
-            e.getErros()
-        );
+        } catch (ValidacaoException e) {
+            redirect.addFlashAttribute(
+                "errosConclusao",
+                e.getErros()
+            );
 
-    } catch (DataAccessException e) {
-        redirect.addFlashAttribute(
-            "errosConclusao",
-            List.of(
-                "Não foi possível emitir o cupom. "
-                + "Nenhuma alteração foi confirmada."
-            )
-        );
+        } catch (DataAccessException e) {
+            redirect.addFlashAttribute(
+                "errosConclusao",
+                List.of(
+                    "Não foi possível emitir o cupom. "
+                    + "Nenhuma alteração foi confirmada."
+                )
+            );
+        }
+
+        return "redirect:/admin/trocas/" + id;
     }
-
-    return "redirect:/admin/trocas/" + id;
-}
 
     // As séries serão implementadas na etapa de análise.
     @GetMapping("/analise")

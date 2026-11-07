@@ -30,29 +30,39 @@ describe('RF0044 / RN0042 / RF0054 - Receber troca', () => {
         .then(caminho => {
           const id = Number(caminho.split('/')[2]);
 
+          // ADMIN aprova, despacha e confirma a entrega.
+          cy.request({
+            method: 'POST',
+            url: '/sessao/perfil',
+            form: true,
+            body: { perfil: 'ADMIN' }
+          });
+
           cy.visit(`/admin/pedidos/${id}`);
 
           cy.get(
             'button[name="novoStatus"][value="APROVADA"]'
           ).click();
 
-          cy.get('[data-cy="status-pedido"]').should($elemento => {
-            expect($elemento.text().trim().toUpperCase())
-              .to.eq('APROVADA');
-          });
+          cy.get('[data-cy="status-pedido"]')
+            .should('have.attr', 'data-status', 'APROVADA');
 
           cy.get('[data-cy="despachar-pedido"]').click();
 
-          cy.get('[data-cy="status-pedido"]').should($elemento => {
-            expect($elemento.text().trim().toUpperCase())
-              .to.eq('EM TRANSPORTE');
-          });
+          cy.get('[data-cy="status-pedido"]')
+            .should('have.attr', 'data-status', 'EM TRANSPORTE');
 
           cy.get('[data-cy="entregar-pedido"]').click();
 
-          cy.get('[data-cy="status-pedido"]').should($elemento => {
-            expect($elemento.text().trim().toUpperCase())
-              .to.eq('ENTREGUE');
+          cy.get('[data-cy="status-pedido"]')
+            .should('have.attr', 'data-status', 'ENTREGUE');
+
+          // CLIENTE solicita a troca.
+          cy.request({
+            method: 'POST',
+            url: '/sessao/perfil',
+            form: true,
+            body: { perfil: 'CLIENTE' }
           });
 
           cy.visit(`/pedidos/${id}`);
@@ -61,13 +71,22 @@ describe('RF0044 / RN0042 / RF0054 - Receber troca', () => {
           cy.get('[data-cy="selecionar-item-troca"]').check();
           cy.get('[data-cy="confirmar-troca"]').click();
 
-          cy.get('[data-cy="sucesso-troca"]').should('be.visible');
+          cy.get('[data-cy="sucesso-troca"]')
+            .should('be.visible');
 
           cy.task('trocas:consultar', id).then(antes => {
             expect(antes.trocas).to.have.length(1);
             expect(antes.pedido.status).to.eq('EM TROCA');
 
             const trocaId = antes.trocas[0].id;
+
+            // ADMIN autoriza e recebe os itens devolvidos.
+            cy.request({
+              method: 'POST',
+              url: '/sessao/perfil',
+              form: true,
+              body: { perfil: 'ADMIN' }
+            });
 
             cy.visit('/admin/trocas');
 
@@ -78,6 +97,9 @@ describe('RF0044 / RN0042 / RF0054 - Receber troca', () => {
             });
 
             cy.get('[data-cy="autorizar-troca"]').click();
+
+            cy.get('[data-cy="status-troca"]')
+              .should('contain.text', 'TROCA AUTORIZADA');
 
             cy.get(
               '[name="retornaEstoque"][value="true"]'
@@ -96,11 +118,13 @@ describe('RF0044 / RN0042 / RF0054 - Receber troca', () => {
 
               expect(troca.status).to.eq('TROCADO');
               expect(troca.retorna_estoque).to.eq(1);
+
               expect(troca.data_recebimento)
                 .to.be.a('string').and.not.be.empty;
 
               expect(depois.pedido.status).to.eq('TROCADO');
 
+              // Confirma a reentrada das unidades devolvidas.
               for (const anterior of antes.estoque) {
                 const atual = depois.estoque.find(
                   e => e.livro_id === anterior.livro_id
@@ -112,6 +136,8 @@ describe('RF0044 / RN0042 / RF0054 - Receber troca', () => {
                     (soma, item) => soma + item.quantidade,
                     0
                   );
+
+                expect(atual, 'estoque do livro').to.exist;
 
                 expect(atual.quantidade)
                   .to.eq(anterior.quantidade + devolvido);
@@ -129,7 +155,7 @@ describe('RF0044 / RN0042 / RF0054 - Receber troca', () => {
                 ativo: 1
               });
 
-              // Repetir o recebimento não pode duplicar a entrada.
+              // Repetir o recebimento não duplica a entrada.
               cy.request({
                 method: 'POST',
                 url: `/admin/trocas/${trocaId}/receber`,
@@ -138,7 +164,7 @@ describe('RF0044 / RN0042 / RF0054 - Receber troca', () => {
                 body: { retornaEstoque: 'true' }
               }).its('status').should('eq', 302);
 
-              // Tampouco pode emitir outro cupom.
+              // Repetir a finalização não emite outro cupom.
               cy.request({
                 method: 'POST',
                 url: `/admin/trocas/${trocaId}/finalizar`,
