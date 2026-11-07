@@ -24,9 +24,12 @@ describe('RF0023 - Perfil de administrador em sessão', () => {
     }).its('status').should('eq', 403);
 
     cy.task('perfil:estado').then(estado => {
-      // Sem autenticação, o perfil vive na sessão e nao tem
-      // coluna no banco. O banco registra apenas o efeito.
-      expect(estado.cliente).to.include({ ativo: 1 });
+      // A simulacao vive na sessao: a coluna perfil do cliente
+      // permanece CLIENTE, e o POST bloqueado nao inativou nada.
+      expect(estado.cliente).to.include({
+        perfil: 'CLIENTE',
+        ativo: 1
+      });
 
       expect(estado.logs).to.have.length(0);
     });
@@ -51,7 +54,11 @@ describe('RF0023 - Perfil de administrador em sessão', () => {
     ).click();
 
     cy.task('perfil:estado').then(estado => {
-      expect(estado.cliente).to.include({ ativo: 0 });
+      // Administrou pela sessao sem alterar o perfil gravado.
+      expect(estado.cliente).to.include({
+        perfil: 'CLIENTE',
+        ativo: 0
+      });
 
       expect(
         estado.logs.some(log =>

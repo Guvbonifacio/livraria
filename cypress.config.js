@@ -626,7 +626,7 @@ module.exports = defineConfig({
           try {
             return {
               cliente: db.prepare(`
-                SELECT id, nome, ativo
+                SELECT id, nome, ativo, perfil
                 FROM cliente
                 WHERE id = 1
               `).get() || null,
