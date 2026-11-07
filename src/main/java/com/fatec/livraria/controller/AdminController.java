@@ -9,9 +9,16 @@ import com.fatec.livraria.service.ConclusaoTrocaService;
 import com.fatec.livraria.service.EntregaPedidoService;
 import com.fatec.livraria.service.ProcessamentoPedidoService;
 import com.fatec.livraria.service.ValidacaoException;
+import com.fatec.livraria.service.AnaliseVendasService;
 
 import java.util.List;
+import java.util.Map;
 
+import java.nio.charset.StandardCharsets;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -34,6 +41,7 @@ public class AdminController {
     private final EntregaPedidoService entrega;
     private final AutorizacaoTrocaService autorizacaoTroca;
     private final ConclusaoTrocaService conclusaoTroca;
+    private final AnaliseVendasService analiseVendas;
 
     public AdminController(
             ClienteService clienteService,
@@ -41,7 +49,8 @@ public class AdminController {
             ProcessamentoPedidoService processamento,
             EntregaPedidoService entrega,
             AutorizacaoTrocaService autorizacaoTroca,
-            ConclusaoTrocaService conclusaoTroca) {
+            ConclusaoTrocaService conclusaoTroca,
+            AnaliseVendasService analiseVendas) {
 
         this.clienteService = clienteService;
         this.administracao = administracao;
@@ -49,6 +58,7 @@ public class AdminController {
         this.entrega = entrega;
         this.autorizacaoTroca = autorizacaoTroca;
         this.conclusaoTroca = conclusaoTroca;
+        this.analiseVendas = analiseVendas;
     }
 
     // Painel principal
@@ -350,17 +360,158 @@ public class AdminController {
             Model model,
             @RequestParam(required = false) String dataInicio,
             @RequestParam(required = false) String dataFim,
-            @RequestParam(required = false)
-            List<String> categorias) {
+            @RequestParam(required = false) List<String> categorias,
+            @RequestParam(defaultValue = "false") boolean consultar) {
+
+        // A consulta exige ADMIN no Service, inclusive na abertura inicial.
+        var disponiveis = administracao.listarCategorias();
+
+        List<String> selecionadas = categorias != null
+            ? categorias
+            : consultar ? List.of() : disponiveis;
+
+        model.addAttribute("categoriasDisponiveis", disponiveis);
+        model.addAttribute("categoriasSelecionadas", selecionadas);
+        model.addAttribute("dataInicio", dataInicio);
+        model.addAttribute("dataFim", dataFim);
 
         model.addAttribute("etiquetas", List.of());
         model.addAttribute("series", List.of());
+        model.addAttribute("errosAnalise", List.of());
+        model.addAttribute("consultaRealizada", false);
+        model.addAttribute("temVendas", false);
 
-        model.addAttribute(
-            "categoriasDisponiveis",
-            administracao.listarCategorias()
-        );
+        boolean solicitada = consultar
+            || dataInicio != null
+            || dataFim != null
+            || categorias != null;
+
+        if (!solicitada) {
+            return "admin-analise";
+        }
+
+        try {
+            var resultado = analiseVendas.analisar(
+                dataInicio,
+                dataFim,
+                selecionadas
+            );
+
+            model.addAttribute(
+                "etiquetas",
+                resultado.etiquetas()
+            );
+
+            // Mapas simples para a serialização JavaScript do Thymeleaf.
+            model.addAttribute(
+                "series",
+                resultado.series().stream()
+                    .map(serie -> Map.of(
+                        "categoria", serie.categoria(),
+                        "valores", serie.valores()
+                    ))
+                    .toList()
+            );
+
+            model.addAttribute("consultaRealizada", true);
+
+            model.addAttribute(
+                "temVendas",
+                resultado.series().stream()
+                    .anyMatch(serie ->
+                        serie.valores().stream()
+                            .anyMatch(valor -> valor.signum() > 0)
+                    )
+            );
+
+        } catch (AcessoAdministrativoException e) {
+            throw e;
+
+        } catch (ValidacaoException e) {
+            model.addAttribute(
+                "errosAnalise",
+                e.getErros()
+            );
+        }
 
         return "admin-analise";
+    }
+
+    @GetMapping("/analise/exportar")
+    public ResponseEntity<byte[]> exportarAnalise(
+            @RequestParam(required = false) String dataInicio,
+            @RequestParam(required = false) String dataFim,
+            @RequestParam(required = false) List<String> categorias) {
+
+        AnaliseVendasService.Resultado resultado;
+
+        try {
+            // Mesma autorização, validação e cálculo usados pelo gráfico.
+            resultado = analiseVendas.analisar(
+                dataInicio,
+                dataFim,
+                categorias
+            );
+
+        } catch (AcessoAdministrativoException e) {
+            throw e;
+
+        } catch (ValidacaoException e) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                e.getMessage(),
+                e
+            );
+        }
+
+        StringBuilder csv = new StringBuilder(
+            "\uFEFFperíodo;categoria;valor de venda\r\n"
+        );
+
+        for (int mes = 0; mes < resultado.etiquetas().size(); mes++) {
+            for (var serie : resultado.series()) {
+                csv.append(
+                        campoCsv(resultado.etiquetas().get(mes))
+                    )
+                    .append(';')
+                    .append(campoCsv(serie.categoria()))
+                    .append(';')
+                    .append(
+                        serie.valores().get(mes)
+                            .setScale(2)
+                            .toPlainString()
+                            .replace('.', ',')
+                    )
+                    .append("\r\n");
+            }
+        }
+
+        return ResponseEntity.ok()
+            .contentType(
+                new MediaType(
+                    "text",
+                    "csv",
+                    StandardCharsets.UTF_8
+                )
+            )
+            .header(
+                HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=\"analise-vendas.csv\""
+            )
+            .body(
+                csv.toString().getBytes(StandardCharsets.UTF_8)
+            );
+    }
+
+    private String campoCsv(String valor) {
+        if (valor.contains(";")
+                || valor.contains("\"")
+                || valor.contains("\r")
+                || valor.contains("\n")) {
+
+            return "\"" + valor.replace("\"", "\"\"") + "\"";
+        }
+
+        return valor;
     }
 }

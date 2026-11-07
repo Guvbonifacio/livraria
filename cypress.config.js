@@ -39,6 +39,8 @@ module.exports = defineConfig({
         return db;
       }
 
+      let massaAnalise = null;
+    
       on('task', {
         'reserva:estado'() {
           const db = banco();
@@ -571,6 +573,14 @@ module.exports = defineConfig({
                 WHERE cliente_id = 1
               `).all(),
 
+              // Cupom promocional nao pertence a cliente algum.
+              promocionais: db.prepare(`
+                SELECT id, ativo
+                FROM cupom
+                WHERE tipo = 'PROMOCIONAL'
+                ORDER BY id
+              `).all(),
+
               quantidadePedidos: db.prepare(`
                 SELECT COUNT(*) AS n FROM pedido
               `).get().n
@@ -600,6 +610,31 @@ module.exports = defineConfig({
                 SELECT *
                 FROM cartao_credito
                 WHERE cliente_id = 1
+                ORDER BY id
+              `).all()
+            };
+          } finally {
+            db.close();
+          }
+        },
+
+        // Efeito das acoes administrativas sobre o cliente 1.
+        // Nao ha coluna de perfil: a simulacao vive na sessao.
+        'perfil:estado'() {
+          const db = banco();
+
+          try {
+            return {
+              cliente: db.prepare(`
+                SELECT id, nome, ativo
+                FROM cliente
+                WHERE id = 1
+              `).get() || null,
+
+              logs: db.prepare(`
+                SELECT usuario, operacao, tabela, registro_id
+                FROM log_transacao
+                WHERE tabela = 'cliente' AND registro_id = 1
                 ORDER BY id
               `).all()
             };
@@ -650,6 +685,705 @@ module.exports = defineConfig({
           } finally {
             db.close();
           }
+        },
+
+        'analise:preparar'() {
+          const db = banco();
+
+          try {
+            db.exec('BEGIN IMMEDIATE');
+
+            // Substitui somente a massa do banco de testes.
+            for (const tabela of [
+              'item_troca',
+              'troca',
+              'notificacao',
+              'reserva_estoque',
+              'log_transacao',
+              'pagamento',
+              'item_pedido',
+              'cupom',
+              'pedido',
+              'cartao_credito',
+              'endereco',
+              'cliente',
+              'item_estoque',
+              'livro_categoria',
+              'livro',
+              'categoria',
+              'grupo_precificacao'
+            ]) {
+              db.exec(`DELETE FROM ${tabela}`);
+            }
+
+            const categorias = [
+              'Autoajuda',
+              'Fantasia',
+              'Ficção Científica',
+              'Literatura Clássica'
+            ];
+
+            const livros = [
+              {
+                titulo: 'O Hobbit',
+                autor: 'J. R. R. Tolkien',
+                isbn: '9788595084742',
+                preco: 3000,
+                categorias: ['Fantasia']
+              },
+              {
+                titulo: 'Dom Casmurro',
+                autor: 'Machado de Assis',
+                isbn: '9788535914849',
+                preco: 4500,
+                categorias: ['Literatura Clássica']
+              },
+              {
+                titulo: 'Duna',
+                autor: 'Frank Herbert',
+                isbn: '9788576573135',
+                preco: 6000,
+                categorias: ['Ficção Científica', 'Fantasia']
+              },
+              {
+                titulo: 'O Poder do Hábito',
+                autor: 'Charles Duhigg',
+                isbn: '9788539004119',
+                preco: 4000,
+                categorias: ['Autoajuda']
+              }
+            ];
+
+            const status = [
+              'EM PROCESSAMENTO',
+              'APROVADA',
+              'EM TRANSPORTE',
+              'ENTREGUE',
+              'REPROVADA'
+            ];
+
+            const pedidos = [];
+            const meses = [];
+
+            for (let i = 0; i < 14; i++) {
+              const mes = new Date(Date.UTC(2025, 8 + i, 1))
+                .toISOString()
+                .slice(0, 7);
+
+              meses.push(mes);
+
+              livros.forEach((livro, indice) => {
+                status.forEach((situacao, posicao) => {
+                  const contabiliza = [
+                    'APROVADA',
+                    'EM TRANSPORTE',
+                    'ENTREGUE'
+                  ].includes(situacao);
+
+                  // Fevereiro/2026: Autoajuda tem pedidos,
+                  // mas somente nos status que não contam como venda.
+                  if (
+                    mes === '2026-02' &&
+                    indice === 3 &&
+                    contabiliza
+                  ) {
+                    return;
+                  }
+
+                  const dia = String(
+                    5 + indice * 5 + posicao
+                  ).padStart(2, '0');
+
+                  let data = `${mes}-${dia}T12:00:00`;
+
+                  // Exercita a inclusão das extremidades do filtro.
+                  if (
+                    i === 0 &&
+                    indice === 0 &&
+                    situacao === 'APROVADA'
+                  ) {
+                    data = '2025-09-01T00:00:00';
+                  }
+
+                  if (
+                    i === 13 &&
+                    indice === 3 &&
+                    situacao === 'ENTREGUE'
+                  ) {
+                    data = '2026-10-31T23:59:59';
+                  }
+
+                  pedidos.push({
+                    data,
+                    status: situacao,
+                    itens: [{
+                      livro: indice,
+                      quantidade: 1 + ((i + indice + posicao) % 3),
+
+                      // Preço histórico diferente do preço atual.
+                      preco: livro.preco + i * 137 + posicao * 11
+                    }]
+                  });
+                });
+              });
+            }
+
+            // Pedido com dois livros de categorias diferentes.
+            // Evita que o total inteiro do pedido seja atribuído
+            // indevidamente a cada categoria de seus itens.
+            pedidos.push({
+              data: '2026-01-22T12:00:00',
+              status: 'APROVADA',
+              itens: [
+                { livro: 0, quantidade: 1, preco: 3210 },
+                { livro: 1, quantidade: 2, preco: 4789 }
+              ]
+            });
+
+            const hash =
+              '$2a$10$q7QLFBZUiaHQySPZvuQjQu.jOR6tDgl4.rusggAkJcYDP1WCRUa6q';
+
+            db.prepare(`
+              INSERT INTO cliente (
+                id, nome, genero, data_nascimento, cpf,
+                telefone, email, senha_hash, ativo, perfil
+              )
+              VALUES (
+                ?, ?, 'Outro', '1990-01-01', ?,
+                '11999990000', ?, ?, 1, ?
+              )
+            `).run(
+              1,
+              'Cliente Análise E2E',
+              '52998224725',
+              'analise@teste.local',
+              hash,
+              'CLIENTE'
+            );
+
+            db.prepare(`
+              INSERT INTO cliente (
+                id, nome, genero, data_nascimento, cpf,
+                telefone, email, senha_hash, ativo, perfil
+              )
+              VALUES (
+                ?, ?, 'Outro', '1990-01-01', ?,
+                '11999990002', ?, ?, 1, ?
+              )
+            `).run(
+              2,
+              'Administrador Análise E2E',
+              '11144477735',
+              'admin-analise@teste.local',
+              hash,
+              'ADMIN'
+            );
+
+            const endereco = {
+              nomeCurto: 'Casa Análise',
+              tipo: 'ENTREGA',
+              tipoResidencia: 'Casa',
+              tipoLogradouro: 'Rua',
+              logradouro: 'das Flores',
+              numero: '100',
+              bairro: 'Centro',
+              cep: '08700000',
+              cidade: 'Mogi das Cruzes',
+              estado: 'SP',
+              pais: 'Brasil',
+              observacoes: ''
+            };
+
+            const enderecoId = Number(
+              db.prepare(`
+                INSERT INTO endereco (
+                  cliente_id, nome_curto, tipo, tipo_residencia,
+                  tipo_logradouro, logradouro, numero, bairro,
+                  cep, cidade, estado, pais
+                )
+                VALUES (
+                  1, ?, 'ENTREGA', 'Casa',
+                  'Rua', ?, '100', 'Centro',
+                  '08700000', 'Mogi das Cruzes', 'SP', 'Brasil'
+                )
+              `).run(
+                endereco.nomeCurto,
+                endereco.logradouro
+              ).lastInsertRowid
+            );
+
+            endereco.id = enderecoId;
+
+            db.prepare(`
+              INSERT INTO bandeira (nome)
+              VALUES ('Visa')
+              ON CONFLICT DO NOTHING
+            `).run();
+
+            const cartaoId = Number(
+              db.prepare(`
+                INSERT INTO cartao_credito (
+                  cliente_id, numero_mascarado,
+                  nome_impresso, bandeira, preferencial
+                )
+                VALUES (
+                  1, '**** **** **** 1111',
+                  'CLIENTE ANALISE', 'Visa', 1
+                )
+              `).run().lastInsertRowid
+            );
+
+            const grupoId = Number(
+              db.prepare(`
+                INSERT INTO grupo_precificacao (
+                  nome, margem_percentual
+                )
+                VALUES ('Grupo Análise E2E', 100)
+              `).run().lastInsertRowid
+            );
+
+            const categoriaIds = {};
+
+            for (const nome of categorias) {
+              categoriaIds[nome] = Number(
+                db.prepare(`
+                  INSERT INTO categoria (nome)
+                  VALUES (?)
+                `).run(nome).lastInsertRowid
+              );
+            }
+
+            livros.forEach(livro => {
+              livro.id = Number(
+                db.prepare(`
+                  INSERT INTO livro (
+                    autor, ano, titulo, editora, edicao, isbn,
+                    paginas, sinopse,
+                    altura_mm, largura_mm, profundidade_mm,
+                    peso_g, grupo_precificacao_id,
+                    codigo_barras, preco_centavos,
+                    imagem_url, ativo
+                  )
+                  VALUES (
+                    ?, 2020, ?, 'Editora E2E', '1ª', ?,
+                    200, 'Livro da massa de análise.',
+                    210, 140, 20, 400, ?, ?, ?,
+                    '/img/logo.png', 1
+                  )
+                `).run(
+                  livro.autor,
+                  livro.titulo,
+                  livro.isbn,
+                  grupoId,
+                  livro.isbn,
+                  livro.preco
+                ).lastInsertRowid
+              );
+
+              for (const categoria of livro.categorias) {
+                db.prepare(`
+                  INSERT INTO livro_categoria (
+                    livro_id, categoria_id
+                  )
+                  VALUES (?, ?)
+                `).run(
+                  livro.id,
+                  categoriaIds[categoria]
+                );
+              }
+            });
+
+            for (const pedido of pedidos) {
+              const subtotal = pedido.itens.reduce(
+                (soma, item) =>
+                  soma + item.quantidade * item.preco,
+                0
+              );
+
+              // Frete e desconto zerados para não pressupor
+              // outra decisão de cálculo nesta massa.
+              pedido.id = Number(
+                db.prepare(`
+                  INSERT INTO pedido (
+                    cliente_id, data_pedido, status,
+                    endereco_entrega_json,
+                    subtotal_centavos, frete_centavos,
+                    desconto_centavos, total_centavos
+                  )
+                  VALUES (1, ?, ?, ?, ?, 0, 0, ?)
+                `).run(
+                  pedido.data,
+                  pedido.status,
+                  JSON.stringify(endereco),
+                  subtotal,
+                  subtotal
+                ).lastInsertRowid
+              );
+
+              for (const item of pedido.itens) {
+                const livro = livros[item.livro];
+
+                db.prepare(`
+                  INSERT INTO item_pedido (
+                    pedido_id, livro_id, titulo,
+                    quantidade, preco_unitario_centavos
+                  )
+                  VALUES (?, ?, ?, ?, ?)
+                `).run(
+                  pedido.id,
+                  livro.id,
+                  livro.titulo,
+                  item.quantidade,
+                  item.preco
+                );
+              }
+
+              const situacaoPagamento =
+                pedido.status === 'REPROVADA'
+                  ? 'RECUSADO'
+                  : pedido.status === 'EM PROCESSAMENTO'
+                    ? 'PENDENTE'
+                    : 'APROVADO';
+
+              db.prepare(`
+                INSERT INTO pagamento (
+                  pedido_id, forma, valor_centavos,
+                  status, cartao_id,
+                  numero_mascarado, bandeira
+                )
+                VALUES (
+                  ?, 'CARTAO', ?, ?, ?,
+                  '**** **** **** 1111', 'Visa'
+                )
+              `).run(
+                pedido.id,
+                subtotal,
+                situacaoPagamento,
+                cartaoId
+              );
+            }
+
+            livros.forEach((livro, indice) => {
+              const vendidos = pedidos
+                .filter(p => [
+                  'APROVADA',
+                  'EM TRANSPORTE',
+                  'ENTREGUE'
+                ].includes(p.status))
+                .flatMap(p => p.itens)
+                .filter(item => item.livro === indice)
+                .reduce(
+                  (soma, item) => soma + item.quantidade,
+                  0
+                );
+
+              db.prepare(`
+                INSERT INTO item_estoque (
+                  livro_id, quantidade, valor_custo_centavos,
+                  fornecedor, data_entrada, referencia_entrada
+                )
+                VALUES (
+                  ?, ?, ?, 'Fornecedor Análise E2E',
+                  '2025-08-01', ?
+                )
+              `).run(
+                livro.id,
+                1000 - vendidos,
+                Math.floor(livro.preco / 2),
+                `ANALISE-${livro.isbn}`
+              );
+            });
+
+            db.exec('COMMIT');
+
+            // Definição da massa usada pelo oráculo independente.
+            massaAnalise = {
+              livros,
+              pedidos,
+              categorias,
+              meses
+            };
+
+            return {
+              dataInicio: '2025-09-01',
+              dataFim: '2026-10-31',
+              categorias,
+              categoriaIds,
+              meses,
+
+              quantidadePedidos: pedidos.length,
+
+              quantidadeItens: pedidos.reduce(
+                (soma, p) => soma + p.itens.length,
+                0
+              ),
+
+              status,
+
+              mesSemVendas: {
+                mes: '2026-02',
+                categoria: 'Autoajuda'
+              },
+
+              livroDuasCategorias: {
+                id: livros[2].id,
+                titulo: 'Duna',
+                categorias: [...livros[2].categorias]
+              },
+
+              criterioCategorias: 'INTEGRAL_EM_CADA_CATEGORIA',
+
+              filtrosTeste: {
+                umMes: {
+                  dataInicio: '2026-02-01',
+                  dataFim: '2026-02-28'
+                },
+                vinteQuatroMeses: {
+                  dataInicio: '2024-11-01',
+                  dataFim: '2026-10-31'
+                },
+                vinteCincoMeses: {
+                  dataInicio: '2024-10-01',
+                  dataFim: '2026-10-31'
+                }
+              }
+            };
+
+          } catch (erro) {
+            try {
+              db.exec('ROLLBACK');
+            } catch {}
+
+            throw erro;
+
+          } finally {
+            db.close();
+          }
+        },
+
+        'analise:pedidoControle'(statusInicial) {
+          const db = banco();
+
+          try {
+            if (!massaAnalise) {
+              throw new Error('Execute analise:preparar primeiro.');
+            }
+
+            if (!['REPROVADA', 'EM PROCESSAMENTO'].includes(statusInicial)) {
+              throw new Error('Status de controle inválido.');
+            }
+
+            const pedido = massaAnalise.pedidos.find(p =>
+              p.status === statusInicial
+              && p.itens.length === 1
+              && p.itens[0].livro === 0
+            );
+
+            if (!pedido) {
+              throw new Error('Pedido de controle ausente.');
+            }
+
+            const registro = db.prepare(
+              'SELECT status FROM pedido WHERE id = ? AND cliente_id = 1'
+            ).get(pedido.id);
+
+            if (!registro) {
+              throw new Error('Prepare novamente a massa de análise.');
+            }
+
+            const item = pedido.itens[0];
+
+            return {
+              id: pedido.id,
+              status: registro.status,
+              mes: pedido.data.slice(0, 7),
+              valorCentavos: item.quantidade * item.preco,
+              categorias: [...massaAnalise.livros[item.livro].categorias]
+            };
+
+          } finally {
+            db.close();
+          }
+        },
+
+        'analise:totais'(filtro) {
+          // Mantém a mesma trava de ambiente.
+          const db = banco();
+          db.close();
+
+          if (!massaAnalise) {
+            throw new Error(
+              'Execute analise:preparar antes de analise:totais.'
+            );
+          }
+
+          const {
+            dataInicio = '2025-09-01',
+            dataFim = '2026-10-31',
+            categorias = massaAnalise.categorias,
+            statusEsperados = []
+          } = filtro ?? {};
+
+          for (const valor of [dataInicio, dataFim]) {
+            const data = new Date(`${valor}T00:00:00.000Z`);
+
+            if (
+              !/^\d{4}-\d{2}-\d{2}$/.test(valor) ||
+              Number.isNaN(data.getTime()) ||
+              data.toISOString().slice(0, 10) !== valor
+            ) {
+              throw new Error(
+                'Informe datas válidas no formato YYYY-MM-DD.'
+              );
+            }
+          }
+
+          if (dataInicio > dataFim) {
+            throw new Error('Intervalo de datas invertido.');
+          }
+
+          if (
+            !Array.isArray(categorias) ||
+            categorias.some(c =>
+              !massaAnalise.categorias.includes(c)
+            )
+          ) {
+            throw new Error(
+              'Informe categorias existentes como uma lista de nomes.'
+            );
+          }
+
+          if (!Array.isArray(statusEsperados)) {
+            throw new Error('statusEsperados deve ser uma lista.');
+          }
+
+          const alteracoes = new Map();
+
+          for (const alteracao of statusEsperados) {
+            if (
+              !alteracao
+              || !Number.isSafeInteger(alteracao.pedidoId)
+              || !massaAnalise.pedidos.some(p => p.id === alteracao.pedidoId)
+              || ![
+                'EM PROCESSAMENTO',
+                'APROVADA',
+                'EM TRANSPORTE',
+                'ENTREGUE',
+                'REPROVADA'
+              ].includes(alteracao.status)
+            ) {
+              throw new Error('Pedido ou status esperado inválido.');
+            }
+
+            alteracoes.set(alteracao.pedidoId, alteracao.status);
+          }
+
+          const selecionadas = massaAnalise.categorias.filter(
+            c => categorias.includes(c)
+          );
+
+          const meses = [];
+
+          const cursor = new Date(
+            `${dataInicio.slice(0, 7)}-01T00:00:00.000Z`
+          );
+
+          while (
+            cursor.toISOString().slice(0, 7) <= dataFim.slice(0, 7)
+          ) {
+            meses.push(cursor.toISOString().slice(0, 7));
+            cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+          }
+
+          // Começa com zero inclusive nos meses fora da massa.
+          const series = selecionadas.map(categoria => ({
+            categoria,
+            valoresCentavos: meses.map(() => 0)
+          }));
+
+          let totalItensSemDuplicacaoCentavos = 0;
+
+          for (const pedido of massaAnalise.pedidos) {
+            const dia = pedido.data.slice(0, 10);
+
+            const statusEsperado =
+              alteracoes.get(pedido.id) ?? pedido.status;
+
+            if (
+              dia < dataInicio
+              || dia > dataFim
+              || ![
+                'APROVADA',
+                'EM TRANSPORTE',
+                'ENTREGUE'
+              ].includes(statusEsperado)
+            ) {
+              continue;
+            }
+
+            const posicao = meses.indexOf(
+              pedido.data.slice(0, 7)
+            );
+
+            for (const item of pedido.itens) {
+              const categoriasLivro =
+                massaAnalise.livros[item.livro].categorias;
+
+              const valor = item.quantidade * item.preco;
+
+              let selecionado = false;
+
+              for (const serie of series) {
+                if (categoriasLivro.includes(serie.categoria)) {
+                  // Decisão 4: valor integral em CADA categoria.
+                  serie.valoresCentavos[posicao] += valor;
+                  selecionado = true;
+                }
+              }
+
+              if (selecionado) {
+                totalItensSemDuplicacaoCentavos += valor;
+              }
+            }
+          }
+
+          const nomesMeses = [
+            'jan', 'fev', 'mar', 'abr',
+            'mai', 'jun', 'jul', 'ago',
+            'set', 'out', 'nov', 'dez'
+          ];
+
+          for (const serie of series) {
+            serie.valores = serie.valoresCentavos.map(
+              valor => valor / 100
+            );
+
+            serie.totalCentavos = serie.valoresCentavos.reduce(
+              (soma, valor) => soma + valor,
+              0
+            );
+          }
+
+          return {
+            dataInicio,
+            dataFim,
+            meses,
+
+            etiquetas: meses.map(m =>
+              `${nomesMeses[Number(m.slice(5)) - 1]}/${m.slice(0, 4)}`
+            ),
+
+            series,
+
+            totalItensSemDuplicacaoCentavos,
+
+            somaCategoriasCentavos: series.reduce(
+              (soma, serie) => soma + serie.totalCentavos,
+              0
+            ),
+
+            criterioCategorias: 'INTEGRAL_EM_CADA_CATEGORIA'
+          };
         }
       });
 

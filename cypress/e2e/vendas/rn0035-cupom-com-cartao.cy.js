@@ -72,7 +72,14 @@ describe('RN0035 - Cupom com saldo no cartão', () => {
           valor_centavos: 500
         });
 
-        expect(utilizado.ativo).to.eq(0);
+        // O DRS manda consumir somente cupom de troca, que e credito
+        // do cliente. Cupom promocional e campanha: a RN0033 apenas
+        // limita a um por compra, entao ele segue ativo depois do uso.
+        const utilizado = resultado.promocionais.find(
+          cupom => cupom.id === c.cuponsIds[0]
+        );
+
+        expect(utilizado.ativo).to.eq(1);
         expect(resultado.emitidos).to.have.length(0);
       });
     });

@@ -178,6 +178,12 @@ CREATE TABLE IF NOT EXISTS pedido (
     )
 );
 
+CREATE INDEX IF NOT EXISTS ix_pedido_cliente
+ON pedido(cliente_id);
+
+CREATE INDEX IF NOT EXISTS ix_pedido_status_data
+ON pedido(status, data_pedido);
+
 CREATE TABLE IF NOT EXISTS item_pedido (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     pedido_id INTEGER NOT NULL REFERENCES pedido(id),
@@ -272,9 +278,6 @@ CREATE TABLE IF NOT EXISTS pagamento (
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pagamento_promocional_pedido
 ON pagamento(pedido_id)
 WHERE forma = 'CUPOM_PROMOCIONAL';
-
-CREATE INDEX IF NOT EXISTS ix_pedido_cliente
-ON pedido(cliente_id);
 
 CREATE INDEX IF NOT EXISTS ix_item_pedido_pedido
 ON item_pedido(pedido_id);

@@ -25,7 +25,11 @@
                 <a class="nav-link d-inline text-white me-3" th:href="@{/pedidos}">Meus Pedidos</a>
                 <a class="nav-link d-inline text-white me-3" th:href="@{/cupons}">Meus Cupons</a>
                 <a class="nav-link d-inline text-white me-3" th:href="@{/clientes/1}">Meu Cadastro</a>
-                <a class="nav-link d-inline text-warning me-3" th:href="@{/admin}" th:if="${perfilAtual == 'ADMIN'}"Administração</a>
+                <a class="nav-link d-inline text-warning me-3"
+                    th:href="@{/admin}"
+                    th:if="${perfilAtual == 'ADMIN'}">
+                    Administração
+                </a>
                 <form th:action="@{/sessao/perfil}"
       method="post"
       class="d-inline-flex gap-2 align-items-center">
