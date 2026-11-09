@@ -29,6 +29,9 @@ describe('RN0074 - Excluir compra reprovada da análise', () => {
           .to.eq('REPROVADA');
       });
 
+      // Permite visualizar o pedido com status REPROVADA.
+      cy.wait(1000);
+
       cy.task('analise:totais', {
         categorias: ['Fantasia']
       }).then(esperado => {
@@ -37,6 +40,9 @@ describe('RN0074 - Excluir compra reprovada da análise', () => {
           + `&dataFim=${c.dataFim}&categorias=Fantasia`
         );
 
+        // Permite visualizar a página de análise.
+        cy.wait(1000);
+
         cy.window().its('dadosGrafico').should('deep.equal', {
           etiquetas: esperado.etiquetas,
           series: esperado.series.map(s => ({
@@ -44,6 +50,9 @@ describe('RN0074 - Excluir compra reprovada da análise', () => {
             valores: s.valores
           }))
         });
+
+        // Permite observar o resultado após a validação.
+        cy.wait(1000);
       });
     });
   });

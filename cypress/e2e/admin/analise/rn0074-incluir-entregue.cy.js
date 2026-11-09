@@ -38,7 +38,18 @@ describe('RN0074 - Contabilizar compra entregue', () => {
           }))
         });
 
+        // Permite visualizar os totais antes da alteração.
+        cy.wait(1000);
+
         cy.visit(`/admin/pedidos/${controle.id}`);
+
+        cy.get('[data-cy="status-pedido"]').should(elemento => {
+          expect(elemento.text().trim().toUpperCase())
+            .to.eq('EM PROCESSAMENTO');
+        });
+
+        // Permite visualizar o pedido em processamento.
+        cy.wait(1000);
 
         cy.get(
           'button[name="novoStatus"][value="APROVADA"]'
@@ -49,6 +60,9 @@ describe('RN0074 - Contabilizar compra entregue', () => {
             .to.eq('APROVADA');
         });
 
+        // Permite visualizar o pedido aprovado.
+        cy.wait(1000);
+
         cy.get('[data-cy="despachar-pedido"]').click();
 
         cy.get('[data-cy="status-pedido"]').should(elemento => {
@@ -56,12 +70,18 @@ describe('RN0074 - Contabilizar compra entregue', () => {
             .to.eq('EM TRANSPORTE');
         });
 
+        // Permite visualizar o pedido em transporte.
+        cy.wait(1000);
+
         cy.get('[data-cy="entregar-pedido"]').click();
 
         cy.get('[data-cy="status-pedido"]').should(elemento => {
           expect(elemento.text().trim().toUpperCase())
             .to.eq('ENTREGUE');
         });
+
+        // Permite visualizar o pedido entregue.
+        cy.wait(1000);
 
         cy.task(
           'analise:pedidoControle',
@@ -99,6 +119,9 @@ describe('RN0074 - Contabilizar compra entregue', () => {
               valores: s.valores
             }))
           });
+
+          // Permite visualizar o gráfico com os totais atualizados.
+          cy.wait(1000);
         });
       });
     });

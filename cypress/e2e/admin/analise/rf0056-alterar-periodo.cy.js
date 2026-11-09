@@ -21,6 +21,9 @@ describe('RF0056 - Alterar período da análise', () => {
     );
 
     cy.window().its('dadosGrafico').then(anterior => {
+      // Permite visualizar o período e o gráfico originais.
+      cy.wait(2000);
+
       cy.get('[name="dataInicio"]')
         .clear()
         .type(c.filtrosTeste.umMes.dataInicio);
@@ -28,6 +31,9 @@ describe('RF0056 - Alterar período da análise', () => {
       cy.get('[name="dataFim"]')
         .clear()
         .type(c.filtrosTeste.umMes.dataFim);
+
+      // Permite visualizar as novas datas antes de filtrar.
+      cy.wait(2000);
 
       cy.get('[data-cy="filtrar-analise"]').click();
 
@@ -48,6 +54,9 @@ describe('RF0056 - Alterar período da análise', () => {
           expect(atual.etiquetas).to.have.length(1);
         });
       });
+
+      // Permite visualizar o gráfico após validar a atualização.
+      cy.wait(2000);
     });
   });
 });
