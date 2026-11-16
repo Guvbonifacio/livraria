@@ -307,7 +307,14 @@ class AnaliseVendasServiceTest extends TesteComSessao {
             null
         );
 
-        assertEquals(4, resultado.series().size());
+        // Compara com o que esta cadastrado, nao com um numero fixo:
+        // o catalogo de demonstracao cresce e a regra continua a mesma.
+        int cadastradas = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM categoria",
+            Integer.class
+        );
+
+        assertEquals(cadastradas, resultado.series().size());
 
         assertTrue(
             resultado.series().stream().allMatch(serie ->
