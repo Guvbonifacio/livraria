@@ -37,3 +37,9 @@ build/
 node_modules/
 cypress/screenshots/
 cypress/videos/
+
+# Credenciais e configuração local
+.env
+.env.*
+!.env.example
+*.key

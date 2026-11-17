@@ -303,6 +303,12 @@ module.exports = defineConfig({
 
             // Limpeza exclusiva do banco e2e.db.
             for (const tabela of [
+              'feedback_resposta',
+              'mensagem_chat',
+              'conversa',
+              'preferencia_cliente',
+              'peso_modelo',
+              'modelo_recomendacao',
               'item_troca',
               'troca',
               'notificacao',
@@ -336,6 +342,12 @@ module.exports = defineConfig({
 
             // Remove eventual cliente de demonstração do data.sql.
             for (const tabela of [
+              'feedback_resposta',
+              'mensagem_chat',
+              'conversa',
+              'preferencia_cliente',
+              'peso_modelo',
+              'modelo_recomendacao',
               'item_troca',
               'troca',
               'notificacao',
@@ -695,6 +707,12 @@ module.exports = defineConfig({
 
             // Substitui somente a massa do banco de testes.
             for (const tabela of [
+              'feedback_resposta',
+              'mensagem_chat',
+              'conversa',
+              'preferencia_cliente',
+              'peso_modelo',
+              'modelo_recomendacao',
               'item_troca',
               'troca',
               'notificacao',

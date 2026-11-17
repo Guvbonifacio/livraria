@@ -1,3 +1,9 @@
+DELETE FROM feedback_resposta;
+DELETE FROM mensagem_chat;
+DELETE FROM conversa;
+DELETE FROM preferencia_cliente;
+DELETE FROM peso_modelo;
+DELETE FROM modelo_recomendacao;
 DELETE FROM item_troca;
 DELETE FROM troca;
 DELETE FROM notificacao;
