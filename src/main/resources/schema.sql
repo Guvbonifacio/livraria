@@ -68,6 +68,11 @@ CREATE TABLE IF NOT EXISTS grupo_precificacao (
         CHECK (margem_percentual >= 0)
 );
 
+-- Grupo usado pela carga de demonstração de livros.
+INSERT INTO grupo_precificacao (nome, margem_percentual)
+VALUES ('Padrão', 0)
+ON CONFLICT (nome) DO NOTHING;
+
 -- CATEGORIAS
 CREATE TABLE IF NOT EXISTS categoria (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -153,7 +158,6 @@ CREATE TABLE IF NOT EXISTS pedido (
         ),
 
     -- Cópia do endereço no momento da compra.
-    -- Alterar o cadastro posteriormente não altera o pedido.
     endereco_entrega_json TEXT NOT NULL,
 
     subtotal_centavos INTEGER NOT NULL
@@ -168,14 +172,8 @@ CREATE TABLE IF NOT EXISTS pedido (
     total_centavos INTEGER NOT NULL
         CHECK (total_centavos >= 0),
 
-    CHECK (
-        desconto_centavos <= subtotal_centavos + frete_centavos
-    ),
-
-    CHECK (
-        total_centavos =
-            subtotal_centavos + frete_centavos - desconto_centavos
-    )
+    CHECK (desconto_centavos <= subtotal_centavos + frete_centavos),
+    CHECK (total_centavos = subtotal_centavos + frete_centavos - desconto_centavos)
 );
 
 CREATE INDEX IF NOT EXISTS ix_pedido_cliente
@@ -225,25 +223,12 @@ CREATE TABLE IF NOT EXISTS pagamento (
     pedido_id INTEGER NOT NULL REFERENCES pedido(id),
 
     forma TEXT NOT NULL
-        CHECK (
-            forma IN (
-                'CARTAO',
-                'CUPOM_PROMOCIONAL',
-                'CUPOM_TROCA'
-            )
-        ),
+        CHECK (forma IN ('CARTAO', 'CUPOM_PROMOCIONAL', 'CUPOM_TROCA')),
 
     valor_centavos INTEGER NOT NULL CHECK (valor_centavos > 0),
 
     status TEXT NOT NULL DEFAULT 'PENDENTE'
-        CHECK (
-            status IN (
-                'PENDENTE',
-                'APROVADO',
-                'RECUSADO',
-                'ESTORNADO'
-            )
-        ),
+        CHECK (status IN ('PENDENTE', 'APROVADO', 'RECUSADO', 'ESTORNADO')),
 
     cartao_id INTEGER REFERENCES cartao_credito(id)
         ON DELETE SET NULL,
@@ -290,13 +275,7 @@ CREATE TABLE IF NOT EXISTS troca (
     pedido_id INTEGER NOT NULL REFERENCES pedido(id),
 
     status TEXT NOT NULL DEFAULT 'EM TROCA'
-        CHECK (
-            status IN (
-                'EM TROCA',
-                'TROCA AUTORIZADA',
-                'TROCADO'
-            )
-        ),
+        CHECK (status IN ('EM TROCA', 'TROCA AUTORIZADA', 'TROCADO')),
 
     motivo TEXT NOT NULL,
     data_solicitacao TEXT NOT NULL,
@@ -313,7 +292,6 @@ CREATE TABLE IF NOT EXISTS troca (
 CREATE INDEX IF NOT EXISTS ix_troca_pedido
 ON troca(pedido_id);
 
-
 CREATE TABLE IF NOT EXISTS item_troca (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     troca_id INTEGER NOT NULL REFERENCES troca(id),
@@ -325,7 +303,6 @@ CREATE TABLE IF NOT EXISTS item_troca (
 
 CREATE INDEX IF NOT EXISTS ix_item_troca_item_pedido
 ON item_troca(item_pedido_id);
-
 
 CREATE TABLE IF NOT EXISTS reserva_estoque (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -341,17 +318,16 @@ CREATE TABLE IF NOT EXISTS reserva_estoque (
     cliente_id INTEGER REFERENCES cliente(id),
 
     aviso_enviado INTEGER NOT NULL DEFAULT 0
-    CHECK (aviso_enviado IN (0, 1)),
+        CHECK (aviso_enviado IN (0, 1)),
 
     expirado INTEGER NOT NULL DEFAULT 0
-    CHECK (expirado IN (0, 1)),
+        CHECK (expirado IN (0, 1)),
 
     UNIQUE (sessao_id, livro_id)
 );
 
 CREATE INDEX IF NOT EXISTS ix_reserva_livro_expira
 ON reserva_estoque(livro_id, expira_em);
-
 
 CREATE TABLE IF NOT EXISTS notificacao (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -364,13 +340,37 @@ CREATE TABLE IF NOT EXISTS notificacao (
 CREATE INDEX IF NOT EXISTS ix_notificacao_cliente
 ON notificacao(cliente_id, lida, data_hora);
 
--- Preferências declaradas pelo cliente.
+-- =========================================================
+-- CHAT E RECOMENDAÇÃO
+-- =========================================================
+
+-- Estado atual das preferências.
 CREATE TABLE IF NOT EXISTS preferencia_cliente (
     cliente_id INTEGER NOT NULL REFERENCES cliente(id),
     categoria_id INTEGER NOT NULL REFERENCES categoria(id),
     peso_declarado REAL NOT NULL,
+    atualizada_em TEXT NOT NULL,
 
     UNIQUE (cliente_id, categoria_id)
+);
+
+-- Histórico usado para reconstruir preferências antes do corte.
+-- Peso zero representa a remoção de uma preferência.
+CREATE TABLE IF NOT EXISTS historico_preferencia_cliente (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cliente_id INTEGER NOT NULL REFERENCES cliente(id),
+    categoria_id INTEGER NOT NULL REFERENCES categoria(id),
+    peso_declarado REAL NOT NULL,
+    registrada_em TEXT NOT NULL,
+
+    UNIQUE (cliente_id, categoria_id, registrada_em)
+);
+
+CREATE INDEX IF NOT EXISTS ix_historico_preferencia_corte
+ON historico_preferencia_cliente(
+    cliente_id,
+    categoria_id,
+    registrada_em
 );
 
 CREATE TABLE IF NOT EXISTS conversa (
@@ -390,11 +390,27 @@ CREATE TABLE IF NOT EXISTS mensagem_chat (
         CHECK (papel IN ('CLIENTE', 'ASSISTENTE')),
 
     texto TEXT NOT NULL,
+
+    tipo TEXT NOT NULL DEFAULT 'TEXTO'
+        CHECK (tipo IN ('TEXTO', 'PROTOCOLO')),
+
+    conteudo_json TEXT,
+    provedor TEXT,
     criada_em TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS ix_mensagem_chat_conversa
 ON mensagem_chat(conversa_id, criada_em, id);
+
+-- Identifica os livros efetivamente recomendados na mensagem.
+CREATE TABLE IF NOT EXISTS recomendacao_mensagem (
+    mensagem_chat_id INTEGER NOT NULL
+        REFERENCES mensagem_chat(id),
+
+    livro_id INTEGER NOT NULL REFERENCES livro(id),
+
+    PRIMARY KEY (mensagem_chat_id, livro_id)
+);
 
 CREATE TABLE IF NOT EXISTS feedback_resposta (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -410,20 +426,39 @@ CREATE TABLE IF NOT EXISTS feedback_resposta (
 
 CREATE TABLE IF NOT EXISTS modelo_recomendacao (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    versao TEXT NOT NULL,
+    versao TEXT NOT NULL UNIQUE,
     treinado_em TEXT NOT NULL,
+
+    data_corte TEXT NOT NULL,
+    fim_observacao TEXT NOT NULL,
+
     amostras INTEGER NOT NULL,
-    perda_final REAL NOT NULL
+    iteracoes INTEGER NOT NULL,
+    taxa_aprendizado REAL NOT NULL,
+
+    perda_inicial REAL NOT NULL,
+    perda_final REAL NOT NULL,
+    intercepto REAL NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS peso_modelo (
+CREATE TABLE IF NOT EXISTS coeficiente_modelo (
     modelo_id INTEGER NOT NULL
         REFERENCES modelo_recomendacao(id),
 
-    categoria_id INTEGER NOT NULL
-        REFERENCES categoria(id),
+    feature TEXT NOT NULL,
+    coeficiente REAL NOT NULL,
+    media REAL NOT NULL,
+    desvio REAL NOT NULL,
 
-    peso REAL NOT NULL,
+    PRIMARY KEY (modelo_id, feature)
+);
+
+CREATE TABLE IF NOT EXISTS vies_categoria (
+    modelo_id INTEGER NOT NULL
+        REFERENCES modelo_recomendacao(id),
+
+    categoria_id INTEGER NOT NULL REFERENCES categoria(id),
+    vies REAL NOT NULL,
 
     PRIMARY KEY (modelo_id, categoria_id)
 );
@@ -476,7 +511,6 @@ VALUES
 )
 ON CONFLICT (id) DO NOTHING;
 
-
 -- Garante um endereço para cada cliente de demonstração.
 INSERT INTO endereco (
     cliente_id,
@@ -515,7 +549,6 @@ WHERE c.id IN (1, 3)
       WHERE e.cliente_id = c.id
   );
 
-
 -- Somente dados mascarados; nenhum CVV é persistido.
 INSERT INTO cartao_credito (
     cliente_id,
@@ -537,7 +570,6 @@ WHERE c.id IN (1, 3)
       FROM cartao_credito cc
       WHERE cc.cliente_id = c.id
   );
-
 
 -- Completa o catálogo de Autoajuda.
 -- Se o ISBN já existir, preserva o livro cadastrado.
@@ -583,7 +615,6 @@ VALUES (
 )
 ON CONFLICT (isbn) DO NOTHING;
 
-
 INSERT INTO livro_categoria (livro_id, categoria_id)
 SELECT l.id, c.id
 FROM livro l
@@ -592,9 +623,7 @@ WHERE l.isbn = '9788539004119'
   AND c.nome = 'Autoajuda'
 ON CONFLICT (livro_id, categoria_id) DO NOTHING;
 
-
--- Tabela temporária: usada apenas para montar a carga.
--- Não acrescenta uma sétima tabela permanente ao sistema.
+-- Tabela temporária usada para montar a carga.
 CREATE TEMP TABLE demo_chat_itens (
     cliente_id INTEGER NOT NULL,
     isbn TEXT NOT NULL
@@ -606,7 +635,6 @@ VALUES
     (1, '9788576573135'), -- Duna: Ficção Científica e Fantasia.
     (3, '9788539004119'), -- O Poder do Hábito: Autoajuda.
     (3, '9788535914849'); -- Dom Casmurro: Literatura Clássica.
-
 
 -- Um pedido histórico ENTREGUE para cada cliente.
 -- Quantidade: uma unidade de cada livro.
@@ -625,7 +653,6 @@ SELECT
     d.cliente_id,
     '2026-11-01T10:00:00',
     'ENTREGUE',
-
     (
         SELECT json_object(
             'id', e.id,
@@ -647,24 +674,19 @@ SELECT
         ORDER BY e.id
         LIMIT 1
     ),
-
     SUM(l.preco_centavos),
     0,
     0,
     SUM(l.preco_centavos)
-
 FROM demo_chat_itens d
 JOIN livro l ON l.isbn = d.isbn
-
 WHERE NOT EXISTS (
     SELECT 1
     FROM pedido p
     WHERE p.cliente_id = d.cliente_id
       AND p.data_pedido = '2026-11-01T10:00:00'
 )
-
 GROUP BY d.cliente_id;
-
 
 INSERT INTO item_pedido (
     pedido_id,
@@ -685,7 +707,6 @@ JOIN pedido p ON p.cliente_id = d.cliente_id
              AND p.data_pedido = '2026-11-01T10:00:00'
 ON CONFLICT (pedido_id, livro_id) DO NOTHING;
 
-
 -- Pagamento aprovado acompanha os pedidos históricos entregues.
 INSERT INTO pagamento (
     pedido_id,
@@ -704,9 +725,7 @@ SELECT
     cc.id,
     cc.numero_mascarado,
     cc.bandeira
-
 FROM pedido p
-
 JOIN cartao_credito cc ON cc.id = (
     SELECT id
     FROM cartao_credito
@@ -714,7 +733,6 @@ JOIN cartao_credito cc ON cc.id = (
     ORDER BY preferencial DESC, id
     LIMIT 1
 )
-
 WHERE p.cliente_id IN (1, 3)
   AND p.data_pedido = '2026-11-01T10:00:00'
   AND NOT EXISTS (
@@ -723,27 +741,25 @@ WHERE p.cliente_id IN (1, 3)
       WHERE pg.pedido_id = p.id
   );
 
-
 DROP TABLE demo_chat_itens;
 
-
 -- Somente A possui preferências declaradas.
--- Autoajuda não aparece nas compras de A:
--- permite distinguir preferência declarada de histórico.
+-- Autoajuda não aparece nas compras de A.
 -- Peso 1.0 é um dado ilustrativo da carga.
 INSERT INTO preferencia_cliente (
     cliente_id,
     categoria_id,
-    peso_declarado
+    peso_declarado,
+    atualizada_em
 )
 SELECT
     1,
     id,
-    1.0
+    1.0,
+    '2026-11-01T10:00:00'
 FROM categoria
 WHERE nome IN ('Fantasia', 'Autoajuda')
 ON CONFLICT (cliente_id, categoria_id) DO NOTHING;
-
 
 -- Uma conversa de demonstração para cada cliente.
 INSERT INTO conversa (cliente_id, iniciada_em)
@@ -759,7 +775,6 @@ WHERE c.id IN (1, 3)
         AND cv.iniciada_em = '2026-11-02T10:00:00'
   );
 
-
 CREATE TEMP TABLE demo_chat_mensagens (
     cliente_id INTEGER NOT NULL,
     papel TEXT NOT NULL,
@@ -768,9 +783,7 @@ CREATE TEMP TABLE demo_chat_mensagens (
     util INTEGER
 );
 
-
 -- Textos sintéticos para demonstração.
--- Ainda não são respostas geradas por IA.
 INSERT INTO demo_chat_mensagens (
     cliente_id,
     papel,
@@ -836,7 +849,6 @@ VALUES
     0
 );
 
-
 INSERT INTO mensagem_chat (
     conversa_id,
     papel,
@@ -851,7 +863,6 @@ SELECT
 FROM demo_chat_mensagens d
 JOIN conversa cv ON cv.cliente_id = d.cliente_id
                 AND cv.iniciada_em = '2026-11-02T10:00:00'
-
 WHERE NOT EXISTS (
     SELECT 1
     FROM mensagem_chat m
@@ -859,7 +870,6 @@ WHERE NOT EXISTS (
       AND m.papel = d.papel
       AND m.criada_em = d.criada_em
 );
-
 
 -- Avaliações somente nas respostas do assistente.
 INSERT INTO feedback_resposta (
@@ -870,26 +880,16 @@ INSERT INTO feedback_resposta (
 SELECT
     m.id,
     d.util,
-    strftime(
-        '%Y-%m-%dT%H:%M:%S',
-        d.criada_em,
-        '+10 seconds'
-    )
-
+    strftime('%Y-%m-%dT%H:%M:%S', d.criada_em, '+10 seconds')
 FROM demo_chat_mensagens d
-
 JOIN conversa cv ON cv.cliente_id = d.cliente_id
                 AND cv.iniciada_em = '2026-11-02T10:00:00'
-
 JOIN mensagem_chat m ON m.conversa_id = cv.id
                    AND m.papel = d.papel
                    AND m.criada_em = d.criada_em
-
 WHERE d.papel = 'ASSISTENTE'
   AND d.util IS NOT NULL
-
 ON CONFLICT (mensagem_chat_id) DO NOTHING;
-
 
 DROP TABLE demo_chat_mensagens;
 
@@ -897,8 +897,7 @@ CREATE TABLE IF NOT EXISTS mensagem_categoria (
     mensagem_chat_id INTEGER NOT NULL
         REFERENCES mensagem_chat(id),
 
-    categoria_id INTEGER NOT NULL
-        REFERENCES categoria(id),
+    categoria_id INTEGER NOT NULL REFERENCES categoria(id),
 
     PRIMARY KEY (mensagem_chat_id, categoria_id)
 );
