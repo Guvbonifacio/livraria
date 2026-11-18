@@ -68,11 +68,6 @@ CREATE TABLE IF NOT EXISTS grupo_precificacao (
         CHECK (margem_percentual >= 0)
 );
 
--- Grupo usado pela carga de demonstração de livros.
-INSERT INTO grupo_precificacao (nome, margem_percentual)
-VALUES ('Padrão', 0)
-ON CONFLICT (nome) DO NOTHING;
-
 -- CATEGORIAS
 CREATE TABLE IF NOT EXISTS categoria (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -344,33 +339,15 @@ ON notificacao(cliente_id, lida, data_hora);
 -- CHAT E RECOMENDAÇÃO
 -- =========================================================
 
--- Estado atual das preferências.
+-- Eventos imutáveis. Peso zero representa remoção da preferência.
 CREATE TABLE IF NOT EXISTS preferencia_cliente (
-    cliente_id INTEGER NOT NULL REFERENCES cliente(id),
-    categoria_id INTEGER NOT NULL REFERENCES categoria(id),
-    peso_declarado REAL NOT NULL,
-    atualizada_em TEXT NOT NULL,
-
-    UNIQUE (cliente_id, categoria_id)
-);
-
--- Histórico usado para reconstruir preferências antes do corte.
--- Peso zero representa a remoção de uma preferência.
-CREATE TABLE IF NOT EXISTS historico_preferencia_cliente (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     cliente_id INTEGER NOT NULL REFERENCES cliente(id),
     categoria_id INTEGER NOT NULL REFERENCES categoria(id),
     peso_declarado REAL NOT NULL,
-    registrada_em TEXT NOT NULL,
+    vigente_de TEXT NOT NULL,
 
-    UNIQUE (cliente_id, categoria_id, registrada_em)
-);
-
-CREATE INDEX IF NOT EXISTS ix_historico_preferencia_corte
-ON historico_preferencia_cliente(
-    cliente_id,
-    categoria_id,
-    registrada_em
+    UNIQUE (cliente_id, categoria_id, vigente_de)
 );
 
 CREATE TABLE IF NOT EXISTS conversa (
@@ -431,6 +408,7 @@ CREATE TABLE IF NOT EXISTS modelo_recomendacao (
 
     data_corte TEXT NOT NULL,
     fim_observacao TEXT NOT NULL,
+    fim_validacao TEXT NOT NULL,
 
     amostras INTEGER NOT NULL,
     iteracoes INTEGER NOT NULL,
@@ -438,6 +416,7 @@ CREATE TABLE IF NOT EXISTS modelo_recomendacao (
 
     perda_inicial REAL NOT NULL,
     perda_final REAL NOT NULL,
+    metrica_validacao REAL,
     intercepto REAL NOT NULL
 );
 

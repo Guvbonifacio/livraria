@@ -2,7 +2,6 @@ DELETE FROM feedback_resposta;
 DELETE FROM recomendacao_mensagem;
 DELETE FROM mensagem_chat;
 DELETE FROM conversa;
-DELETE FROM historico_preferencia_cliente;
 DELETE FROM preferencia_cliente;
 DELETE FROM coeficiente_modelo;
 DELETE FROM vies_categoria;

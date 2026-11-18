@@ -973,29 +973,21 @@ AND NOT EXISTS (
 
 DROP TABLE demo_chat_compras;
 
--- Preferências atuais: somente cliente A.
+-- Preferências append-only: somente cliente A, antes do corte.
 INSERT INTO preferencia_cliente (
-    cliente_id, categoria_id,
-    peso_declarado, atualizada_em
+    cliente_id,
+    categoria_id,
+    peso_declarado,
+    vigente_de
 )
 SELECT
-    1, id, 1.0, '2026-10-05T09:00:00'
+    1,
+    id,
+    1.0,
+    '2026-10-05T09:00:00'
 FROM categoria
 WHERE nome IN ('Fantasia', 'Autoajuda')
-ON CONFLICT (cliente_id, categoria_id) DO NOTHING;
-
--- Mesmo evento preservado para a reconstrução temporal.
-INSERT INTO historico_preferencia_cliente (
-    cliente_id, categoria_id,
-    peso_declarado, registrada_em
-)
-SELECT
-    1, id, 1.0, '2026-10-05T09:00:00'
-FROM categoria
-WHERE nome IN ('Fantasia', 'Autoajuda')
-ON CONFLICT (
-    cliente_id, categoria_id, registrada_em
-) DO NOTHING;
+ON CONFLICT (cliente_id, categoria_id, vigente_de) DO NOTHING;
 
 INSERT INTO conversa (cliente_id, iniciada_em)
 SELECT
