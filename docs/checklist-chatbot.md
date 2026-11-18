@@ -81,6 +81,12 @@ rótulo     : eventos em [data_corte, fim_observacao)
 validação  : eventos em [fim_observacao, fim_validacao)   — avaliada, nunca ajustada
 ```
 
+**Notação, para não confundir na arguição:** acima os intervalos estão escritos
+com fim exclusivo, mas o `PeriodoRecomendacao` guarda **datas finais
+inclusivas** e converte para limite exclusivo ao montar o SQL
+(`fimObservacao.plusDays(1).atStartOfDay()`). Com `PADRAO` = 01/11 → 10/11 →
+17/11, a janela de rótulo é `[01/11, 11/11)` e a de validação `[11/11, 18/11)`.
+
 As três datas ficam gravadas em `modelo_recomendacao`. Sem `fim_observacao`
 registrado, reexecutar o mesmo corte mais tarde produziria outros rótulos — a
 extração deixaria de ser reproduzível.
@@ -205,161 +211,303 @@ otimização convergiu".
 
 ---
 
-## 8. Etapas
+## 8. Situação em 17/11/2026 — metade feita, e é a metade difícil
 
-### Etapa 0 — Higiene (10 min)
-
-- [ ] `git push` — dois commits pendentes, `64c6394` e `7fd381f`
-- [ ] Parar a aplicação no ar e apagar `e2e.db`
-
-### Etapa 1 — Esquema e massa (≈4 h)
-
-- [ ] As oito tabelas da seção 7 no `schema.sql`
-- [ ] **Cliente A** com compras de Fantasia e Ficção Científica
-- [ ] **Cliente B** com compras de Autoajuda e Literatura Clássica
-- [ ] Compras **dos dois lados da `data_corte`**, para os dois clientes, e
-      também na janela de validação
-- [ ] Nenhum pedido muda de status depois do corte (limitação 6.2)
-- [ ] Preferências declaradas para **um** dos dois, e nenhuma para o outro: é o
-      que prova que as duas fontes funcionam
-- [ ] Feedback inicial com `recomendacao_mensagem` preenchido, senão não há o
-      que treinar
-- [ ] Apagar os dois `.db`, subir e conferir que as telas abrem
-
-### Etapa 2 — O modelo treinado (≈6 h) — **o critério (c)**
-
-- [ ] `RecomendacaoRepository.extrair(dataCorte, fimObservacao)` — devolve, por
-      par (cliente, categoria), as seis features e o rótulo. Votos contados com
-      `COUNT(DISTINCT mensagem_chat_id)`
-- [ ] `RecomendacaoService.treinar()` — z-score, gradiente descendente, e grava
-      `modelo_recomendacao` + `coeficiente_modelo` + `vies_categoria`
-- [ ] `RecomendacaoService.avaliar()` — métrica na janela de validação, sem
-      ajustar nada
-- [ ] `RecomendacaoService.recomendar(clienteId)` — carrega a versão vigente,
-      pontua as categorias, ordena os livros **com estoque**, devolve os N primeiros
-- [ ] **`RecomendacaoServiceTest`, cinco testes:**
-
-| # | Teste | O que afirma |
+| Etapa | Situação | Evidência |
 |---|---|---|
-| 1 | Perda | `perda_final < perda_inicial` — a otimização convergiu |
-| 2 | Clientes distintos | A e B recebem listas diferentes |
-| 3 | Sinal aprendido | Em massa controlada onde votos negativos precedem a ausência de compra: `coeficiente("votos_nao_uteis") < 0`. Propriedade do modelo treinado, não delta entre versões |
-| 4 | Efeito no score | Com o modelo **fixo**, dois clientes idênticos exceto por um voto negativo em C: `score(comVoto, C) < score(semVoto, C)`. Aplicação determinística, sem treino no meio |
-| 5 | Estoque | Duna não aparece, porque está sem lote |
+| 0 — Higiene | ✅ | árvore limpa, nada pendente de push |
+| 0.5 — Acessos | ✅ | chave configurada · Ollama com `qwen2.5:7b`, capability `tools` |
+| 1 — Esquema e massa | ✅ | 8 tabelas · `preferencia_cliente` append-only com `vigente_de` · `modelo_recomendacao` com `fim_validacao` e `metrica_validacao` |
+| 2 — Modelo treinado | ✅ | `RecomendacaoRepository` · `RecomendacaoService` (612 linhas) · 6 testes |
+| 3 — Integração com a IA | ❌ | `anthropic` ausente do `pom.xml`, nenhum `ProvedorIA` |
+| 4 — Chatbot | ❌ | fragmento ainda estático, nenhum `ChatbotController` |
+| 5 — Retreino | ❌ | nenhum endpoint, nenhuma tela |
+| 6 — Testes e docs | ❌ | `cypress/e2e/chatbot/` não existe |
 
-> Os testes 3 e 4 substituem o teste inválido do plano anterior, que comparava
-> duas versões e exigia que **um** coeficiente tivesse diminuído. Não se
-> sustenta: o gradiente move todos os parâmetros juntos e as outras amostras
-> também pesam na otimização.
+**Suítes em 17/11, com os dois `.db` recriados do zero:**
+85 testes JUnit, 0 falhas · 43 specs e 56 testes Cypress, *All specs passed*.
 
-→ fecha os cenários **2, 3** e metade do **8**
+O critério (c) — o risco real desta entrega — já tem modelo treinado, persistido
+e testado. O que falta é a camada de conversa em volta dele.
 
-### Etapa 3 — Integração com a IA (≈4 h)
+### Lição de ambiente, registrada
 
-- [ ] `pom.xml`: `com.anthropic:anthropic-java:3.3.0`
-- [ ] `ProvedorIA` — interface
-- [ ] `ClaudeProvedor` — `AnthropicOkHttpClient.fromEnv()`, modelo `claude-opus-5-5`
-- [ ] `OllamaProvedor` — HTTP em `localhost:11434`
-- [ ] `ProvedorComFallback` — tenta Claude; em falha de credencial ou rede cai
-      para o Ollama e registra qual atendeu
-- [ ] Chaves em `application.properties`: provedor principal, modelo, limite de tokens
-- [ ] JUnit do fallback, com o principal lançando exceção de propósito
+A primeira execução da suíte em 17/11 reprovou **19 das 43 specs**, todas com o
+mesmo erro: `table preferencia_cliente has no column named vigente_de`. O
+esquema havia sido corrigido no commit, mas o `e2e.db` em disco era o antigo, e
+`CREATE TABLE IF NOT EXISTS` **nunca altera tabela existente**. Depois de apagar
+os dois `.db` e subir de novo, as 43 specs passaram.
 
-→ fecha o cenário **1**
+A regra do `CLAUDE.md` — apagar os dois `.db` ao mudar o esquema — vale também
+depois de um `git pull` ou ao trocar de máquina: o arquivo não vem no
+repositório, mas o esquema vem.
 
-### Etapa 4 — O chatbot (≈5 h)
+### Por que a massa pode crescer sem medo
 
-- [ ] Três ferramentas via `Tool.builder()`:
+Verificado em `cypress.config.js`:
 
-| Ferramenta | Entrada | Cenário |
-|---|---|---|
-| `recomendar_livros` | — (cliente da sessão) | 2, 3 |
-| `buscar_livros` | `termo`, `categoria` | 4 |
-| `detalhar_livro` | `livroId` | 5, 6 |
+- `vendas:preparar` apaga todas as tabelas, recarrega o `data.sql` e **apaga de
+  novo** clientes, pedidos e tabelas do chat, preservando só o catálogo.
+- `analise:preparar` apaga todas as tabelas e monta o próprio cenário, **sem
+  ler** o `data.sql`.
 
-- [ ] `ChatbotService` — laço de tool use: envia a conversa, executa cada
-      `tool_use`, devolve `tool_result`, repete até `stop_reason` ser `end_turn`.
-      Grava `mensagem_chat` e, quando houve recomendação, `recomendacao_mensagem`
-- [ ] `ChatbotController` — `POST /chat` e `POST /chat/{mensagemId}/feedback`
-- [ ] Substituir o **fragmento estático** em `fragmentos/layout.html:69`:
-      histórico real do banco, campo que envia de verdade, **útil / não útil**
-      em cada resposta do assistente
-- [ ] Corrigir o erro do protótipo: *"O Poder do Hábito, de J.R.R. Tolkien"* —
-      o autor é Charles Duhigg. Aparece hoje em 10 telas
-- [ ] **Remover** o box "Recomendados para você" de `catalogo.html:34` —
-      recomendação fora do chat está fora de escopo pelo item 6 do enunciado
-- [ ] Tela de preferências no perfil do cliente, gravando em
-      `preferencia_cliente` com `vigente_de` (append-only)
-- [ ] `ProvedorIAFalso`, ativado por propriedade, para os testes
-
-> ⚠️ Os testes Cypress **não podem** chamar a API real: custaria dinheiro, seria
-> instável e não rodaria offline. A integração real é demonstrada ao vivo.
-
-→ fecha os cenários **4, 5, 6, 7**
-
-### Etapa 5 — Retreino contínuo (≈2 h)
-
-- [ ] `POST /admin/recomendacao/treinar` — relê vendas e feedback e grava nova
-      versão. Exige ADMIN pelo `exigirAdministrador()` que já existe
-- [ ] Tela `/admin/recomendacao` — versões com data, janelas, amostras, perda e
-      métrica de validação, e os coeficientes da versão vigente. É o que se
-      mostra no cenário 8
-- [ ] JUnit: um feedback novo aparece na versão seguinte, e a anterior fica
-      preservada no histórico
-
-→ fecha o cenário **8**
-
-### Etapa 6 — Testes e documentação (≈3 h)
-
-- [ ] Task `chatbot:preparar` no `cypress.config.js`, com a trava de porta 8081
-- [ ] Cypress, um arquivo por cenário em `cypress/e2e/chatbot/`:
-
-| Arquivo | Cenário |
-|---|---|
-| `rnf0044-integracao-ia` | 1 |
-| `rnf0044-recomendacao-personalizada` | 2 |
-| `rnf0044-dois-clientes-distintos` | 3 |
-| `rnf0044-busca-pelo-chat` | 4 |
-| `rnf0044-duvidas-sobre-livros` | 5 e 6 |
-| `rnf0044-feedback-util` | 7 |
-| `rnf0044-retreino-incorpora-dados` | 8 |
-
-- [ ] Documentação: justificativa da escolha da IA (critério b), decisão sobre
-      as preferências (critério e), as quatro limitações da seção 6
-- [ ] `docs/validacao-ia.md` — requisito do cliente
-- [ ] `docs/roteiro-apresentacao-chatbot.md` com os 8 cenários e as perguntas
-      de arguição
+Ou seja: das duas suítes, só o **catálogo de livros** é fixture compartilhada.
+Acrescentar clientes e compras à massa não pode quebrar nem vendas nem análise.
 
 ---
 
-## 9. Cronograma
+## 9. Etapa 2.5 — Corrigir o que já está pronto (≈2 h 30)
 
-| Dia | Etapas | Cenários fechados |
-|---|---|---|
-| 1 | 0, 1 e 2 | 2 e 3 |
-| 2 | 3 e 4 | 1, 4, 5, 6 e 7 |
-| 3 | 5 e 6 | 8 |
+**Por que esta etapa existe:** o modelo funciona, mas não tem o que aprender.
 
-≈24 h. **A ordem é obrigatória até a Etapa 4:** o chatbot não tem o que
-recomendar antes de o modelo existir, e é por isso que a parte mais difícil vem
-primeiro.
+**Problema 1 — 8 amostras para 11 parâmetros.** As amostras são pares
+(cliente, categoria): 2 clientes × 4 categorias = 8. O modelo tem 6
+coeficientes + 1 intercepto + 4 vieses = 11 parâmetros. Com mais parâmetros que
+amostras, o treino **decora** em vez de aprender, a perda cai a quase zero por
+construção, e o teste `perdaCaiENormalizacaoEModeloSaoPersistidos` passa sem
+provar nada. É o ponto exato onde a arguição pega.
 
-**Se atrasar**, a ordem de corte é:
-1. A janela de validação (limitação 6.4 passa a valer, e a afirmação encolhe)
-2. A tela de preferências do passo da Etapa 4 — derivar tudo do histórico e declarar
+**Problema 2 — janela de validação vazia.** As janelas em
+`PeriodoRecomendacao.PADRAO` são 01/11 → 10/11 → 17/11, mas a massa termina em
+**06/11**. O `avaliarModelo` monta as features com tudo anterior a 11/11 e busca
+os rótulos dentro de `[11/11, 18/11)`, onde não há nenhum evento: todos os
+rótulos valem 0, o modelo pontua alto nas categorias que o cliente compra, e a
+métrica fica péssima sem significar nada.
+
+**Problema 3 — `avaliar()` trava até 18/11.** O método exige
+`agora >= fimValidacao + 1 dia`. Em 18/11 destrava sozinho.
+
+Os três se resolvem na mesma edição do `data.sql`.
+
+1. **Gerar 18 CPFs válidos, com dígito verificador.** Guardar a lista antes de
+   escrever o SQL. O `data.sql` escreve direto no banco e passa por fora do
+   Service, então um CPF inválido entra — mas se o professor abrir um desses
+   clientes na tela e salvar, a validação da RN0023 recusa e a demonstração
+   trava. CPF válido é barato agora e caro na hora da apresentação.
+
+2. **Acrescentar 18 clientes sintéticos** ao `data.sql`, antes do bloco
+   `demo_chat_compras`. Manter os clientes **1 e 3** como os dois que o
+   professor vai ver nos cenários 2 e 3. `cpf` e `email` são `UNIQUE`: usar
+   valores determinísticos, não `Date.now()` — o `data.sql` precisa ser
+   idempotente, porque o `vendas:preparar` o recarrega.
+
+3. **Dar endereço a cada cliente novo.** `pedido.endereco_entrega_json` é
+   `NOT NULL` e o `INSERT` do pedido copia o endereço do cliente com
+   `json_object`. Cliente sem endereço faz a subconsulta devolver `NULL` e a
+   carga inteira falha na restrição.
+
+4. **Variar os perfis de compra** entre os 18. Alguns comprando em uma só
+   categoria, outros em duas, um ou dois sem compra nenhuma. Sem variação não há
+   o que aprender: se todos comprarem igual, os coeficientes não se distinguem.
+
+5. **Dar preferência declarada a parte deles, e a outros não.** Hoje só o
+   cliente 1 tem. A feature `peso_declarado` precisa variar entre as amostras,
+   senão seu coeficiente fica indeterminado. Toda linha nova com `vigente_de`
+   **anterior à `data_corte`**, ou vaza informação futura.
+
+6. **Terceira onda de compras, entre 11/11 e 17/11**, para os clientes 1 e 3 e
+   para parte dos sintéticos. É o que enche a janela de validação. Acrescentar
+   as linhas em `demo_chat_compras` — o resto da carga se monta sozinho.
+
+7. **Terceira onda de feedback**, também entre 11/11 e 17/11, em
+   `demo_chat_mensagens`, com votos positivos e negativos misturados. Lembrar
+   que a lista de ISBNs preenche o `recomendacao_mensagem`: voto sem ISBN não
+   se liga a categoria nenhuma e não vira feature.
+
+8. **Nenhum pedido muda de status depois do corte** — é a mitigação da
+   limitação 6.2.
+
+9. **Conferir as três janelas por consulta**, antes de rodar qualquer teste:
+   contar eventos em `< 01/11`, em `[01/11, 11/11)` e em `[11/11, 18/11)`. As
+   três têm de ter dados para o cliente 1 **e** para o 3. Se a terceira vier
+   vazia, o resto da etapa é perda de tempo.
+
+10. **Rodar o JUnit.** Os testes 2, 4 e 5 do recomendador dependem da massa
+    (`clientesUmETresRecebemListasDiferentes`, `votoNegativoReduzScoreSemRetreinar`,
+    `dunaNaoAparecePorqueEstaSemEstoque`) e são os primeiros a acusar erro.
+
+11. **Apagar os dois `.db`, subir e rodar o Cypress inteiro.** Pela seção 8 não
+    deveria quebrar nada, mas é exatamente o tipo de previsão que se confirma
+    rodando.
+
+12. **Treinar e avaliar de verdade**, já em 18/11. Anotar `amostras`,
+    `perda_inicial`, `perda_final` e `metrica_validacao` da versão gerada: são
+    os números que você vai citar na arguição. Com 20 clientes, `amostras` deve
+    dar **80**.
+
+---
+
+## 10. Etapa 3 — Integração com a IA generativa (≈4 h)
+
+**Por que primeiro a integração e não a tela:** a tela sem provedor não tem o
+que mostrar, e o provedor sem tela se testa por JUnit. Esta ordem deixa cada
+peça verificável sozinha.
+
+13. **`pom.xml`:** `com.anthropic:anthropic-java:3.3.0`.
+
+14. **Interface `ProvedorIA`**, com um método que recebe a conversa e as
+    ferramentas disponíveis e devolve a resposta. É o que permite trocar Claude
+    por Ollama sem o `ChatbotService` saber da diferença.
+
+15. **`ClaudeProvedor`** — `AnthropicOkHttpClient.fromEnv()`, modelo
+    `claude-opus-5-5`. O `fromEnv()` lê a `ANTHROPIC_API_KEY` do ambiente, e é
+    por isso que a chave **nunca** entra no `application.properties`, que é
+    versionado.
+
+16. **`OllamaProvedor`** — HTTP em `localhost:11434`, modelo `qwen2.5:7b`. O
+    modelo baixado declara capability `tools`, então o fallback também consegue
+    usar as três ferramentas, não só conversar.
+
+17. **`ProvedorComFallback`** — tenta o Claude; em falha de credencial ou de
+    rede, cai para o Ollama e **registra qual provedor atendeu**. Esse registro
+    é o que te deixa provar na apresentação que a resposta veio do Claude.
+
+18. **Chaves no `application.properties`:** provedor principal, modelo, limite
+    de tokens. Nunca a chave de API.
+
+19. **JUnit do fallback**, com o provedor principal lançando exceção de
+    propósito. Testar o fallback só desligando a rede na hora não é teste.
+
+20. ⚠️ **Subir a aplicação pelo seu terminal** para exercitar o Claude de
+    verdade. Os shells que eu abro não herdam a `ANTHROPIC_API_KEY`; os seus
+    herdam.
+
+→ fecha o **cenário 1**
+
+---
+
+## 11. Etapa 4 — O chatbot (≈5 h)
+
+21. **Três ferramentas via `Tool.builder()`:** `recomendar_livros` (chama o
+    `RecomendacaoService`), `buscar_livros` e `detalhar_livro`. É aqui que o
+    modelo treinado entra na conversa: o LLM não recomenda por conta própria,
+    ele **consulta** o recomendador. Essa separação é a resposta à pergunta
+    "onde está o treinamento?".
+
+22. **`ChatbotService`** — laço de tool use: envia a conversa, executa cada
+    ferramenta pedida, devolve o resultado, repete até `stop_reason` ser
+    `end_turn`. Grava `mensagem_chat` e, quando houve recomendação,
+    `recomendacao_mensagem`.
+
+23. **`ChatbotController`** — `POST /chat` e `POST /chat/{mensagemId}/feedback`.
+    Sem regra: a validação fica no Service.
+
+24. **Substituir o fragmento estático** em `fragmentos/layout.html:69` por
+    histórico real, campo que envia e **útil / não útil** por resposta.
+
+25. **Corrigir o erro do protótipo:** `layout.html:111` diz *"O Poder do Hábito,
+    de J.R.R. Tolkien"* — o autor é Charles Duhigg. O fragmento aparece em 10
+    telas do cliente.
+
+26. **Remover o box "Recomendados para você"** de `catalogo.html:35`.
+    Recomendação fora do chat está **fora de escopo** pelo item 6 do enunciado,
+    e deixar o box sugere uma funcionalidade que não existe.
+
+27. **Tela de preferências no perfil do cliente**, gravando em
+    `preferencia_cliente` com `vigente_de` novo a cada alteração — nunca
+    `UPDATE`. É o critério (e): a preferência é obtida **declarada pelo cliente
+    e inferida do histórico**, e o histórico de alterações é o que permite
+    treinar sem vazar o futuro.
+
+28. **`ProvedorIAFalso`**, ativado por propriedade, para os testes. Suíte que
+    depende de rede e de crédito não é suíte.
+
+→ fecha os **cenários 4, 5, 6 e 7**
+
+---
+
+## 12. Etapa 5 — Retreino contínuo (≈2 h)
+
+**Por que nunca cortar esta etapa:** é o cenário 8 e a prova do critério (c).
+Sem ela, "o modelo é treinado" é afirmação sem demonstração.
+
+29. **`POST /admin/recomendacao/treinar`** — relê vendas e feedback e grava uma
+    versão nova, exigindo perfil ADMIN via `exigirAdministrador()`.
+
+30. **Tela `/admin/recomendacao`** — versões com data, as três janelas,
+    amostras, perdas, `metrica_validacao` e os coeficientes da versão vigente.
+    É a tela que você abre na apresentação para mostrar os números.
+
+31. **JUnit:** um feedback novo aparece na versão seguinte, e a versão anterior
+    fica preservada. Versionar sem provar que a anterior sobrevive não é
+    versionar.
+
+→ fecha o **cenário 8**
+
+---
+
+## 13. Etapa 6 — Testes e documentação (≈3 h)
+
+32. **Task `chatbot:preparar`** no `cypress.config.js`, com a mesma trava de
+    porta 8081 que as outras usam.
+
+33. **Sete specs em `cypress/e2e/chatbot/`**, uma por cenário, nomeadas
+    `rnf0044-...`, com o `describe` começando pelo identificador.
+
+34. **Justificativa da escolha da IA** (critério b) e **decisão sobre como as
+    preferências são obtidas** (critério e), por escrito.
+
+35. **As quatro limitações da seção 6**, escritas para você declarar antes que
+    perguntem.
+
+36. **`docs/validacao-ia.md`** — requisito do cliente, e está parado em 07/11.
+    Esta revisão rende um registro honesto: o esquema foi corrigido certo, mas o
+    banco de teste ficou defasado e teria escondido 19 specs quebradas até a
+    véspera.
+
+37. **`docs/roteiro-apresentacao-chatbot.md`** com os 8 cenários e as perguntas
+    de arguição.
+
+---
+
+## 14. Definição de pronto
+
+- [ ] Os 8 cenários demonstráveis, cada um com teste automatizado
+- [ ] As duas suítes verdes **com os dois `.db` recriados do zero**
+- [ ] `amostras = 80` na versão treinada, e `metrica_validacao` preenchida
+- [ ] O Claude respondendo de verdade — confirmado no registro do provedor
+- [ ] O fallback testado com a rede desligada
+- [ ] As quatro limitações escritas no roteiro
+- [ ] Ensaio completo: apagar `e2e.db`, subir pelo seu terminal, rodar as specs
+      do chatbot, abrir o chat e fazer três perguntas livres
+- [ ] `git push` com tudo commitado
+
+---
+
+## 15. Cronograma — 18 a 25/11
+
+| Dia | Etapas | Horas | Cenários fechados |
+|---|---|---|---|
+| 18/11 | 2.5 e 3 | 6,5 | 1 |
+| 19/11 | 4 | 5 | 4, 5, 6 e 7 |
+| 20/11 | 5 e 6 | 5 | 8 |
+| 21 a 24/11 | folga e ensaio | — | — |
+| 25/11 | **apresentação** | | |
+
+≈16,5 h. **A ordem é obrigatória até a Etapa 4:** o chatbot não tem o que
+recomendar antes de o modelo existir — e o modelo não tem o que aprender antes
+da Etapa 2.5.
+
+Os cenários 2 e 3 já estão fechados pela Etapa 2, mas só valem a afirmação
+depois da Etapa 2.5: com 8 amostras, "clientes diferentes recebem listas
+diferentes" é coincidência, não aprendizado.
+
+**Se atrasar**, a ordem de corte:
+1. A tela de preferências do passo 27 — derivar tudo do histórico e declarar
+   como limitação, ajustando a resposta do critério (e)
+2. A janela de validação — a limitação 6.4 passa a valer e a afirmação encolhe
 3. **Nunca a Etapa 5**, que é o cenário 8 e o critério (c)
 
 ---
 
-## 10. A providenciar, em paralelo
+## 16. A providenciar, em paralelo
 
-- [ ] Chave em `console.anthropic.com` com crédito — sem ela a Etapa 3 trava
-- [ ] Ollama instalado com um modelo baixado — sem isso a apresentação depende
-      da rede
+- [x] Chave em `console.anthropic.com` com crédito
+- [x] Ollama instalado com modelo baixado — `qwen2.5:7b`, com capability `tools`
 
 ---
 
-## 11. Perguntas em aberto para o professor
+## 17. Perguntas em aberto para o professor
 
 1. O critério (c) exige treinamento ou ajuste fino. A arquitetura da seção 1
    treina um recomendador com vendas e feedback e usa a IA generativa apenas na
