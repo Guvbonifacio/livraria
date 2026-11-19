@@ -68,6 +68,12 @@
     		<groupId>org.springframework.security</groupId>
     		<artifactId>spring-security-crypto</artifactId>
 		</dependency>
+
+		<dependency>
+    		<groupId>com.anthropic</groupId>
+    		<artifactId>anthropic-java</artifactId>
+    		<version>3.3.0</version>
+		</dependency>
 		
 	</dependencies>
 
