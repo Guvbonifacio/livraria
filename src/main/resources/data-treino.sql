@@ -1,10 +1,27 @@
 -- Executado após data.sql.
 -- Pedidos sintéticos já nascem ENTREGUE e não mudam de status.
 
-WITH RECURSIVE numeros(n) AS (
-    VALUES (1)
-    UNION ALL
-    SELECT n + 1 FROM numeros WHERE n < 18
+-- CPFs sintéticos com os dois dígitos verificadores calculados.
+WITH numeros(n, cpf) AS (
+    VALUES
+    (1,  '90000000175'),
+    (2,  '90000000256'),
+    (3,  '90000000337'),
+    (4,  '90000000418'),
+    (5,  '90000000507'),
+    (6,  '90000000680'),
+    (7,  '90000000760'),
+    (8,  '90000000841'),
+    (9,  '90000000922'),
+    (10, '90000001066'),
+    (11, '90000001147'),
+    (12, '90000001228'),
+    (13, '90000001309'),
+    (14, '90000001490'),
+    (15, '90000001570'),
+    (16, '90000001651'),
+    (17, '90000001732'),
+    (18, '90000001813')
 )
 INSERT INTO cliente (
     id, nome, genero, data_nascimento, cpf, telefone,
@@ -15,12 +32,12 @@ SELECT
     'Sintético ' || n,
     'Outro',
     '1990-01-01',
-    printf('%011d', 90000000000 + n),
+    cpf,
     '11999990000',
     'sintetico' || n || '@estantedosaber.local',
     '$2a$10$q7QLFBZUiaHQySPZvuQjQu.jOR6tDgl4.rusggAkJcYDP1WCRUa6q',
     1,
-'CLIENTE'
+    'CLIENTE'
 FROM numeros
 WHERE 1 = 1
 ON CONFLICT (id) DO NOTHING;
@@ -79,6 +96,7 @@ base AS (
 SELECT
     *,
     CASE
+        WHEN cliente_id IN (1017, 1018) THEN 0
         WHEN cliente_id = 1
             THEN CASE WHEN pos IN (0, 1) THEN 1 ELSE 0 END
         WHEN cliente_id = 3
@@ -89,6 +107,7 @@ SELECT
     END AS historico,
 
     CASE
+        WHEN cliente_id IN (1017, 1018) THEN 0
         WHEN cliente_id = 1
             THEN CASE WHEN pos IN (0, 1) THEN 1 ELSE 0 END
         WHEN cliente_id = 3
@@ -100,6 +119,7 @@ SELECT
     END AS futuro,
 
     CASE
+        WHEN cliente_id IN (1017, 1018) THEN 0
         WHEN cliente_id = 1
             THEN CASE WHEN pos IN (0, 1) THEN 1 ELSE 0 END
         WHEN cliente_id = 3
@@ -153,7 +173,11 @@ SELECT
     END AS quantidade,
     CASE p.pos
         WHEN 0 THEN '9788595084742'
-        WHEN 1 THEN '9788576573135'
+        WHEN 1 THEN
+            CASE
+                WHEN p.cliente_id = 1 THEN '9788576573135'
+                ELSE '9788576572000'
+            END
         WHEN 2 THEN '9788539004119'
         ELSE '9788535914849'
     END AS isbn
@@ -283,7 +307,8 @@ JOIN livro l ON l.isbn =
     CASE
         WHEN d.pos = 1 THEN '9788576572000'
         ELSE d.isbn
-    END;
+    END
+WHERE d.negativo = 1 OR d.quantidade > 0;
 
 INSERT INTO mensagem_chat (
     conversa_id, papel, texto, criada_em, provedor

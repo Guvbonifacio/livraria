@@ -127,7 +127,7 @@ public class RecomendacaoService {
 
         if (linhas.isEmpty()
                 || linhas.stream()
-                    .map(Linha::rotulo)
+                    .map(linha -> linha.rotulo())
                     .distinct()
                     .count() != 2) {
 
@@ -142,7 +142,7 @@ public class RecomendacaoService {
         double[][] x = linhas.stream()
             .map(l -> normalizar(l, parametros)
                 .stream()
-                .mapToDouble(Double::doubleValue)
+                .mapToDouble(valor -> valor.doubleValue())
                 .toArray())
             .toArray(double[][]::new);
 
@@ -193,7 +193,7 @@ public class RecomendacaoService {
                 gradienteVies.merge(
                     linha.categoriaId(),
                     erro,
-                    Double::sum
+                    (acumulado, valor) -> acumulado + valor
                 );
 
                 for (int j = 0; j < pesos.length; j++) {
@@ -221,7 +221,7 @@ public class RecomendacaoService {
             // A transformação preserva as previsões.
             double centro = vieses.values()
                 .stream()
-                .mapToDouble(Double::doubleValue)
+                .mapToDouble(valor -> valor.doubleValue())
                 .average()
                 .orElse(0);
 
@@ -444,7 +444,7 @@ public class RecomendacaoService {
             .sorted(
                 Comparator.comparingDouble(score)
                     .reversed()
-                    .thenComparing(Livro::getId)
+                    .thenComparing(livro -> livro.getId())
             )
             .limit(LIMITE)
             .toList();
