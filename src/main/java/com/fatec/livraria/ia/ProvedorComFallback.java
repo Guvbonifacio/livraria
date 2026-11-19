@@ -41,10 +41,9 @@ public class ProvedorComFallback implements ProvedorIA {
             );
 
         } catch (FalhaProvedor primeira) {
-            LOG.warn(
+            registrarFalha(
                 "IA falhou provedor={} motivo={}",
-                primeira.provedor(),
-                primeira.tipo()
+                primeira
             );
 
             if (reserva == null
@@ -59,10 +58,9 @@ public class ProvedorComFallback implements ProvedorIA {
                 );
 
             } catch (FalhaProvedor segunda) {
-                LOG.warn(
+                registrarFalha(
                     "IA reserva falhou provedor={} motivo={}",
-                    segunda.provedor(),
-                    segunda.tipo()
+                    segunda
                 );
 
                 var falha = new FalhaProvedor(
@@ -76,6 +74,30 @@ public class ProvedorComFallback implements ProvedorIA {
                 throw falha;
             }
         }
+    }
+
+    // A causa é essencial para diagnosticar rede e TLS, mas uma falha de
+    // credencial pode carregar a chave na mensagem: dessa só o tipo é logado.
+    private void registrarFalha(
+            String formato,
+            FalhaProvedor falha) {
+
+        if (falha.tipo() == FalhaProvedor.Tipo.CREDENCIAL) {
+            LOG.warn(
+                formato,
+                falha.provedor(),
+                falha.tipo()
+            );
+
+            return;
+        }
+
+        LOG.warn(
+            formato,
+            falha.provedor(),
+            falha.tipo(),
+            falha
+        );
     }
 
     private boolean continuaNoOllama(

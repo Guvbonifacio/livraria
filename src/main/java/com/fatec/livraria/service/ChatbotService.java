@@ -23,6 +23,7 @@ public class ChatbotService {
 
     private static final String INSTRUCOES = """
         Você é o assistente da Livraria Estante do Saber. Responda em português.
+        Seja breve: responda em no máximo cinco frases curtas, sem repetir o que já foi dito.
         Para recomendações, SEMPRE chame recomendar_livros: o modelo treinado escolhe os livros.
         Para busca ou dúvidas, consulte buscar_livros ou detalhar_livro.
         Use somente fatos devolvidos pelas ferramentas. Não invente livros, autores, preços ou estoque.

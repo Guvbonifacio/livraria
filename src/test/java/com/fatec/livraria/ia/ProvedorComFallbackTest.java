@@ -148,6 +148,46 @@ class ProvedorComFallbackTest {
         );
     }
 
+    // Sem a causa no log, uma falha de TLS aparece apenas como "CONEXAO"
+    // e não há como diagnosticar. Complementa o teste de credencial acima.
+    @Test
+    void falhaDeConexaoRegistraACausa(
+            CapturedOutput saida) {
+
+        var provedor = new ProvedorComFallback(
+            (c, f) -> {
+                throw new FalhaProvedor(
+                    "CLAUDE",
+                    FalhaProvedor.Tipo.CONEXAO,
+                    "Não foi possível conectar ao Claude.",
+                    new RuntimeException(
+                        "PKIX path building failed"
+                    )
+                );
+            },
+            (c, f) -> new Resposta(
+                "OLLAMA",
+                "qwen2.5:7b",
+                "Olá",
+                List.of(),
+                Parada.FIM,
+                null
+            )
+        );
+
+        assertEquals(
+            "OLLAMA",
+            provedor.responder(
+                conversa, ferramentas
+            ).provedor()
+        );
+
+        assertTrue(
+            saida.getAll()
+                .contains("PKIX path building failed")
+        );
+    }
+
     @Test
     void configuracaoInvalidaNaoEhEscondida() {
         var erro = new FalhaProvedor(
