@@ -16,7 +16,12 @@
             <!-- CAPA, PREÇO E QUANTIDADE -->
             <div class="col-md-4 text-center border-end pe-md-4">
 
-                <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded mb-3 shadow-sm mx-auto"
+                <img th:if="${livro.imagemUrl != null}" class="rounded mb-3 shadow-sm mx-auto d-block"
+                     th:src="@{${livro.imagemUrl}}" th:alt="'Capa de ' + ${livro.titulo}"
+                     style="height: 300px; max-width: 220px; object-fit: contain; background-color: #f1f3f5;">
+
+                <div th:unless="${livro.imagemUrl != null}"
+                     class="bg-secondary text-white d-flex align-items-center justify-content-center rounded mb-3 shadow-sm mx-auto"
                      style="height: 300px; max-width: 220px;">
                     <span class="fs-4">Capa</span>
                 </div>

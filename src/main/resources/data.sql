@@ -48,7 +48,7 @@ VALUES
     (SELECT id FROM grupo_precificacao WHERE nome = 'Padrão'),
     '9788595084742',
     3000,
-    '/img/logo.png'
+    '/img/capas/o-hobbit.jpg'
 ),
 (
     'Machado de Assis',
@@ -66,7 +66,7 @@ VALUES
     (SELECT id FROM grupo_precificacao WHERE nome = 'Padrão'),
     '9788535914849',
     4500,
-    '/img/logo.png'
+    '/img/capas/dom-casmurro.jpg'
 ),
 (
     'Frank Herbert',
@@ -84,7 +84,7 @@ VALUES
     (SELECT id FROM grupo_precificacao WHERE nome = 'Padrão'),
     '9788576573135',
     6000,
-    '/img/logo.png'
+    '/img/capas/duna.jpg'
 )
 ON CONFLICT (isbn) DO NOTHING;
 
@@ -244,7 +244,7 @@ VALUES
     (SELECT id FROM grupo_precificacao WHERE nome = 'Padrão'),
     '9788533613379',
     6990,
-    '/img/logo.png'
+    '/img/capas/o-senhor-dos-aneis-a-sociedade-do-anel.svg'
 ),
 (
     'J. K. Rowling',
@@ -262,7 +262,7 @@ VALUES
     (SELECT id FROM grupo_precificacao WHERE nome = 'Padrão'),
     '9788532530783',
     4490,
-    '/img/logo.png'
+    '/img/capas/harry-potter-e-a-pedra-filosofal.jpg'
 ),
 (
     'William Gibson',
@@ -280,7 +280,7 @@ VALUES
     (SELECT id FROM grupo_precificacao WHERE nome = 'Padrão'),
     '9788576572000',
     5490,
-    '/img/logo.png'
+    '/img/capas/neuromancer.jpg'
 ),
 (
     'Isaac Asimov',
@@ -298,7 +298,7 @@ VALUES
     (SELECT id FROM grupo_precificacao WHERE nome = 'Padrão'),
     '9788576573111',
     4990,
-    '/img/logo.png'
+    '/img/capas/fundacao.jpg'
 ),
 (
     'George Orwell',
@@ -316,7 +316,7 @@ VALUES
     (SELECT id FROM grupo_precificacao WHERE nome = 'Padrão'),
     '9788535902233',
     3990,
-    '/img/logo.png'
+    '/img/capas/1984.jpg'
 ),
 (
     'Machado de Assis',
@@ -334,7 +334,7 @@ VALUES
     (SELECT id FROM grupo_precificacao WHERE nome = 'Padrão'),
     '9788535910666',
     3490,
-    '/img/logo.png'
+    '/img/capas/memorias-postumas-de-bras-cubas.jpg'
 ),
 (
     'Jane Austen',
@@ -352,7 +352,7 @@ VALUES
     (SELECT id FROM grupo_precificacao WHERE nome = 'Padrão'),
     '9788544001820',
     3790,
-    '/img/logo.png'
+    '/img/capas/orgulho-e-preconceito.svg'
 ),
 (
     'Aluísio Azevedo',
@@ -370,7 +370,7 @@ VALUES
     (SELECT id FROM grupo_precificacao WHERE nome = 'Padrão'),
     '9788508133031',
     2990,
-    '/img/logo.png'
+    '/img/capas/o-cortico.jpg'
 ),
 (
     'Charles Duhigg',
@@ -388,7 +388,7 @@ VALUES
     (SELECT id FROM grupo_precificacao WHERE nome = 'Padrão'),
     '9788539004119',
     4490,
-    '/img/logo.png'
+    '/img/capas/o-poder-do-habito.jpg'
 ),
 (
     'Carol S. Dweck',
@@ -406,7 +406,7 @@ VALUES
     (SELECT id FROM grupo_precificacao WHERE nome = 'Padrão'),
     '9788547000240',
     3990,
-    '/img/logo.png'
+    '/img/capas/mindset-a-nova-psicologia-do-sucesso.jpg'
 ),
 (
     'Stephen R. Covey',
@@ -424,7 +424,7 @@ VALUES
     (SELECT id FROM grupo_precificacao WHERE nome = 'Padrão'),
     '9788568905067',
     5990,
-    '/img/logo.png'
+    '/img/capas/os-7-habitos-das-pessoas-altamente-eficazes.jpg'
 ),
 (
     'Hal Elrod',
@@ -442,7 +442,7 @@ VALUES
     (SELECT id FROM grupo_precificacao WHERE nome = 'Padrão'),
     '9788581637461',
     3690,
-    '/img/logo.png'
+    '/img/capas/o-milagre-da-manha.jpg'
 )
 ON CONFLICT (isbn) DO NOTHING;
 
@@ -793,7 +793,7 @@ VALUES (
     ),
     '9788539004119',
     4000,
-    '/img/logo.png'
+    '/img/capas/o-poder-do-habito.jpg'
 )
 ON CONFLICT (isbn) DO NOTHING;
 

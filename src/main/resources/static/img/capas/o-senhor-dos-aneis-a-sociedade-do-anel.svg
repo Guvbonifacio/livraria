@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" width="400" height="600">
+  <rect width="400" height="600" fill="#4C1D95"/>
+  <rect width="26" height="600" fill="#35136A"/>
+  <rect x="40" y="14" width="346" height="572"
+        fill="none" stroke="#FFFFFF" stroke-opacity="0.22"/>
+  <text x="56" y="177.0" font-family="Georgia, 'Times New Roman', serif"
+        font-size="30" font-weight="bold" fill="#FFFFFF"><tspan x="56" dy="0">O Senhor dos</tspan><tspan x="56" dy="38">Anéis: A Sociedade</tspan><tspan x="56" dy="38">do Anel</tspan></text>
+  <line x1="56" y1="482" x2="370" y2="482"
+        stroke="#FFFFFF" stroke-opacity="0.38"/>
+  <text x="56" y="514" font-family="Georgia, 'Times New Roman', serif"
+        font-size="21" fill="#FFFFFF" fill-opacity="0.92">J. R. R. Tolkien</text>
+  <text x="56" y="562" font-family="Arial, Helvetica, sans-serif"
+        font-size="12" letter-spacing="2.5" fill="#FFFFFF" fill-opacity="0.6">ESTANTE DO SABER</text>
+</svg>

@@ -45,7 +45,11 @@
       <div class="col" th:each="livro : ${livros}">
         <div class="card h-100 shadow-sm">
 
-          <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded-top" style="height: 180px;">
+          <img th:if="${livro.imagemUrl != null}" class="card-img-top rounded-top"
+               th:src="@{${livro.imagemUrl}}" th:alt="'Capa de ' + ${livro.titulo}" loading="lazy"
+               style="height: 220px; object-fit: contain; background-color: #f1f3f5; padding: .5rem;">
+
+          <div th:unless="${livro.imagemUrl != null}" class="bg-secondary text-white d-flex align-items-center justify-content-center rounded-top" style="height: 220px;">
             Capa
           </div>
 
