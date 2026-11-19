@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/layout :: cabeca}"></head>
+<body class="bg-light d-flex flex-column min-vh-100">
+<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+<main class="container my-4 flex-grow-1">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Modelo de recomendação</h1>
+        <a th:href="@{/admin}" class="btn btn-outline-secondary btn-sm">Voltar ao painel</a>
+    </div>
+    <div th:if="${sucessoTreino != null}" class="alert alert-success" th:text="${sucessoTreino}" data-cy="sucesso-treino"></div>
+    <div th:if="${errosTreino != null}" class="alert alert-danger" data-cy="erros-treino">
+        <div th:each="erro : ${errosTreino}" th:text="${erro}"></div>
+    </div>
+    <section class="card shadow-sm mb-4">
+        <div class="card-header bg-white"><h2 class="h5 mb-0">Treinar nova versão</h2></div>
+        <div class="card-body">
+            <p>O treinamento relê vendas, preferências e feedback, preservando as versões anteriores.</p>
+            <p class="text-muted small">As features usam eventos anteriores ao corte. Os rótulos vão do corte
+                até o fim da observação. A validação começa no dia seguinte e não ajusta os pesos.
+                Um feedback novo só participa quando sua data estiver nas janelas escolhidas.</p>
+            <form th:action="@{/admin/recomendacao/treinar}" method="post" class="row g-3">
+                <input type="hidden" name="origem" value="tela">
+                <div class="col-md-4">
+                    <label for="dataCorte" class="form-label">Data de corte</label>
+                    <input id="dataCorte" name="dataCorte" type="date" class="form-control" required
+                           th:value="${corteInformado != null ? corteInformado : painel.periodo.dataCorte}"
+                           data-cy="corte-treino">
+                </div>
+                <div class="col-md-4">
+                    <label for="fimObservacao" class="form-label">Fim da observação (inclusive)</label>
+                    <input id="fimObservacao" name="fimObservacao" type="date" class="form-control" required
+                           th:value="${observacaoInformada != null ? observacaoInformada : painel.periodo.fimObservacao}"
+                           data-cy="observacao-treino">
+                </div>
+                <div class="col-md-4">
+                    <label for="fimValidacao" class="form-label">Fim da validação (inclusive)</label>
+                    <input id="fimValidacao" name="fimValidacao" type="date" class="form-control" required
+                           th:value="${validacaoInformada != null ? validacaoInformada : painel.periodo.fimValidacao}"
+                           data-cy="validacao-treino">
+                </div>
+                <div class="col-12"><button class="btn btn-primary" type="submit" data-cy="treinar-modelo">Treinar nova versão</button></div>
+            </form>
+            <small class="text-muted d-block mt-3">A observação precisa estar encerrada para treinar.
+                Se a validação ainda não terminou, sua métrica fica pendente.
+                Repetir as mesmas datas não incorpora eventos posteriores ao fim da observação.</small>
+        </div>
+    </section>
+
+    <section class="card shadow-sm mb-4">
+        <div class="card-header bg-white"><h2 class="h5 mb-0">Histórico de versões</h2></div>
+        <div class="card-body">
+            <p th:if="${#lists.isEmpty(painel.versoes)}" class="mb-0" data-cy="sem-modelo">Nenhum modelo treinado.</p>
+            <div th:unless="${#lists.isEmpty(painel.versoes)}" class="table-responsive">
+                <table class="table table-striped align-middle small">
+                    <thead><tr><th>Versão / data</th><th>Features</th><th>Rótulos</th><th>Validação</th>
+                        <th>Amostras</th><th>Perda inicial</th><th>Perda final</th><th>Brier</th></tr></thead>
+                    <tbody>
+                    <tr th:each="versao : ${painel.versoes}" data-cy="versao-modelo" th:attr="data-modelo-id=${versao.id}">
+                        <td><code th:text="${versao.versao}"></code>
+                            <span th:if="${versao.id == painel.vigente.id}" class="badge bg-success">Vigente</span>
+                            <small class="d-block" th:text="${#temporals.format(versao.treinadoEm, 'dd/MM/yyyy HH:mm:ss')}"></small></td>
+                        <td th:text="|Antes de ${versao.dataCorte}|"></td>
+                        <td th:text="|${versao.dataCorte} a ${versao.fimObservacao}|"></td>
+                        <td th:text="|${versao.fimObservacao.plusDays(1)} a ${versao.fimValidacao}|"></td>
+                        <td th:text="${versao.amostras}"></td>
+                        <td th:text="${#numbers.formatDecimal(versao.perdaInicial,1,6)}"></td>
+                        <td th:text="${#numbers.formatDecimal(versao.perdaFinal,1,6)}"></td>
+                        <td th:text="${versao.metricaValidacao == null ? 'Pendente' : #numbers.formatDecimal(versao.metricaValidacao,1,6)}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <small class="text-muted">Brier é a média do erro quadrático das probabilidades: menor é melhor.
+                As métricas preservam o resultado calculado no treinamento de cada versão.</small>
+        </div>
+    </section>
+
+    <section th:if="${painel.vigente != null}" class="card shadow-sm mb-4">
+        <div class="card-header bg-white"><h2 class="h5 mb-0">Parâmetros da versão vigente</h2></div>
+        <div class="card-body">
+            <p>Intercepto: <code th:text="${painel.vigente.intercepto}" data-cy="intercepto-modelo"></code></p>
+            <div class="table-responsive"><table class="table table-sm">
+                <thead><tr><th>Feature</th><th>Coeficiente</th><th>Média do treino</th><th>Desvio do treino</th></tr></thead>
+                <tbody><tr th:each="coeficiente : ${painel.vigente.coeficientes}" data-cy="coeficiente-modelo">
+                    <td th:text="${coeficiente.feature}"></td><td th:text="${coeficiente.coeficiente}"></td>
+                    <td th:text="${coeficiente.media}"></td><td th:text="${coeficiente.desvio}"></td>
+                </tr></tbody>
+            </table></div>
+            <p class="text-muted small mb-0">O modelo guarda os seis coeficientes, o intercepto,
+                os vieses das categorias e os parâmetros de normalização de cada versão.</p>
+        </div>
+    </section>
+</main>
+<footer th:replace="~{fragmentos/layout :: rodape}"></footer>
+</body>
+</html>

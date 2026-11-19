@@ -268,6 +268,12 @@ public class RecomendacaoRepository {
 
         return ids.isEmpty() ? null : buscar(ids.get(0));
     }
+    
+    public List<ModeloRecomendacao> listarVersoes() {
+        return jdbc.query("SELECT id FROM modelo_recomendacao ORDER BY id DESC",
+                (rs, n) -> rs.getLong("id"))
+            .stream().map(id -> buscar(id)).toList();
+    }
 
     public ModeloRecomendacao buscar(Long id) {
         var coeficientes = jdbc.query("""
