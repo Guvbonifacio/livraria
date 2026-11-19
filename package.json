@@ -8,7 +8,7 @@
   },
   "scripts": {
     "app": ".\\mvnw.cmd spring-boot:run",
-    "app:test": ".\\mvnw.cmd spring-boot:run -Dspring-boot.run.arguments=\"--server.port=8081 --spring.datasource.url=jdbc:sqlite:e2e.db\"",
+    "app:test": ".\\mvnw.cmd spring-boot:run -Dspring-boot.run.arguments=\"--server.port=8081 --spring.datasource.url=jdbc:sqlite:e2e.db --livraria.ia.principal=falso --livraria.ia.diagnostico-inicial=false\"",
     "e2e": "cypress open",
     "e2e:run": "cypress run"
   },

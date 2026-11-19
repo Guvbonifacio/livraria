@@ -42,6 +42,62 @@ module.exports = defineConfig({
       let massaAnalise = null;
     
       on('task', {
+        'chatbot:preparar'() {
+          const db = banco(); // Mesma trava: somente porta 8081 e e2e.db.
+          try {
+            db.exec('BEGIN IMMEDIATE');
+            for (const tabela of [
+              'feedback_resposta',
+              'recomendacao_mensagem',
+              'mensagem_chat',
+              'conversa',
+              'preferencia_cliente',
+              'coeficiente_modelo',
+              'vies_categoria',
+              'modelo_recomendacao',
+              'item_troca',
+              'troca',
+              'notificacao',
+              'reserva_estoque',
+              'log_transacao',
+              'pagamento',
+              'item_pedido',
+              'cupom',
+              'pedido',
+              'cartao_credito',
+              'endereco',
+              'cliente',
+              'item_estoque',
+              'livro_categoria',
+              'livro',
+              'categoria',
+              'grupo_precificacao'
+            ]) {
+              db.exec(`DELETE FROM ${tabela}`);
+            }
+
+            for (const arquivo of ['data.sql', 'data-treino.sql']) {
+              db.exec(readFileSync(path.join(config.projectRoot, 'src/main/resources', arquivo), 'utf8'));
+            }
+            db.exec('COMMIT');
+            return { clienteA: 1, clienteB: 3 };
+          } catch (erro) {
+            db.exec('ROLLBACK');
+            throw erro;
+          } finally { db.close(); }
+        },
+
+        'chatbot:estado'(mensagemId) {
+          const db = banco();
+          try {
+            return {
+              feedback: db.prepare('SELECT util FROM feedback_resposta WHERE mensagem_chat_id=?').all(mensagemId),
+              recomendados: db.prepare('SELECT livro_id FROM recomendacao_mensagem WHERE mensagem_chat_id=? ORDER BY livro_id').all(mensagemId),
+              preferencias: db.prepare('SELECT * FROM preferencia_cliente WHERE cliente_id=1 ORDER BY id').all()
+            };
+          } finally { db.close(); }
+        },
+
         'reserva:estado'() {
           const db = banco();
 

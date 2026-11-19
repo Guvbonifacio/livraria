@@ -70,9 +70,11 @@ public class ConfiguracaoIA {
             ProvedorIA claude,
 
             @Qualifier("ollamaProvedor")
-            ProvedorIA ollama) {
+            ProvedorIA ollama,
+            ObjectMapper json) {
 
         return switch (principal) {
+            case "falso" -> new ProvedorIAFalso(json);
             case "claude" ->
                 new ProvedorComFallback(claude, ollama);
 
@@ -81,7 +83,7 @@ public class ConfiguracaoIA {
 
             default ->
                 throw new IllegalArgumentException(
-                    "Provedor de IA inválido: use claude ou ollama."
+                    "Provedor de IA inválido: use claude, ollama ou falso."
                 );
         };
     }

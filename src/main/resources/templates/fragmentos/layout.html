@@ -65,65 +65,81 @@
         </div>
     </nav>
 
-    <!-- Componente Chatbot -->
-    <div th:fragment="chatbot">
-
-        <!-- Botão flutuante (posicionado acima do rodapé) -->
+     <!-- Componente Chatbot -->
+    <div th:fragment="chatbot" data-cy="chat-configuracao" th:attr="data-modo=${chatModo}">
         <button class="btn btn-primary rounded-circle position-fixed end-0 me-4 shadow"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#painelChatbot"
-                aria-expanded="false"
-                aria-controls="painelChatbot"
-                style="width: 60px; height: 60px; bottom: 85px; z-index: 1050; font-size: 10px;">
-        CHATBOT
+                type="button" data-bs-toggle="collapse" data-bs-target="#painelChatbot"
+                aria-expanded="false" aria-controls="painelChatbot" data-cy="abrir-chat"
+                style="width:60px;height:60px;bottom:85px;z-index:1050;font-size:10px;">
+            CHATBOT
         </button>
-
-        <!-- Painel do chatbot (largura de 270px e posicionado acima do botão) -->
         <div class="collapse position-fixed end-0 me-4 shadow-lg rounded"
-             id="painelChatbot"
-             style="width: 270px; bottom: 155px; z-index: 1040;">
-
+             th:classappend="${chatAberto == true} ? 'show' : ''"
+             id="painelChatbot" data-cy="painel-chat"
+             style="width:350px;max-width:calc(100vw - 2rem);bottom:155px;z-index:1040;">
             <div class="card border-0">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                     <span>Assistente da Livraria</span>
-                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-toggle="collapse" data-bs-target="#painelChatbot"></button>
+                    <button type="button" class="btn-close btn-close-white" aria-label="Fechar chat"
+                            data-bs-toggle="collapse" data-bs-target="#painelChatbot"></button>
                 </div>
-
-                <div class="card-body bg-light" style="height: 320px; overflow-y: auto;">
-                    <!-- Mensagem do chatbot -->
-                    <div class="mb-3">
-                        <div class="bg-white border rounded p-2 d-inline-block shadow-sm">
-                            Olá! Como posso ajudar?
+                <div class="card-body bg-light" role="log" data-cy="historico-chat"
+                     style="height:320px;max-height:45vh;overflow-y:auto;">
+                    <p th:if="${#lists.isEmpty(chatHistorico)}" class="text-muted small">
+                        Olá! Posso recomendar livros e consultar o catálogo. Como posso ajudar?
+                    </p>
+                    <div th:each="mensagem : ${chatHistorico}" class="mb-3"
+                         th:classappend="${mensagem.papel == 'CLIENTE'} ? 'text-end' : ''"
+                         th:attr="data-mensagem-id=${mensagem.id},data-papel=${mensagem.papel}"
+                         data-cy="mensagem-chat">
+                        <div class="border rounded p-2 shadow-sm"
+                             th:classappend="${mensagem.papel == 'CLIENTE'} ? 'bg-primary text-white' : 'bg-white'">
+                            <div style="white-space:pre-wrap;overflow-wrap:anywhere;" th:text="${mensagem.texto}"></div>
+                            <div th:each="livro : ${mensagem.recomendados}" class="border-top mt-2 pt-2 text-start"
+                                 data-cy="livro-recomendado" th:attr="data-livro-id=${livro.id}">
+                                <a th:href="@{/livro/{id}(id=${livro.id})}" th:text="${livro.titulo}"></a>
+                                <small class="d-block text-muted" th:text="${livro.autor}"></small>
+                            </div>
                         </div>
-                    </div>
-
-                    <!-- Mensagem do cliente -->
-                    <div class="mb-3 text-end">
-                        <div class="bg-primary text-white rounded p-2 d-inline-block shadow-sm">
-                            Pode me recomendar um livro de autoajuda?
-                        </div>
-                    </div>
-
-                    <!-- Recomendação -->
-                    <div class="mb-3">
-                        <div class="bg-white border rounded p-2 d-inline-block shadow-sm">
-                            Claro! Recomendo <strong>O Poder do Hábito</strong>, de J.R.R. Tolkien.
-                            É uma ótima opção para quem gosta de livros de Autoajuda.
+                        <div th:if="${mensagem.papel == 'ASSISTENTE'}" class="mt-1 text-start">
+                            <small class="text-muted" th:text="|Atendido por: ${mensagem.provedor}|" data-cy="provedor-chat"></small>
+                            <form th:if="${mensagem.util == null and mensagem.provedor != 'SISTEMA'}"
+                                  th:action="@{/chat/{id}/feedback(id=${mensagem.id})}" method="post" class="d-flex gap-1 mt-1">
+                                <input type="hidden" name="retorno" th:value="${chatRetorno}">
+                                <button type="submit" name="util" value="true" class="btn btn-sm btn-outline-success" data-cy="feedback-util">Útil</button>
+                                <button type="submit" name="util" value="false" class="btn btn-sm btn-outline-secondary" data-cy="feedback-nao-util">Não útil</button>
+                            </form>
+                            <small th:if="${mensagem.util != null}" class="d-block text-muted" data-cy="feedback-registrado"
+                                   th:text="${mensagem.util} ? 'Avaliação registrada: útil.' : 'Avaliação registrada: não útil.'"></small>
                         </div>
                     </div>
                 </div>
-
-                <div class="card-footer bg-white border-top-0">
-                    <div class="input-group">
-                        <input type="text" class="form-control" placeholder="Digite sua mensagem...">
-                        <button class="btn btn-primary" type="button">Enviar</button>
+                <div class="card-footer bg-white">
+                    <div th:if="${errosChat != null}" class="alert alert-warning small p-2" data-cy="erros-chat">
+                        <div th:each="erro : ${errosChat}" th:text="${erro}"></div>
                     </div>
+                    <form th:action="@{/chat}" method="post" data-cy="form-chat">
+                        <input type="hidden" name="retorno" th:value="${chatRetorno}">
+                        <label for="textoChat" class="visually-hidden">Sua mensagem</label>
+                        <div class="input-group">
+                            <input id="textoChat" type="text" name="texto" class="form-control" maxlength="2000" required
+                                   placeholder="Digite sua mensagem..." autocomplete="off" data-cy="texto-chat">
+                            <button class="btn btn-primary" type="submit" data-cy="enviar-chat">Enviar</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
-
-        <!-- Script JS do Bootstrap para garantir o funcionamento do collapse -->
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const painel = document.getElementById('painelChatbot');
+                if (location.hash === '#painelChatbot' && window.bootstrap) {
+                    bootstrap.Collapse.getOrCreateInstance(painel, { toggle: false }).show();
+                }
+                const historico = painel.querySelector('[data-cy="historico-chat"]');
+                historico.scrollTop = historico.scrollHeight;
+            });
+        </script>
     </div>
 
     <!-- Rodapé -->
