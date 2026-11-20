@@ -134,10 +134,17 @@ Valores da versão treinada em 19/11 sobre a massa atual:
 
 | Medida | Valor | Como defender |
 |---|---|---|
-| Amostras | **80** | 20 clientes × 4 categorias — mais amostras que os 11 parâmetros |
+| Amostras | **80** | os 20 clientes de perfil `CLIENTE` × 4 categorias — mais amostras que os 11 parâmetros |
 | Perda inicial | **0,6931** | é exatamente `ln 2`: o que se espera de um modelo que começa chutando 0,5 |
 | Perda final | **0,0641** | a otimização convergiu |
 | Brier (validação) | **0,0630** | contra **0,25** de um modelo que chuta 0,5 |
+
+**De onde saem exatamente 80.** A extração é um `CROSS JOIN` de cliente com
+categoria, filtrado por `WHERE cl.perfil = 'CLIENTE'`: 20 clientes × 4
+categorias. O "Administrador Demonstração" fica de fora pelo perfil, e os 21
+registros da tabela viram 20. Não é exigido que o cliente tenha eventos — quem
+não tem entra com features zeradas e rótulo 0, que é precisamente o que a
+limitação 7.1 declara.
 
 **O número que importa é o Brier.** A perda de treino cair só prova convergência
 naquela massa; a métrica de validação é calculada na terceira janela, que
